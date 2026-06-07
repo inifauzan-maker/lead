@@ -116,9 +116,49 @@ class ProspekTest extends TestCase
         $this->actingAs($admin)
             ->get(route('follow-up.index'))
             ->assertOk()
+            ->assertSee('Catat Aktivitas Follow Up')
             ->assertSee('Lead Sudah Dihubungi')
             ->assertSee('Lead Perlu Follow Up')
-            ->assertDontSee('Lead Baru');
+            ->assertSee('Lead Baru');
+    }
+
+    public function test_user_bisa_mencatat_aktivitas_follow_up(): void
+    {
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $prospek = Prospek::create([
+            'nama' => 'Lead Baru Follow Up',
+            'status' => 'Baru',
+            'cabang' => 'Bandung',
+            'user_id' => $staff->id,
+        ]);
+
+        $this->actingAs($staff)
+            ->post(route('follow-up.store'), [
+                'prospek_id' => $prospek->id,
+                'tanggal_follow_up' => '2026-06-07 10:00:00',
+                'metode' => 'WhatsApp',
+                'hasil' => 'Berminat',
+                'catatan' => 'Minta dikirimkan brosur.',
+                'tindak_lanjut' => 'Kirim reminder pendaftaran.',
+                'tanggal_follow_up_berikutnya' => '2026-06-08',
+                'prioritas' => 'Tinggi',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('follow_ups', [
+            'prospek_id' => $prospek->id,
+            'user_id' => $staff->id,
+            'hasil' => 'Berminat',
+            'prioritas' => 'Tinggi',
+        ]);
+        $this->assertDatabaseHas('prospek', [
+            'id' => $prospek->id,
+            'status' => 'Follow Up',
+        ]);
     }
 
     public function test_menu_data_siswa_menampilkan_leads_yang_sudah_daftar(): void

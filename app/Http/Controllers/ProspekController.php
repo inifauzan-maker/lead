@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Prospek;
 use App\Models\Cabang;
+use App\Models\FollowUp;
 use App\Models\ProgramLead;
 use App\Models\SumberLead;
 use App\Models\User;
@@ -17,6 +18,20 @@ use Illuminate\View\View;
 class ProspekController extends Controller
 {
     private const STATUS = ['Baru', 'Dihubungi', 'Follow Up', 'Daftar', 'Tidak Tertarik'];
+
+    private const METODE_FOLLOW_UP = ['WhatsApp', 'Telepon', 'Kunjungan', 'Email', 'Lainnya'];
+
+    private const HASIL_FOLLOW_UP = [
+        'Tidak tersambung',
+        'Tersambung',
+        'Berminat',
+        'Minta dihubungi ulang',
+        'Closing',
+        'Tidak tertarik',
+        'Nomor tidak aktif',
+    ];
+
+    private const PRIORITAS_FOLLOW_UP = ['Rendah', 'Normal', 'Tinggi'];
 
     private const KOLOM_IMPORT = [
         'nama',
@@ -105,14 +120,45 @@ class ProspekController extends Controller
         $akhir = $mulai->copy()->endOfMonth();
 
         $prospek = (clone $query)
+            ->with(['followUpTerakhir.user', 'penanggungJawab'])
+            ->withCount('followUps')
             ->latest('updated_at')
             ->paginate(10)
             ->withQueryString();
-        $kalender = $this->kalenderFollowUp((clone $query), $mulai, $akhir);
+        $queryRiwayat = $this->queryRiwayatFollowUp($request);
+        $kalender = $this->kalenderFollowUp((clone $queryRiwayat), $mulai, $akhir);
+        $aktivitasTerbaru = (clone $queryRiwayat)
+            ->with(['prospek', 'user'])
+            ->latest('tanggal_follow_up')
+            ->limit(8)
+            ->get();
+        $calonProspek = $this->queryAksesDashboard($request)
+            ->withCount('followUps')
+            ->whereNotIn('status', ['Daftar', 'Tidak Tertarik'])
+            ->orderBy('nama')
+            ->limit(80)
+            ->get();
+        $hariIni = now()->toDateString();
 
         return view('follow-up.index', [
             'prospek' => $prospek,
             'kalender' => $kalender,
+            'aktivitasTerbaru' => $aktivitasTerbaru,
+            'calonProspek' => $calonProspek,
+            'metodeFollowUp' => self::METODE_FOLLOW_UP,
+            'hasilFollowUp' => self::HASIL_FOLLOW_UP,
+            'prioritasFollowUp' => self::PRIORITAS_FOLLOW_UP,
+            'totalAktivitas' => (clone $queryRiwayat)->count(),
+            'butuhFollowUpHariIni' => (clone $queryRiwayat)
+                ->whereDate('tanggal_follow_up_berikutnya', $hariIni)
+                ->distinct('prospek_id')
+                ->count('prospek_id'),
+            'followUpTerlambat' => (clone $queryRiwayat)
+                ->whereDate('tanggal_follow_up_berikutnya', '<', $hariIni)
+                ->whereNotIn('hasil', ['Closing', 'Tidak tertarik'])
+                ->distinct('prospek_id')
+                ->count('prospek_id'),
+            'closingFollowUp' => (clone $queryRiwayat)->where('hasil', 'Closing')->count(),
             'cabang' => $this->daftarCabang(),
             'adminCabang' => $this->daftarAdminCabang(),
             'staffFilter' => $this->staffTersedia($request->string('cabang')->toString() ?: null),
@@ -121,6 +167,34 @@ class ProspekController extends Controller
             'daftarBulan' => $this->daftarBulan(),
             'daftarTahun' => range((int) now()->year, (int) now()->year - 5),
         ]);
+    }
+
+    public function storeFollowUp(Request $request): RedirectResponse
+    {
+        $this->pastikanBolehUbah();
+
+        $data = $request->validate([
+            'prospek_id' => ['required', 'exists:prospek,id'],
+            'tanggal_follow_up' => ['required', 'date'],
+            'metode' => ['required', Rule::in(self::METODE_FOLLOW_UP)],
+            'hasil' => ['required', Rule::in(self::HASIL_FOLLOW_UP)],
+            'catatan' => ['nullable', 'string'],
+            'tindak_lanjut' => ['nullable', 'string'],
+            'tanggal_follow_up_berikutnya' => ['nullable', 'date'],
+            'prioritas' => ['required', Rule::in(self::PRIORITAS_FOLLOW_UP)],
+        ]);
+        $prospek = Prospek::query()->findOrFail($data['prospek_id']);
+        $this->pastikanBolehAkses($prospek);
+
+        $data['user_id'] = $request->user()->id;
+        FollowUp::create($data);
+
+        $prospek->update([
+            'status' => $this->statusDariHasilFollowUp($data['hasil']),
+            'user_id' => $prospek->user_id ?: $request->user()->id,
+        ]);
+
+        return back()->with('berhasil', 'Aktivitas follow up berhasil dicatat.');
     }
 
     public function dataSiswa(Request $request): View
@@ -494,7 +568,34 @@ class ProspekController extends Controller
     private function queryAksesFollowUp(Request $request)
     {
         return $this->queryAksesDashboard($request)
-            ->whereIn('status', ['Dihubungi', 'Follow Up']);
+            ->where(function ($query) {
+                $query->whereIn('status', ['Dihubungi', 'Follow Up'])
+                    ->orWhereHas('followUps');
+            });
+    }
+
+    private function queryRiwayatFollowUp(Request $request)
+    {
+        return FollowUp::query()
+            ->whereHas('prospek', fn ($query) => $this->filterAksesDashboard($query, $request));
+    }
+
+    private function filterAksesDashboard($query, Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user->aksesSemuaCabang()) {
+            if ($user->role === 'staff') {
+                $query->where('user_id', $user->id);
+            } else {
+                $query->where('cabang', $user->cabang);
+            }
+        }
+
+        return $query
+            ->when($user->aksesSemuaCabang() && $request->filled('cabang'), fn ($query) => $query->where('cabang', $request->cabang))
+            ->when($request->filled('admin'), fn ($query) => $query->where('diserahkan_ke', $request->admin))
+            ->when($request->filled('staff'), fn ($query) => $query->where('user_id', $request->staff));
     }
 
     private function queryAksesDataSiswa(Request $request)
@@ -506,8 +607,8 @@ class ProspekController extends Controller
     private function kalenderFollowUp($query, Carbon $mulai, Carbon $akhir): array
     {
         $jumlahPerTanggal = (clone $query)
-            ->selectRaw('DATE(updated_at) as tanggal, COUNT(*) as total')
-            ->whereBetween('updated_at', [$mulai, $akhir])
+            ->selectRaw('DATE(tanggal_follow_up) as tanggal, COUNT(*) as total')
+            ->whereBetween('tanggal_follow_up', [$mulai, $akhir])
             ->groupBy('tanggal')
             ->pluck('total', 'tanggal');
         $tanggalPertamaGrid = $mulai->copy()->startOfWeek(Carbon::MONDAY);
@@ -648,6 +749,16 @@ class ProspekController extends Controller
         }
 
         return compact('bulan', 'tahun');
+    }
+
+    private function statusDariHasilFollowUp(string $hasil): string
+    {
+        return match ($hasil) {
+            'Closing' => 'Daftar',
+            'Tidak tertarik', 'Nomor tidak aktif' => 'Tidak Tertarik',
+            'Tidak tersambung' => 'Dihubungi',
+            default => 'Follow Up',
+        };
     }
 
     private function daftarBulan(): array

@@ -95,8 +95,18 @@ textarea {
 }
 
 .teks-merek {
+    display: grid;
     font-size: 1.2rem;
     font-weight: 800;
+    line-height: 1.15;
+}
+
+.teks-merek small {
+    color: #b7c9d8;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
 }
 
 .menu {
@@ -508,6 +518,11 @@ textarea {
 .item-sosial-profil small,
 .aktivitas-profil small {
     color: var(--muted);
+}
+
+.aktivitas-profil p {
+    color: var(--teks);
+    margin: 6px 0;
 }
 
 .ikon-notifikasi {

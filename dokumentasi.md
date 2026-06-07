@@ -30,9 +30,13 @@ Status leads:
 
 ## ERD
 
+Diagram ERD visual tersedia dalam format Draw.io pada file [`dokumentasi-erd.drawio`](dokumentasi-erd.drawio). File tersebut dapat dibuka melalui diagrams.net/draw.io untuk diedit atau diekspor menjadi PNG/PDF.
+
 ```mermaid
 erDiagram
     USERS ||--o{ PROSPEK : "ditugaskan ke"
+    USERS ||--o{ FOLLOW_UPS : "mencatat"
+    PROSPEK ||--o{ FOLLOW_UPS : "memiliki riwayat"
     USERS ||--o{ SESSIONS : "memiliki sesi"
     CABANG ||..o{ USERS : "referensi cabang"
     CABANG ||..o{ PROSPEK : "referensi cabang"
@@ -71,6 +75,20 @@ erDiagram
         string sumber
         text keterangan
         date tgl_masuk
+        timestamp created_at
+        timestamp updated_at
+    }
+    FOLLOW_UPS {
+        bigint id PK
+        bigint prospek_id FK
+        bigint user_id FK
+        datetime tanggal_follow_up
+        string metode
+        string hasil
+        text catatan
+        text tindak_lanjut
+        date tanggal_follow_up_berikutnya
+        string prioritas
         timestamp created_at
         timestamp updated_at
     }
@@ -156,6 +174,8 @@ erDiagram
 | --- | --- | --- |
 | `users` ke `prospek` | 1 ke 0..N | Satu user dapat menjadi penanggung jawab banyak leads. Satu leads boleh belum punya `user_id`. |
 | `prospek` ke `users` | 0..N ke 0..1 | Banyak leads dapat mengarah ke satu user. Jika user dihapus, `user_id` pada leads menjadi `null`. |
+| `prospek` ke `follow_ups` | 1 ke 0..N | Satu leads dapat memiliki banyak aktivitas follow up. Jika leads dihapus, riwayat follow up ikut terhapus. |
+| `users` ke `follow_ups` | 1 ke 0..N | Satu user dapat mencatat banyak aktivitas follow up. Jika user dihapus, `user_id` pada follow up menjadi `null`. |
 | `users` ke `sessions` | 1 ke 0..N | Satu user dapat memiliki banyak session login. Kolom `sessions.user_id` nullable dan hanya diindeks. |
 | `cabang` ke `users` | 1 ke 0..N secara logis | Relasi berdasarkan teks `cabang.nama = users.cabang`, belum memakai foreign key. |
 | `cabang` ke `prospek` | 1 ke 0..N secara logis | Relasi berdasarkan teks `cabang.nama = prospek.cabang`, belum memakai foreign key. |
@@ -225,7 +245,33 @@ Catatan:
 - `status = Dihubungi` dan `Follow Up` digunakan pada menu Follow Up dan notifikasi.
 - `updated_at` saat ini dipakai sebagai tanggal aktivitas follow up/closing pada beberapa tampilan.
 
-### 3. `cabang`
+### 3. `follow_ups`
+
+Menyimpan riwayat aktivitas follow up per leads.
+
+| Kolom | Tipe | Constraint | Keterangan |
+| --- | --- | --- | --- |
+| `id` | bigint unsigned | PK, auto increment | ID aktivitas follow up |
+| `prospek_id` | bigint unsigned | FK ke `prospek.id`, cascade on delete | Leads yang di-follow up |
+| `user_id` | bigint unsigned | nullable, FK ke `users.id`, null on delete | User yang mencatat follow up |
+| `tanggal_follow_up` | datetime | not null, index gabungan | Tanggal dan waktu follow up dilakukan |
+| `metode` | varchar | default `WhatsApp` | Metode follow up |
+| `hasil` | varchar | default `Tersambung`, index gabungan | Hasil follow up |
+| `catatan` | text | nullable | Catatan percakapan |
+| `tindak_lanjut` | text | nullable | Tindak lanjut setelah follow up |
+| `tanggal_follow_up_berikutnya` | date | nullable, index | Jadwal follow up berikutnya |
+| `prioritas` | varchar | default `Normal` | Prioritas follow up |
+| `created_at` | timestamp | nullable | Waktu dibuat |
+| `updated_at` | timestamp | nullable | Waktu diperbarui |
+
+Catatan:
+
+- Jumlah follow up per leads dihitung dari banyaknya baris `follow_ups` berdasarkan `prospek_id`.
+- Hasil `Closing` memperbarui status leads menjadi `Daftar`.
+- Hasil `Tidak tertarik` dan `Nomor tidak aktif` memperbarui status leads menjadi `Tidak Tertarik`.
+- Hasil lain memperbarui status leads menjadi `Dihubungi` atau `Follow Up`.
+
+### 4. `cabang`
 
 Master cabang untuk filter, form leads, dan manajemen role user.
 
@@ -237,7 +283,7 @@ Master cabang untuk filter, form leads, dan manajemen role user.
 | `created_at` | timestamp | nullable | Waktu dibuat |
 | `updated_at` | timestamp | nullable | Waktu diperbarui |
 
-### 4. `sumber_leads`
+### 5. `sumber_leads`
 
 Master sumber leads untuk form dan filter Data Leads.
 
@@ -249,7 +295,7 @@ Master sumber leads untuk form dan filter Data Leads.
 | `created_at` | timestamp | nullable | Waktu dibuat |
 | `updated_at` | timestamp | nullable | Waktu diperbarui |
 
-### 5. `program_leads`
+### 6. `program_leads`
 
 Master program untuk pilihan program pada input leads.
 
@@ -261,7 +307,7 @@ Master program untuk pilihan program pada input leads.
 | `created_at` | timestamp | nullable | Waktu dibuat |
 | `updated_at` | timestamp | nullable | Waktu diperbarui |
 
-### 6. `sessions`
+### 7. `sessions`
 
 Tabel session Laravel.
 
@@ -274,7 +320,7 @@ Tabel session Laravel.
 | `payload` | longtext | not null | Data session |
 | `last_activity` | integer | index | Aktivitas terakhir |
 
-### 7. `password_reset_tokens`
+### 8. `password_reset_tokens`
 
 Tabel token reset password Laravel.
 
@@ -284,7 +330,7 @@ Tabel token reset password Laravel.
 | `token` | varchar | not null | Token reset |
 | `created_at` | timestamp | nullable | Waktu dibuat |
 
-### 8. `cache`
+### 9. `cache`
 
 Tabel cache Laravel.
 
@@ -294,7 +340,7 @@ Tabel cache Laravel.
 | `value` | mediumtext | not null | Isi cache |
 | `expiration` | bigint | index | Waktu kedaluwarsa |
 
-### 9. `cache_locks`
+### 10. `cache_locks`
 
 Tabel lock cache Laravel.
 
@@ -304,7 +350,7 @@ Tabel lock cache Laravel.
 | `owner` | varchar | not null | Pemilik lock |
 | `expiration` | bigint | index | Waktu kedaluwarsa |
 
-### 10. `jobs`
+### 11. `jobs`
 
 Tabel antrean job Laravel.
 
@@ -318,7 +364,7 @@ Tabel antrean job Laravel.
 | `available_at` | unsigned integer | not null | Waktu tersedia |
 | `created_at` | unsigned integer | not null | Waktu dibuat |
 
-### 11. `job_batches`
+### 12. `job_batches`
 
 Tabel batch job Laravel.
 
@@ -335,7 +381,7 @@ Tabel batch job Laravel.
 | `created_at` | integer | not null | Waktu dibuat |
 | `finished_at` | integer | nullable | Waktu selesai |
 
-### 12. `failed_jobs`
+### 13. `failed_jobs`
 
 Tabel job gagal Laravel.
 
@@ -366,7 +412,7 @@ Catatan:
 | --- | --- | --- |
 | Dashboard | `prospek`, `users` | Grafik harian, ringkasan leads, sumber, program, cabang, sekolah |
 | Data Leads | `prospek` | CRUD leads, import/export, pilih banyak data |
-| Follow Up | `prospek` | Leads status `Dihubungi` dan `Follow Up` |
+| Follow Up | `prospek`, `follow_ups` | Riwayat aktivitas follow up, jumlah follow up per leads, kalender, hasil follow up |
 | Data Siswa | `prospek` | Leads status `Daftar` |
 | TIM | `users`, `prospek` | Ringkasan anggota aktif dan performa |
 | Tugas | `prospek` | Kanban berdasarkan status leads |
@@ -375,19 +421,132 @@ Catatan:
 | Profil User | `users`, `prospek` | Data akun, media sosial, ringkasan personal |
 | Pengaturan | `cabang`, `sumber_leads`, `program_leads`, `users` | CRUD master sistem dan manajemen role user |
 
+## Enterprise Architecture
+
+Enterprise Architecture Sistem Informasi Leads dibagi menjadi empat sudut pandang utama: arsitektur proses, arsitektur data, arsitektur aplikasi, dan arsitektur teknologi.
+
+### 1. Arsitektur Proses
+
+Arsitektur proses menjelaskan alur kerja bisnis utama dalam sistem.
+
+| Proses | Aktor | Input | Output | Modul |
+| --- | --- | --- | --- | --- |
+| Login dan autentikasi | Semua role | Email, password | Session user aktif | Login |
+| Input leads | Superadmin, admin, leader, staff | Nama, sekolah, WA, program, cabang, sumber, tanggal masuk | Data leads baru | Data Leads, Tambah Leads |
+| Validasi input ganda | Sistem | Nomor WhatsApp | Penolakan jika `no_wa` sudah ada | Data Leads |
+| Import leads | Superadmin, admin, leader, staff | File CSV contoh import | Banyak data leads masuk sekaligus | Data Leads |
+| Export leads | User sesuai akses | Filter/status/cabang/data terpilih | File export leads | Data Leads |
+| Distribusi leads ke cabang | Superadmin, admin, leader | Cabang tujuan, admin tujuan | Leads memiliki cabang dan tujuan penyerahan | Data Leads |
+| Follow up leads | Admin, leader, staff | Perubahan status dan catatan | Leads masuk daftar follow up | Follow Up |
+| Closing/data siswa | Admin, leader, staff | Status `Daftar` | Data siswa/closing | Data Siswa |
+| Monitoring performa | Superadmin, admin, leader, direksi | Filter bulan, tahun, cabang, admin, staff | Dashboard grafik dan ringkasan | Dashboard |
+| Manajemen master | Superadmin | Cabang, sumber leads, program leads | Data master aktif/nonaktif | Pengaturan |
+| Manajemen role user | Superadmin | Role, cabang, status aktif | Hak akses user diperbarui | Pengaturan |
+| Profil dan aktivitas user | Semua role | Data profil, media sosial | Profil user dan ringkasan personal | Profil User |
+
+Ringkasan alur proses utama:
+
+1. User login sesuai role.
+2. User menginput atau mengimport leads.
+3. Sistem mengecek duplikasi berdasarkan nomor WhatsApp.
+4. Leads diberi cabang, sumber, program, status, dan penanggung jawab.
+5. Leads dipantau melalui dashboard harian dan grafik per sumber/program/cabang/sekolah.
+6. Leads yang perlu dihubungi masuk ke Follow Up.
+7. Leads dengan status `Daftar` masuk ke Data Siswa/closing.
+8. Superadmin mengelola data master dan role user melalui Pengaturan.
+
+### 2. Arsitektur Data
+
+Arsitektur data menjelaskan struktur data, sumber data, dan relasi logis yang digunakan aplikasi.
+
+| Kelompok Data | Entitas | Fungsi |
+| --- | --- | --- |
+| Data identitas dan akses | `users` | Akun login, role, cabang, status aktif, media sosial |
+| Data transaksi utama | `prospek`, `follow_ups` | Data leads, riwayat follow up, status closing, sumber, program, cabang |
+| Data master | `cabang`, `sumber_leads`, `program_leads` | Referensi pilihan form, filter, dan manajemen sistem |
+| Data session | `sessions` | Penyimpanan session login |
+| Data cache | `cache`, `cache_locks` | Penyimpanan cache Laravel |
+| Data queue | `jobs`, `job_batches`, `failed_jobs` | Antrean job Laravel bila digunakan |
+| Data reset akses | `password_reset_tokens` | Token reset password bawaan Laravel |
+| Data eksternal | `database/sekolahVM.json` | Referensi autosuggest asal sekolah |
+
+Prinsip arsitektur data:
+
+- `prospek.no_wa` dibuat unique untuk menghindari input leads ganda.
+- Relasi `prospek.user_id` memakai foreign key ke `users.id` dan menjadi `null` jika user dihapus.
+- Relasi cabang, sumber, dan program saat ini masih berbasis teks, yaitu mencocokkan `nama` master dengan kolom di `users` dan `prospek`.
+- Data sekolah tidak disimpan sebagai tabel, tetapi sebagai JSON referensi untuk autosuggest. User tetap dapat mengisi manual bila data sekolah tidak ditemukan.
+- Data dashboard dihitung dari `prospek` berdasarkan `tgl_masuk`, `status`, `cabang`, `program`, `sumber`, dan `asal_sekolah`.
+- Data aktivitas follow up dihitung dari `follow_ups` berdasarkan `prospek_id`, `tanggal_follow_up`, `hasil`, dan `tanggal_follow_up_berikutnya`.
+
+### 3. Arsitektur Aplikasi
+
+Arsitektur aplikasi menjelaskan pembagian modul dan komponen aplikasi Laravel.
+
+| Lapisan | Komponen | Keterangan |
+| --- | --- | --- |
+| Presentation | Blade view di `resources/views` | Tampilan dashboard, leads, follow up, profil, pengaturan, dan login |
+| Styling dan interaksi | `resources/css/app.css`, `resources/js/app.js` | Layout responsif, sidebar collapsible, autosuggest sekolah, multi-select leads, modal konfirmasi |
+| Routing | `routes/web.php` | Definisi URL, middleware auth, dan akses role |
+| Controller | `app/Http/Controllers` | Logika dashboard, CRUD leads, profil, pengaturan, modul user |
+| Model | `app/Models` | Representasi tabel `User`, `Prospek`, `Cabang`, `SumberLead`, `ProgramLead` |
+| Middleware | `app/Http/Middleware/PastikanRole.php` | Pembatasan akses berdasarkan role |
+| Database migration | `database/migrations` | Struktur tabel database |
+| Seeder | `database/seeders/DatabaseSeeder.php` | Data awal akun, cabang, sumber, dan program |
+| Data referensi | `database/sekolahVM.json` | Referensi sekolah untuk autosuggest |
+
+Pembagian modul aplikasi:
+
+| Modul | Route Utama | Controller | Fungsi |
+| --- | --- | --- | --- |
+| Login | `/login` | `AuthController` | Autentikasi user |
+| Dashboard | `/dashboard` | `ProspekController` | Ringkasan, grafik harian, visual sumber/program/cabang/sekolah |
+| Data Leads | `/prospek` | `ProspekController` | CRUD, import, export, pilih banyak data |
+| Follow Up | `/follow-up` | `ProspekController` | Catat aktivitas follow up, kalender, jumlah follow up per leads, timeline hasil |
+| Data Siswa | `/data-siswa` | `ProspekController` | Leads status `Daftar` |
+| Profil User | `/profil` | `ProfilController`, `ModulController` | Profil, media sosial, TIM, Tugas, Laporan, Pembelajaran |
+| Pengaturan | `/pengaturan` | `PengaturanController` | CRUD cabang, sumber, program, dan role user |
+
+### 4. Arsitektur Teknologi
+
+Arsitektur teknologi menjelaskan platform, runtime, deployment, dan dependency teknis.
+
+| Komponen | Teknologi | Keterangan |
+| --- | --- | --- |
+| Framework backend | Laravel `^13.8` | Framework utama aplikasi |
+| Bahasa backend | PHP `^8.3` | Runtime server |
+| Template | Blade | Server-side rendering |
+| Frontend build | Vite | Build CSS dan JavaScript |
+| Styling | CSS custom + Tailwind import | Layout, komponen, responsive design |
+| JavaScript | Vanilla JS | Sidebar, autocomplete, multi-select, modal konfirmasi |
+| Database production | MySQL | Database hosting production |
+| Database lokal | SQLite/MySQL sesuai `.env` | Pengembangan lokal |
+| Package manager PHP | Composer | Dependency Laravel |
+| Package manager frontend | npm | Build asset lokal |
+| Web server | Apache/LiteSpeed hosting | Menggunakan `.htaccess` untuk rewrite ke `public` |
+| Version control | Git/GitHub | Repository `inifauzan-maker/lead.git` |
+| Deployment | hPanel/Hostinger subdomain | Root Laravel di `public_html`, akses web diarahkan ke `public` |
+
+Catatan deployment shared hosting:
+
+- Jika document root bisa diatur, arahkan subdomain ke folder `public`.
+- Jika document root tidak bisa diarahkan ke `public`, gunakan `.htaccess` root untuk rewrite ke folder `public`.
+- Karena hosting tidak selalu menyediakan `npm`, folder `public/build` perlu ikut tersedia di server.
+- Jalankan `php artisan migrate --force` dan `php artisan db:seed --force` untuk menyiapkan tabel dan akun awal.
+- Pastikan `storage` dan `bootstrap/cache` writable.
+
 ## Catatan Pengembangan Lanjutan
 
 Beberapa fitur saat ini masih menggunakan data yang sudah ada atau data statis awal:
 
 - Tugas/task management belum memiliki tabel khusus seperti `tasks`.
 - Pembelajaran/online course belum memiliki tabel khusus seperti `courses`, `lessons`, atau `course_progress`.
-- Follow up belum memiliki tabel histori khusus seperti `follow_ups`; saat ini memakai status leads dan `updated_at`.
+- Modul Follow Up sudah memiliki tabel histori `follow_ups`; pengembangan berikutnya dapat menambahkan reminder otomatis dan notifikasi terjadwal.
 
 Rekomendasi tabel lanjutan:
 
 - `tasks`
 - `task_comments`
-- `follow_ups`
 - `courses`
 - `course_lessons`
 - `course_progress`

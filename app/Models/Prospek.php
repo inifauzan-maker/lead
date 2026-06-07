@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Prospek extends Model
 {
@@ -32,5 +34,20 @@ class Prospek extends Model
         return [
             'tgl_masuk' => 'date',
         ];
+    }
+
+    public function penanggungJawab(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function followUps(): HasMany
+    {
+        return $this->hasMany(FollowUp::class);
+    }
+
+    public function followUpTerakhir()
+    {
+        return $this->hasOne(FollowUp::class)->latestOfMany('tanggal_follow_up');
     }
 }

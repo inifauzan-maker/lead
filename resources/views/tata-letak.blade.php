@@ -24,7 +24,10 @@
         <aside class="sidebar" data-sidebar>
             <div class="merek">
                 <span class="logo">SI</span>
-                <span class="teks-merek">Leads</span>
+                <span class="teks-merek">
+                    <small>Sistem Informasi</small>
+                    Leads
+                </span>
             </div>
             <nav class="menu">
                 <a class="menu-item {{ request()->routeIs('dashboard') ? 'aktif' : '' }}" href="{{ route('dashboard') }}">
@@ -60,7 +63,6 @@
                     <span></span><span></span><span></span>
                 </button>
                 <div>
-                    <p class="eyebrow">Sistem Informasi</p>
                     <h1>{{ $judul ?? 'Dashboard Leads' }}</h1>
                 </div>
                 <a class="ikon-notifikasi" href="{{ route('follow-up.index') }}" aria-label="Notifikasi follow up">

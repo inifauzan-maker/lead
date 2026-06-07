@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::post('prospek/import', [ProspekController::class, 'import'])->name('prospek.import');
     Route::post('prospek/aksi-massal', [ProspekController::class, 'aksiMassal'])->name('prospek.aksi-massal');
     Route::get('follow-up', [ProspekController::class, 'followUp'])->name('follow-up.index');
+    Route::post('follow-up', [ProspekController::class, 'storeFollowUp'])->name('follow-up.store');
     Route::get('data-siswa', [ProspekController::class, 'dataSiswa'])->name('data-siswa.index');
     Route::resource('prospek', ProspekController::class)->except(['show']);
     Route::prefix('pengaturan')->name('pengaturan.')->middleware('role:superadmin')->group(function () {

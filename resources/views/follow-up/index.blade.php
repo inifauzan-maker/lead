@@ -1,10 +1,98 @@
 @extends('tata-letak', ['judul' => 'Follow Up'])
 
 @section('konten')
-    <section class="panel">
+    <section class="grid-ringkasan">
+        <div class="kartu-stat">
+            <span>Total Aktivitas</span>
+            <strong>{{ $totalAktivitas }}</strong>
+        </div>
+        <div class="kartu-stat">
+            <span>Follow Up Hari Ini</span>
+            <strong>{{ $butuhFollowUpHariIni }}</strong>
+        </div>
+        <div class="kartu-stat">
+            <span>Terlambat</span>
+            <strong>{{ $followUpTerlambat }}</strong>
+        </div>
+        <div class="kartu-stat">
+            <span>Closing dari Follow Up</span>
+            <strong>{{ $closingFollowUp }}</strong>
+        </div>
+    </section>
+
+    @if (auth()->user()->role !== 'direksi')
+        <section class="panel">
+            <div class="judul-panel">
+                <div>
+                    <h2>Catat Aktivitas Follow Up</h2>
+                    <span>Simpan setiap kontak agar jumlah dan hasil follow up per leads tercatat.</span>
+                </div>
+            </div>
+
+            <form class="grid-form" method="POST" action="{{ route('follow-up.store') }}">
+                @csrf
+                <label class="penuh">
+                    Leads
+                    <select name="prospek_id" required>
+                        <option value="">Pilih leads</option>
+                        @foreach ($calonProspek as $item)
+                            <option value="{{ $item->id }}" @selected(old('prospek_id') == $item->id)>
+                                {{ $item->nama }} - {{ $item->no_wa ?: 'WA belum diisi' }} - Follow up ke-{{ $item->follow_ups_count + 1 }}
+                            </option>
+                        @endforeach
+                    </select>
+                </label>
+                <label>
+                    Tanggal Follow Up
+                    <input type="datetime-local" name="tanggal_follow_up" value="{{ old('tanggal_follow_up', now()->format('Y-m-d\TH:i')) }}" required>
+                </label>
+                <label>
+                    Metode
+                    <select name="metode" required>
+                        @foreach ($metodeFollowUp as $item)
+                            <option value="{{ $item }}" @selected(old('metode', 'WhatsApp') === $item)>{{ $item }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label>
+                    Hasil
+                    <select name="hasil" required>
+                        @foreach ($hasilFollowUp as $item)
+                            <option value="{{ $item }}" @selected(old('hasil', 'Tersambung') === $item)>{{ $item }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label>
+                    Prioritas
+                    <select name="prioritas" required>
+                        @foreach ($prioritasFollowUp as $item)
+                            <option value="{{ $item }}" @selected(old('prioritas', 'Normal') === $item)>{{ $item }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label>
+                    Jadwal Follow Up Berikutnya
+                    <input type="date" name="tanggal_follow_up_berikutnya" value="{{ old('tanggal_follow_up_berikutnya') }}">
+                </label>
+                <label class="penuh">
+                    Catatan Percakapan
+                    <textarea name="catatan" rows="3" placeholder="Contoh: Orang tua meminta brosur dan rincian biaya.">{{ old('catatan') }}</textarea>
+                </label>
+                <label class="penuh">
+                    Tindak Lanjut
+                    <textarea name="tindak_lanjut" rows="2" placeholder="Contoh: Kirim reminder besok sore.">{{ old('tindak_lanjut') }}</textarea>
+                </label>
+                <div class="aksi-form penuh">
+                    <button class="tombol utama" type="submit">Simpan Follow Up</button>
+                </div>
+            </form>
+        </section>
+    @endif
+
+    <section class="panel jarak-atas">
         <div class="judul-panel judul-heatmap">
             <div>
-                <h2>Kalender Follow Up</h2>
+                <h2>Kalender Aktivitas Follow Up</h2>
                 <span>{{ $kalender['total'] }} aktivitas follow up pada {{ $kalender['judul'] }}.</span>
             </div>
             <form class="filter-dashboard" method="GET" action="{{ route('follow-up.index') }}">
@@ -53,7 +141,7 @@
                     <div class="tanggal-kalender {{ $hari['bulan_aktif'] ? '' : 'tanggal-luar-bulan' }} {{ $hari['hari_ini'] ? 'tanggal-hari-ini' : '' }}">
                         <span>{{ $hari['nomor'] }}</span>
                         @if ($hari['total'] > 0)
-                            <strong>{{ $hari['total'] }} leads</strong>
+                            <strong>{{ $hari['total'] }} aktivitas</strong>
                         @else
                             <em>-</em>
                         @endif
@@ -65,8 +153,10 @@
 
     <section class="panel jarak-atas">
         <div class="judul-panel">
-            <h2>Data Leads Sudah Follow Up</h2>
-            <span>{{ $prospek->total() }} data</span>
+            <div>
+                <h2>Data Leads Follow Up</h2>
+                <span>{{ $prospek->total() }} data leads dengan status atau riwayat follow up.</span>
+            </div>
         </div>
 
         <div class="bungkus-tabel">
@@ -74,13 +164,13 @@
                 <thead>
                     <tr>
                         <th>Nama</th>
-                        <th>Asal Sekolah</th>
                         <th>WA</th>
                         <th>Program</th>
                         <th>Status</th>
-                        <th>Cabang</th>
-                        <th>Diserahkan ke</th>
-                        <th>Update</th>
+                        <th>Follow Up Ke</th>
+                        <th>Hasil Terakhir</th>
+                        <th>Jadwal Berikutnya</th>
+                        <th>PIC Terakhir</th>
                         @if (auth()->user()->role !== 'direksi')
                             <th>Aksi</th>
                         @endif
@@ -88,18 +178,25 @@
                 </thead>
                 <tbody>
                     @forelse ($prospek as $item)
+                        @php($terakhir = $item->followUpTerakhir)
                         <tr>
                             <td>
                                 <strong>{{ $item->nama }}</strong>
-                                <small>{{ $item->kota_asal ?: 'Kota belum diisi' }}</small>
+                                <small>{{ $item->asal_sekolah ?: 'Sekolah belum diisi' }}</small>
                             </td>
-                            <td>{{ $item->asal_sekolah ?: '-' }}</td>
                             <td>{{ $item->no_wa ?: '-' }}</td>
                             <td>{{ $item->program ?: '-' }}</td>
                             <td><span class="badge">{{ $item->status }}</span></td>
-                            <td>{{ $item->cabang ?: '-' }}</td>
-                            <td>{{ $item->diserahkan_ke ?: '-' }}</td>
-                            <td>{{ $item->updated_at?->format('d M Y') ?: '-' }}</td>
+                            <td>
+                                <strong>{{ $item->follow_ups_count }}</strong>
+                                <small>{{ $item->follow_ups_count > 0 ? 'kali follow up' : 'belum dicatat' }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ $terakhir?->hasil ?: '-' }}</strong>
+                                <small>{{ $terakhir?->tanggal_follow_up?->format('d M Y H:i') ?: 'Belum ada aktivitas' }}</small>
+                            </td>
+                            <td>{{ $terakhir?->tanggal_follow_up_berikutnya?->format('d M Y') ?: '-' }}</td>
+                            <td>{{ $terakhir?->user?->name ?: ($item->penanggungJawab?->name ?: '-') }}</td>
                             @if (auth()->user()->role !== 'direksi')
                                 <td class="aksi-tabel">
                                     <a href="{{ route('prospek.edit', $item) }}">Edit</a>
@@ -116,5 +213,40 @@
         </div>
 
         <div class="paginasi">{{ $prospek->links() }}</div>
+    </section>
+
+    <section class="panel jarak-atas">
+        <div class="judul-panel">
+            <div>
+                <h2>Riwayat Aktivitas Terbaru</h2>
+                <span>Timeline follow up terakhir yang tercatat di sistem.</span>
+            </div>
+        </div>
+
+        <div class="daftar-aktivitas-profil">
+            @forelse ($aktivitasTerbaru as $item)
+                <div class="aktivitas-profil">
+                    <i class="{{ $item->hasil === 'Closing' ? 'hijau' : ($item->hasil === 'Tidak tertarik' ? 'ungu' : 'biru') }}"></i>
+                    <div>
+                        <strong>{{ $item->prospek?->nama ?: 'Leads terhapus' }} - {{ $item->hasil }}</strong>
+                        <small>
+                            {{ $item->tanggal_follow_up?->format('d M Y H:i') }} oleh {{ $item->user?->name ?: 'User tidak aktif' }}
+                            melalui {{ $item->metode }}
+                        </small>
+                        @if ($item->catatan)
+                            <p>{{ $item->catatan }}</p>
+                        @endif
+                        @if ($item->tindak_lanjut || $item->tanggal_follow_up_berikutnya)
+                            <small>
+                                Tindak lanjut: {{ $item->tindak_lanjut ?: '-' }}
+                                {{ $item->tanggal_follow_up_berikutnya ? ' | Jadwal '.$item->tanggal_follow_up_berikutnya->format('d M Y') : '' }}
+                            </small>
+                        @endif
+                    </div>
+                </div>
+            @empty
+                <p class="kosong">Belum ada riwayat follow up.</p>
+            @endforelse
+        </div>
     </section>
 @endsection
