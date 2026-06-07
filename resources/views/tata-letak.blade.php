@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ $judul ?? 'Sistem Informasi Leads' }}</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body>
+    @php
+        $userAktif = auth()->user();
+        $jumlahNotifikasi = \App\Models\Prospek::query()
+            ->whereIn('status', ['Dihubungi', 'Follow Up'])
+            ->when(! $userAktif->aksesSemuaCabang() && $userAktif->role === 'staff', fn ($query) => $query->where('user_id', $userAktif->id))
+            ->when(! $userAktif->aksesSemuaCabang() && $userAktif->role !== 'staff', fn ($query) => $query->where('cabang', $userAktif->cabang))
+            ->count();
+        $inisialUser = collect(explode(' ', trim($userAktif->name)))
+            ->filter()
+            ->take(2)
+            ->map(fn ($nama) => strtoupper(substr($nama, 0, 1)))
+            ->implode('');
+    @endphp
+    <div class="aplikasi" data-app>
+        <aside class="sidebar" data-sidebar>
+            <div class="merek">
+                <span class="logo">SI</span>
+                <span class="teks-merek">Leads</span>
+            </div>
+            <nav class="menu">
+                <a class="menu-item {{ request()->routeIs('dashboard') ? 'aktif' : '' }}" href="{{ route('dashboard') }}">
+                    <span>Dashboard</span>
+                </a>
+                <a class="menu-item {{ request()->routeIs('prospek.*') ? 'aktif' : '' }}" href="{{ route('prospek.index') }}">
+                    <span>Data Leads</span>
+                </a>
+                <a class="menu-item {{ request()->routeIs('follow-up.*') ? 'aktif' : '' }}" href="{{ route('follow-up.index') }}">
+                    <span>Follow Up</span>
+                </a>
+                <a class="menu-item {{ request()->routeIs('data-siswa.*') ? 'aktif' : '' }}" href="{{ route('data-siswa.index') }}">
+                    <span>Data Siswa</span>
+                </a>
+                @if (auth()->user()->role !== 'direksi')
+                    <a class="menu-item" href="{{ route('prospek.create') }}">
+                        <span>Tambah Leads</span>
+                    </a>
+                @endif
+                @if (auth()->user()->bisaKelolaPengguna())
+                    <a class="menu-item {{ request()->routeIs('pengaturan.*') ? 'aktif' : '' }}" href="{{ route('pengaturan.index') }}">
+                        <span>Pengaturan</span>
+                    </a>
+                @endif
+            </nav>
+        </aside>
+
+        <div class="overlay" data-overlay></div>
+
+        <main class="konten">
+            <header class="bar-atas">
+                <button class="tombol-icon" type="button" data-toggle-sidebar aria-label="Buka tutup sidebar">
+                    <span></span><span></span><span></span>
+                </button>
+                <div>
+                    <p class="eyebrow">Sistem Informasi</p>
+                    <h1>{{ $judul ?? 'Dashboard Leads' }}</h1>
+                </div>
+                <a class="ikon-notifikasi" href="{{ route('follow-up.index') }}" aria-label="Notifikasi follow up">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M15 17H9m10-2.5c-.9-.9-1.4-2.1-1.4-3.4V9a5.6 5.6 0 0 0-11.2 0v2.1c0 1.3-.5 2.5-1.4 3.4L4 15.5V17h16v-1.5l-1-1ZM13.7 19a2 2 0 0 1-3.4 0"/>
+                    </svg>
+                    @if ($jumlahNotifikasi > 0)
+                        <span>{{ $jumlahNotifikasi > 99 ? '99+' : $jumlahNotifikasi }}</span>
+                    @endif
+                </a>
+                <a class="avatar-user avatar-header" href="{{ route('profil.index') }}" aria-label="Buka profil {{ auth()->user()->name }}">
+                    {{ $inisialUser ?: 'U' }}
+                </a>
+                <div class="akun">
+                    <a class="tautan-profil" href="{{ route('profil.index') }}">{{ auth()->user()->name }}</a>
+                    <small>{{ auth()->user()->roleLabel() }}{{ auth()->user()->cabang ? ' - '.auth()->user()->cabang : '' }}</small>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit">Keluar</button>
+                    </form>
+                </div>
+            </header>
+
+            @if (session('berhasil'))
+                <div class="notifikasi">{{ session('berhasil') }}</div>
+            @endif
+
+            @if ($errors->any())
+                <div class="notifikasi error-box">
+                    <strong>Periksa input:</strong>
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            @yield('konten')
+        </main>
+    </div>
+
+    <div class="modal-konfirmasi" data-modal-konfirmasi hidden>
+        <div class="kartu-konfirmasi" role="dialog" aria-modal="true" aria-labelledby="judul-konfirmasi">
+            <span class="label-konfirmasi">Konfirmasi</span>
+            <h2 id="judul-konfirmasi" data-judul-konfirmasi>Konfirmasi aksi</h2>
+            <p data-pesan-konfirmasi>Pastikan data sudah benar sebelum melanjutkan.</p>
+            <div class="aksi-konfirmasi">
+                <button class="tombol sekunder" type="button" data-batal-konfirmasi>Batal</button>
+                <button class="tombol bahaya" type="button" data-setuju-konfirmasi>Hapus</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
