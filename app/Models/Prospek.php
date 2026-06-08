@@ -50,4 +50,9 @@ class Prospek extends Model
     {
         return $this->hasOne(FollowUp::class)->latestOfMany('tanggal_follow_up');
     }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
 }

@@ -18,7 +18,7 @@
                 <div class="progress-kelas"><i style="width: {{ $item['progress'] }}%"></i></div>
                 <div>
                     <small>{{ $item['progress'] }}% selesai</small>
-                    <button class="tombol sekunder" type="button">Mulai</button>
+                    <a class="tombol sekunder" href="{{ route('profil.pembelajaran.detail', $item['id']) }}">Mulai</a>
                 </div>
             </article>
         @endforeach

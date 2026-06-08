@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" modified="2026-06-07T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
   <diagram id="erd-sistem-informasi-leads" name="ERD Sistem Informasi Leads">
-    <mxGraphModel dx="1660" dy="980" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1660" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1280" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -15,6 +15,24 @@
         </mxCell>
         <mxCell id="follow_ups" value="&lt;b&gt;FOLLOW_UPS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;prospek_id FK : bigint&lt;br/&gt;user_id FK : bigint&lt;br/&gt;tanggal_follow_up : datetime&lt;br/&gt;metode : string&lt;br/&gt;hasil : string&lt;br/&gt;catatan : text&lt;br/&gt;tindak_lanjut : text&lt;br/&gt;tanggal_follow_up_berikutnya : date&lt;br/&gt;prioritas : string&lt;br/&gt;created_at : timestamp&lt;br/&gt;updated_at : timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ccfbf1;strokeColor=#0f766e;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="560" y="500" width="280" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="tasks" value="&lt;b&gt;TASKS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;judul : string&lt;br/&gt;deskripsi : text&lt;br/&gt;status : string&lt;br/&gt;prioritas : string&lt;br/&gt;tenggat : date&lt;br/&gt;prospek_id FK : bigint&lt;br/&gt;assigned_to FK : bigint&lt;br/&gt;created_by FK : bigint&lt;br/&gt;cabang : string" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9333ea;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="120" width="250" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="task_comments" value="&lt;b&gt;TASK_COMMENTS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;task_id FK : bigint&lt;br/&gt;user_id FK : bigint&lt;br/&gt;komentar : text" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#faf5ff;strokeColor=#a855f7;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="390" width="250" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="courses" value="&lt;b&gt;COURSES&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;judul : string&lt;br/&gt;deskripsi : text&lt;br/&gt;level : string&lt;br/&gt;durasi_menit : integer&lt;br/&gt;aktif : boolean&lt;br/&gt;urutan : integer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ecfdf5;strokeColor=#059669;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="930" width="250" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="course_lessons" value="&lt;b&gt;COURSE_LESSONS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;course_id FK : bigint&lt;br/&gt;judul : string&lt;br/&gt;konten : longtext&lt;br/&gt;durasi_menit : integer&lt;br/&gt;urutan : integer&lt;br/&gt;aktif : boolean" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fdf4;strokeColor=#16a34a;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="930" width="260" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="course_progress" value="&lt;b&gt;COURSE_PROGRESS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;course_id FK : bigint&lt;br/&gt;course_lesson_id FK : bigint&lt;br/&gt;user_id FK : bigint&lt;br/&gt;status : string&lt;br/&gt;progress_persen : integer&lt;br/&gt;completed_at : timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#22c55e;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="680" y="1010" width="270" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="notifications" value="&lt;b&gt;NOTIFICATIONS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;user_id FK : bigint&lt;br/&gt;tipe : string&lt;br/&gt;judul : string&lt;br/&gt;pesan : text&lt;br/&gt;tautan : string&lt;br/&gt;prioritas : string&lt;br/&gt;dibaca_pada : timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#ea580c;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="970" width="260" height="200" as="geometry" />
         </mxCell>
         <mxCell id="cabang" value="&lt;b&gt;CABANG&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;nama UK : string&lt;br/&gt;aktif : boolean&lt;br/&gt;created_at : timestamp&lt;br/&gt;updated_at : timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#d97706;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="1060" y="120" width="250" height="150" as="geometry" />
@@ -53,6 +71,24 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="rel_users_follow_ups" value="1 ke 0..N&#xa;mencatat" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;strokeColor=#0f766e;fontColor=#115e59;" edge="1" parent="1" source="users" target="follow_ups">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_users_tasks" value="1 ke 0..N&#xa;mengerjakan" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;strokeColor=#9333ea;fontColor=#6b21a8;" edge="1" parent="1" source="users" target="tasks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_prospek_tasks" value="1 ke 0..N&#xa;terhubung tugas" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;strokeColor=#9333ea;fontColor=#6b21a8;" edge="1" parent="1" source="prospek" target="tasks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_tasks_comments" value="1 ke 0..N&#xa;memiliki komentar" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;strokeColor=#a855f7;fontColor=#7e22ce;" edge="1" parent="1" source="tasks" target="task_comments">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_courses_lessons" value="1 ke 0..N&#xa;memiliki materi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;strokeColor=#16a34a;fontColor=#166534;" edge="1" parent="1" source="courses" target="course_lessons">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_courses_progress" value="1 ke 0..N&#xa;memiliki progres" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;strokeColor=#22c55e;fontColor=#166534;" edge="1" parent="1" source="courses" target="course_progress">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_users_notifications" value="1 ke 0..N&#xa;menerima" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;strokeColor=#ea580c;fontColor=#9a3412;" edge="1" parent="1" source="users" target="notifications">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="rel_users_sessions" value="1 ke 0..N&#xa;memiliki sesi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;strokeColor=#334155;fontColor=#334155;" edge="1" parent="1" source="users" target="sessions">

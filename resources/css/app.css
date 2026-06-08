@@ -927,6 +927,11 @@ textarea {
     padding: 12px;
 }
 
+.baris-ringkas.belum-dibaca {
+    border-color: var(--utama);
+    box-shadow: inset 4px 0 0 var(--utama);
+}
+
 .baris-ringkas strong,
 td strong {
     display: block;
@@ -1378,6 +1383,25 @@ td small {
     padding: 12px;
 }
 
+.form-ringkas {
+    display: grid;
+    gap: 8px;
+}
+
+.form-ringkas input,
+.form-ringkas select,
+.form-ringkas textarea {
+    min-height: 36px;
+    padding: 8px 10px;
+}
+
+.komentar-tugas {
+    border-top: 1px solid var(--garis);
+    display: grid;
+    gap: 5px;
+    padding-top: 8px;
+}
+
 .kartu-tugas > span,
 .kartu-kelas > span {
     color: var(--utama);
@@ -1437,6 +1461,10 @@ td small {
     background: linear-gradient(90deg, #f59e0b, var(--utama));
     display: block;
     height: 100%;
+}
+
+.progress-detail {
+    height: 14px;
 }
 
 .kartu-kelas {

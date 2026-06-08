@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
+use App\Models\CourseProgress;
 use App\Models\Prospek;
+use App\Models\Task;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +26,17 @@ class ProfilController extends Controller
         $leadsBaru = (clone $query)->where('status', 'Baru')->count();
         $followUp = (clone $query)->whereIn('status', ['Dihubungi', 'Follow Up'])->count();
         $closing = (clone $query)->where('status', 'Daftar')->count();
+        $queryTugas = $this->queryTugas($request);
+        $totalTugas = (clone $queryTugas)->whereIn('status', ['Baru', 'Proses'])->count();
+        $totalKelas = Course::query()->where('aktif', true)->count();
+        $kelasSelesai = CourseProgress::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'Selesai')
+            ->count();
+        $kelasBerjalan = CourseProgress::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'Berjalan')
+            ->count();
         $sosial = collect([
             'Facebook' => $user->facebook,
             'Instagram' => $user->instagram,
@@ -72,18 +86,18 @@ class ProfilController extends Controller
         return view('profil.index', [
             'ringkasanProfil' => [
                 'tim' => $anggotaTim,
-                'tugas' => $followUp,
+                'tugas' => $totalTugas,
                 'laporan' => $totalLeads,
-                'pembelajaran' => 4,
+                'pembelajaran' => $totalKelas,
                 'closing' => $closing,
                 'baru' => $leadsBaru,
                 'proses' => $followUp,
                 'sosial' => $sosial->count(),
-                'kelasSelesai' => min(4, max(1, (int) floor($closing / 5) + 1)),
-                'kelasBerjalan' => max(0, 4 - min(4, max(1, (int) floor($closing / 5) + 1))),
-                'tugasHariIni' => (clone $query)->whereIn('status', ['Dihubungi', 'Follow Up'])->whereDate('updated_at', today())->count(),
-                'tugasMingguIni' => (clone $query)->whereIn('status', ['Dihubungi', 'Follow Up'])->whereBetween('updated_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
-                'tugasTertunda' => (clone $query)->where('status', 'Baru')->whereDate('created_at', '<', now()->subDays(3)->toDateString())->count(),
+                'kelasSelesai' => $kelasSelesai,
+                'kelasBerjalan' => $kelasBerjalan,
+                'tugasHariIni' => (clone $queryTugas)->whereDate('tenggat', today())->count(),
+                'tugasMingguIni' => (clone $queryTugas)->whereBetween('tenggat', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+                'tugasTertunda' => (clone $queryTugas)->whereDate('tenggat', '<', today())->where('status', '!=', 'Selesai')->count(),
                 'rasioClosing' => $totalLeads > 0 ? round(($closing / $totalLeads) * 100, 1) : 0,
             ],
             'sosialTerhubung' => $sosial,
@@ -144,6 +158,22 @@ class ProfilController extends Controller
 
         if ($user->role === 'staff') {
             return $query->where('user_id', $user->id);
+        }
+
+        return $query->where('cabang', $user->cabang);
+    }
+
+    private function queryTugas(Request $request)
+    {
+        $user = $request->user();
+        $query = Task::query();
+
+        if ($user->aksesSemuaCabang()) {
+            return $query;
+        }
+
+        if ($user->role === 'staff') {
+            return $query->where('assigned_to', $user->id);
         }
 
         return $query->where('cabang', $user->cabang);

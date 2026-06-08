@@ -9,11 +9,16 @@
 <body>
     @php
         $userAktif = auth()->user();
-        $jumlahNotifikasi = \App\Models\Prospek::query()
-            ->whereIn('status', ['Dihubungi', 'Follow Up'])
-            ->when(! $userAktif->aksesSemuaCabang() && $userAktif->role === 'staff', fn ($query) => $query->where('user_id', $userAktif->id))
-            ->when(! $userAktif->aksesSemuaCabang() && $userAktif->role !== 'staff', fn ($query) => $query->where('cabang', $userAktif->cabang))
-            ->count();
+        $jumlahNotifikasi = \Illuminate\Support\Facades\Schema::hasTable('notifications')
+            ? \App\Models\SistemNotification::query()
+                ->whereNull('dibaca_pada')
+                ->where(fn ($query) => $query->whereNull('user_id')->orWhere('user_id', $userAktif->id))
+                ->count()
+            : \App\Models\Prospek::query()
+                ->whereIn('status', ['Dihubungi', 'Follow Up'])
+                ->when(! $userAktif->aksesSemuaCabang() && $userAktif->role === 'staff', fn ($query) => $query->where('user_id', $userAktif->id))
+                ->when(! $userAktif->aksesSemuaCabang() && $userAktif->role !== 'staff', fn ($query) => $query->where('cabang', $userAktif->cabang))
+                ->count();
         $inisialUser = collect(explode(' ', trim($userAktif->name)))
             ->filter()
             ->take(2)
@@ -65,7 +70,7 @@
                 <div>
                     <h1>{{ $judul ?? 'Dashboard Leads' }}</h1>
                 </div>
-                <a class="ikon-notifikasi" href="{{ route('follow-up.index') }}" aria-label="Notifikasi follow up">
+                <a class="ikon-notifikasi" href="{{ route('notifikasi.index') }}" aria-label="Notifikasi sistem">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M15 17H9m10-2.5c-.9-.9-1.4-2.1-1.4-3.4V9a5.6 5.6 0 0 0-11.2 0v2.1c0 1.3-.5 2.5-1.4 3.4L4 15.5V17h16v-1.5l-1-1ZM13.7 19a2 2 0 0 1-3.4 0"/>
                     </svg>

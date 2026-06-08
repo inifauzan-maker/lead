@@ -56,6 +56,21 @@ class User extends Authenticatable
         return $this->hasMany(FollowUp::class);
     }
 
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class, 'assigned_to');
+    }
+
+    public function courseProgress(): HasMany
+    {
+        return $this->hasMany(CourseProgress::class);
+    }
+
+    public function notifikasi(): HasMany
+    {
+        return $this->hasMany(SistemNotification::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

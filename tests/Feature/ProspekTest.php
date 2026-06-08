@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Prospek;
 use App\Models\Cabang;
+use App\Models\Course;
+use App\Models\SistemNotification;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -245,6 +247,76 @@ class ProspekTest extends TestCase
         $this->actingAs($user)->get(route('profil.tugas'))->assertOk()->assertSee('Task Management');
         $this->actingAs($user)->get(route('profil.laporan'))->assertOk()->assertSee('Report Center');
         $this->actingAs($user)->get(route('profil.pembelajaran'))->assertOk()->assertSee('Online Course');
+    }
+
+    public function test_user_bisa_membuat_tugas_dan_update_progress_course(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $course = Course::create([
+            'judul' => 'Course Test',
+            'level' => 'Wajib',
+            'durasi_menit' => 30,
+            'aktif' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('profil.tugas.store'), [
+                'judul' => 'Hubungi leads prioritas',
+                'deskripsi' => 'Pastikan sudah follow up hari ini.',
+                'status' => 'Baru',
+                'prioritas' => 'Tinggi',
+                'tenggat' => '2026-06-08',
+                'assigned_to' => $user->id,
+                'cabang' => 'Bandung',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('tasks', [
+            'judul' => 'Hubungi leads prioritas',
+            'assigned_to' => $user->id,
+            'cabang' => 'Bandung',
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('profil.pembelajaran.progress', $course), [
+                'progress_persen' => 100,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('course_progress', [
+            'course_id' => $course->id,
+            'user_id' => $user->id,
+            'status' => 'Selesai',
+            'progress_persen' => 100,
+        ]);
+    }
+
+    public function test_user_bisa_menandai_notifikasi_dibaca(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'staff',
+            'aktif' => true,
+        ]);
+        $notifikasi = SistemNotification::create([
+            'user_id' => $user->id,
+            'judul' => 'Tugas baru',
+            'pesan' => 'Ada tugas baru untuk Anda.',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('notifikasi.index'))
+            ->assertOk()
+            ->assertSee('Tugas baru');
+
+        $this->actingAs($user)
+            ->put(route('notifikasi.baca', $notifikasi))
+            ->assertRedirect();
+
+        $this->assertNotNull($notifikasi->refresh()->dibaca_pada);
     }
 
     public function test_superadmin_bisa_mengelola_pengaturan_master(): void

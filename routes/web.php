@@ -20,9 +20,18 @@ Route::middleware('auth')->group(function () {
         Route::put('/', [ProfilController::class, 'update'])->name('update');
         Route::get('tim', [ModulController::class, 'tim'])->name('tim');
         Route::get('tugas', [ModulController::class, 'tugas'])->name('tugas');
+        Route::post('tugas', [ModulController::class, 'storeTugas'])->name('tugas.store');
+        Route::put('tugas/{task}', [ModulController::class, 'updateTugas'])->name('tugas.update');
+        Route::delete('tugas/{task}', [ModulController::class, 'destroyTugas'])->name('tugas.destroy');
+        Route::post('tugas/{task}/komentar', [ModulController::class, 'storeKomentarTugas'])->name('tugas.komentar.store');
         Route::get('laporan', [ModulController::class, 'laporan'])->name('laporan');
         Route::get('pembelajaran', [ModulController::class, 'pembelajaran'])->name('pembelajaran');
+        Route::get('pembelajaran/{course}', [ModulController::class, 'detailPembelajaran'])->name('pembelajaran.detail');
+        Route::put('pembelajaran/{course}/progress', [ModulController::class, 'updateProgressPembelajaran'])->name('pembelajaran.progress');
     });
+    Route::get('notifikasi', [ModulController::class, 'notifikasi'])->name('notifikasi.index');
+    Route::put('notifikasi/{notifikasi}/baca', [ModulController::class, 'bacaNotifikasi'])->name('notifikasi.baca');
+    Route::put('notifikasi/baca-semua', [ModulController::class, 'bacaSemuaNotifikasi'])->name('notifikasi.baca-semua');
     Route::get('/', [ProspekController::class, 'dashboard'])->name('dashboard');
     Route::get('prospek/export', [ProspekController::class, 'export'])->name('prospek.export');
     Route::get('prospek/contoh-import', [ProspekController::class, 'contohImport'])->name('prospek.contoh-import');

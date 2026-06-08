@@ -36,7 +36,16 @@ Diagram ERD visual tersedia dalam format Draw.io pada file [`dokumentasi-erd.dra
 erDiagram
     USERS ||--o{ PROSPEK : "ditugaskan ke"
     USERS ||--o{ FOLLOW_UPS : "mencatat"
+    USERS ||--o{ TASKS : "mengerjakan"
+    USERS ||--o{ TASK_COMMENTS : "memberi komentar"
+    USERS ||--o{ COURSE_PROGRESS : "mengikuti"
+    USERS ||--o{ NOTIFICATIONS : "menerima"
     PROSPEK ||--o{ FOLLOW_UPS : "memiliki riwayat"
+    PROSPEK ||--o{ TASKS : "terhubung tugas"
+    TASKS ||--o{ TASK_COMMENTS : "memiliki komentar"
+    COURSES ||--o{ COURSE_LESSONS : "memiliki materi"
+    COURSES ||--o{ COURSE_PROGRESS : "memiliki progres"
+    COURSE_LESSONS ||--o{ COURSE_PROGRESS : "dipelajari"
     USERS ||--o{ SESSIONS : "memiliki sesi"
     CABANG ||..o{ USERS : "referensi cabang"
     CABANG ||..o{ PROSPEK : "referensi cabang"
@@ -89,6 +98,73 @@ erDiagram
         text tindak_lanjut
         date tanggal_follow_up_berikutnya
         string prioritas
+        timestamp created_at
+        timestamp updated_at
+    }
+    TASKS {
+        bigint id PK
+        string judul
+        text deskripsi
+        string status
+        string prioritas
+        date tenggat
+        bigint prospek_id FK
+        bigint assigned_to FK
+        bigint created_by FK
+        string cabang
+        timestamp created_at
+        timestamp updated_at
+    }
+    TASK_COMMENTS {
+        bigint id PK
+        bigint task_id FK
+        bigint user_id FK
+        text komentar
+        timestamp created_at
+        timestamp updated_at
+    }
+    COURSES {
+        bigint id PK
+        string judul
+        text deskripsi
+        string level
+        integer durasi_menit
+        boolean aktif
+        integer urutan
+        timestamp created_at
+        timestamp updated_at
+    }
+    COURSE_LESSONS {
+        bigint id PK
+        bigint course_id FK
+        string judul
+        longtext konten
+        integer durasi_menit
+        integer urutan
+        boolean aktif
+        timestamp created_at
+        timestamp updated_at
+    }
+    COURSE_PROGRESS {
+        bigint id PK
+        bigint course_id FK
+        bigint course_lesson_id FK
+        bigint user_id FK
+        string status
+        integer progress_persen
+        timestamp completed_at
+        timestamp created_at
+        timestamp updated_at
+    }
+    NOTIFICATIONS {
+        bigint id PK
+        bigint user_id FK
+        string tipe
+        string judul
+        text pesan
+        string tautan
+        string prioritas
+        timestamp dibaca_pada
         timestamp created_at
         timestamp updated_at
     }
@@ -283,7 +359,104 @@ Master cabang untuk filter, form leads, dan manajemen role user.
 | `created_at` | timestamp | nullable | Waktu dibuat |
 | `updated_at` | timestamp | nullable | Waktu diperbarui |
 
-### 5. `sumber_leads`
+### 5. `tasks`
+
+Menyimpan task management internal yang dapat dihubungkan ke leads.
+
+| Kolom | Tipe | Constraint | Keterangan |
+| --- | --- | --- | --- |
+| `id` | bigint unsigned | PK, auto increment | ID tugas |
+| `judul` | varchar | not null | Judul tugas |
+| `deskripsi` | text | nullable | Detail tugas |
+| `status` | varchar | default `Baru`, index gabungan | Status tugas: `Baru`, `Proses`, `Selesai`, `Arsip` |
+| `prioritas` | varchar | default `Normal`, index gabungan | Prioritas tugas |
+| `tenggat` | date | nullable, index | Batas waktu tugas |
+| `prospek_id` | bigint unsigned | nullable, FK ke `prospek.id`, null on delete | Leads terkait |
+| `assigned_to` | bigint unsigned | nullable, FK ke `users.id`, null on delete | User penerima tugas |
+| `created_by` | bigint unsigned | nullable, FK ke `users.id`, null on delete | User pembuat tugas |
+| `cabang` | varchar | nullable | Cabang tugas |
+| `created_at` | timestamp | nullable | Waktu dibuat |
+| `updated_at` | timestamp | nullable | Waktu diperbarui |
+
+### 6. `task_comments`
+
+Menyimpan komentar atau update percakapan pada tugas.
+
+| Kolom | Tipe | Constraint | Keterangan |
+| --- | --- | --- | --- |
+| `id` | bigint unsigned | PK, auto increment | ID komentar |
+| `task_id` | bigint unsigned | FK ke `tasks.id`, cascade on delete | Tugas terkait |
+| `user_id` | bigint unsigned | nullable, FK ke `users.id`, null on delete | User penulis komentar |
+| `komentar` | text | not null | Isi komentar |
+| `created_at` | timestamp | nullable | Waktu dibuat |
+| `updated_at` | timestamp | nullable | Waktu diperbarui |
+
+### 7. `courses`
+
+Menyimpan data course/pembelajaran online.
+
+| Kolom | Tipe | Constraint | Keterangan |
+| --- | --- | --- | --- |
+| `id` | bigint unsigned | PK, auto increment | ID course |
+| `judul` | varchar | not null | Judul course |
+| `deskripsi` | text | nullable | Deskripsi course |
+| `level` | varchar | default `Umum` | Kategori/level course |
+| `durasi_menit` | integer unsigned | default `0` | Estimasi durasi |
+| `aktif` | boolean | default `true` | Status course aktif |
+| `urutan` | integer unsigned | default `0` | Urutan tampil |
+| `created_at` | timestamp | nullable | Waktu dibuat |
+| `updated_at` | timestamp | nullable | Waktu diperbarui |
+
+### 8. `course_lessons`
+
+Menyimpan materi di dalam course.
+
+| Kolom | Tipe | Constraint | Keterangan |
+| --- | --- | --- | --- |
+| `id` | bigint unsigned | PK, auto increment | ID lesson |
+| `course_id` | bigint unsigned | FK ke `courses.id`, cascade on delete | Course induk |
+| `judul` | varchar | not null | Judul materi |
+| `konten` | longtext | nullable | Isi materi |
+| `durasi_menit` | integer unsigned | default `0` | Estimasi durasi materi |
+| `urutan` | integer unsigned | default `0` | Urutan materi |
+| `aktif` | boolean | default `true` | Status materi aktif |
+| `created_at` | timestamp | nullable | Waktu dibuat |
+| `updated_at` | timestamp | nullable | Waktu diperbarui |
+
+### 9. `course_progress`
+
+Menyimpan progres pembelajaran user.
+
+| Kolom | Tipe | Constraint | Keterangan |
+| --- | --- | --- | --- |
+| `id` | bigint unsigned | PK, auto increment | ID progres |
+| `course_id` | bigint unsigned | FK ke `courses.id`, cascade on delete | Course terkait |
+| `course_lesson_id` | bigint unsigned | nullable, FK ke `course_lessons.id`, cascade on delete | Materi terkait |
+| `user_id` | bigint unsigned | FK ke `users.id`, cascade on delete | User peserta |
+| `status` | varchar | default `Belum Mulai` | Status progres |
+| `progress_persen` | tinyint unsigned | default `0` | Persentase progres |
+| `completed_at` | timestamp | nullable | Waktu selesai |
+| `created_at` | timestamp | nullable | Waktu dibuat |
+| `updated_at` | timestamp | nullable | Waktu diperbarui |
+
+### 10. `notifications`
+
+Menyimpan notifikasi sistem untuk user atau broadcast umum.
+
+| Kolom | Tipe | Constraint | Keterangan |
+| --- | --- | --- | --- |
+| `id` | bigint unsigned | PK, auto increment | ID notifikasi |
+| `user_id` | bigint unsigned | nullable, FK ke `users.id`, cascade on delete | User penerima, `null` untuk broadcast |
+| `tipe` | varchar | default `info` | Tipe notifikasi |
+| `judul` | varchar | not null | Judul notifikasi |
+| `pesan` | text | nullable | Isi notifikasi |
+| `tautan` | varchar | nullable | Link tujuan |
+| `prioritas` | varchar | default `Normal` | Prioritas notifikasi |
+| `dibaca_pada` | timestamp | nullable, index gabungan | Waktu dibaca |
+| `created_at` | timestamp | nullable | Waktu dibuat |
+| `updated_at` | timestamp | nullable | Waktu diperbarui |
+
+### 11. `sumber_leads`
 
 Master sumber leads untuk form dan filter Data Leads.
 
@@ -295,7 +468,7 @@ Master sumber leads untuk form dan filter Data Leads.
 | `created_at` | timestamp | nullable | Waktu dibuat |
 | `updated_at` | timestamp | nullable | Waktu diperbarui |
 
-### 6. `program_leads`
+### 12. `program_leads`
 
 Master program untuk pilihan program pada input leads.
 
@@ -307,7 +480,7 @@ Master program untuk pilihan program pada input leads.
 | `created_at` | timestamp | nullable | Waktu dibuat |
 | `updated_at` | timestamp | nullable | Waktu diperbarui |
 
-### 7. `sessions`
+### 13. `sessions`
 
 Tabel session Laravel.
 
@@ -320,7 +493,7 @@ Tabel session Laravel.
 | `payload` | longtext | not null | Data session |
 | `last_activity` | integer | index | Aktivitas terakhir |
 
-### 8. `password_reset_tokens`
+### 14. `password_reset_tokens`
 
 Tabel token reset password Laravel.
 
@@ -330,7 +503,7 @@ Tabel token reset password Laravel.
 | `token` | varchar | not null | Token reset |
 | `created_at` | timestamp | nullable | Waktu dibuat |
 
-### 9. `cache`
+### 15. `cache`
 
 Tabel cache Laravel.
 
@@ -340,7 +513,7 @@ Tabel cache Laravel.
 | `value` | mediumtext | not null | Isi cache |
 | `expiration` | bigint | index | Waktu kedaluwarsa |
 
-### 10. `cache_locks`
+### 16. `cache_locks`
 
 Tabel lock cache Laravel.
 
@@ -350,7 +523,7 @@ Tabel lock cache Laravel.
 | `owner` | varchar | not null | Pemilik lock |
 | `expiration` | bigint | index | Waktu kedaluwarsa |
 
-### 11. `jobs`
+### 17. `jobs`
 
 Tabel antrean job Laravel.
 
@@ -364,7 +537,7 @@ Tabel antrean job Laravel.
 | `available_at` | unsigned integer | not null | Waktu tersedia |
 | `created_at` | unsigned integer | not null | Waktu dibuat |
 
-### 12. `job_batches`
+### 18. `job_batches`
 
 Tabel batch job Laravel.
 
@@ -381,7 +554,7 @@ Tabel batch job Laravel.
 | `created_at` | integer | not null | Waktu dibuat |
 | `finished_at` | integer | nullable | Waktu selesai |
 
-### 13. `failed_jobs`
+### 19. `failed_jobs`
 
 Tabel job gagal Laravel.
 
@@ -415,11 +588,12 @@ Catatan:
 | Follow Up | `prospek`, `follow_ups` | Riwayat aktivitas follow up, jumlah follow up per leads, kalender, hasil follow up |
 | Data Siswa | `prospek` | Leads status `Daftar` |
 | TIM | `users`, `prospek` | Ringkasan anggota aktif dan performa |
-| Tugas | `prospek` | Kanban berdasarkan status leads |
+| Tugas | `tasks`, `task_comments`, `prospek`, `users` | Kanban task management, tugas terkait leads, komentar tugas |
 | Laporan | `prospek` | Ringkasan report status dan cabang |
-| Pembelajaran | data statis view/controller | Modul online course awal |
+| Pembelajaran | `courses`, `course_lessons`, `course_progress` | Modul online course dan progres pembelajaran user |
 | Profil User | `users`, `prospek` | Data akun, media sosial, ringkasan personal |
 | Pengaturan | `cabang`, `sumber_leads`, `program_leads`, `users` | CRUD master sistem dan manajemen role user |
+| Notifikasi | `notifications` | Badge notifikasi user dan broadcast sistem |
 
 ## Enterprise Architecture
 
@@ -505,6 +679,8 @@ Pembagian modul aplikasi:
 | Follow Up | `/follow-up` | `ProspekController` | Catat aktivitas follow up, kalender, jumlah follow up per leads, timeline hasil |
 | Data Siswa | `/data-siswa` | `ProspekController` | Leads status `Daftar` |
 | Profil User | `/profil` | `ProfilController`, `ModulController` | Profil, media sosial, TIM, Tugas, Laporan, Pembelajaran |
+| Tugas | `/profil/tugas` | `ModulController` | Kanban task management berdasarkan tabel `tasks` |
+| Pembelajaran | `/profil/pembelajaran` | `ModulController` | Daftar course dan progress user |
 | Pengaturan | `/pengaturan` | `PengaturanController` | CRUD cabang, sumber, program, dan role user |
 
 ### 4. Arsitektur Teknologi
@@ -537,13 +713,7 @@ Catatan deployment shared hosting:
 
 ## Catatan Pengembangan Lanjutan
 
-Beberapa fitur saat ini masih menggunakan data yang sudah ada atau data statis awal:
-
-- Tugas/task management belum memiliki tabel khusus seperti `tasks`.
-- Pembelajaran/online course belum memiliki tabel khusus seperti `courses`, `lessons`, atau `course_progress`.
-- Modul Follow Up sudah memiliki tabel histori `follow_ups`; pengembangan berikutnya dapat menambahkan reminder otomatis dan notifikasi terjadwal.
-
-Rekomendasi tabel lanjutan:
+Fitur lanjutan yang sudah memiliki fondasi tabel:
 
 - `tasks`
 - `task_comments`
@@ -551,3 +721,11 @@ Rekomendasi tabel lanjutan:
 - `course_lessons`
 - `course_progress`
 - `notifications`
+
+Rekomendasi pengembangan berikutnya:
+
+- Detail task khusus untuk riwayat komentar penuh, lampiran, dan aktivitas perubahan status.
+- CRUD course dan lesson untuk superadmin dari menu Pengaturan.
+- Progress lesson per materi, bukan hanya progress keseluruhan course.
+- Notifikasi otomatis untuk follow up terlambat, tugas jatuh tempo, dan course wajib.
+- Scheduler/queue untuk mengirim reminder notifikasi harian.

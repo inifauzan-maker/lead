@@ -9,6 +9,8 @@ Dokumentasi teknis awal tersedia di:
 Isi dokumentasi:
 
 - Diagram ERD
+- File Draw.io ERD
 - Kardinalitas relasi
 - Struktur tabel database
+- Enterprise Architecture
 - Catatan aturan data dan RBAC
