@@ -47,31 +47,55 @@
                 <h2>Manajemen Role User</h2>
                 <span>{{ $pengguna->total() }} akun</span>
             </div>
+            <form class="form-tambah-user" method="POST" action="{{ route('pengaturan.user.store') }}">
+                @csrf
+                <input type="text" name="name" value="{{ old('name') }}" placeholder="Nama user" required>
+                <input type="email" name="email" value="{{ old('email') }}" placeholder="Email login" required>
+                <input type="password" name="password" placeholder="Password minimal 8 karakter" required>
+                <select name="role" required>
+                    @foreach ($role as $item)
+                        <option value="{{ $item }}" @selected(old('role', 'staff') === $item)>{{ ucfirst($item) }}</option>
+                    @endforeach
+                </select>
+                <select name="cabang">
+                    <option value="">Semua cabang</option>
+                    @foreach ($daftarCabang as $item)
+                        <option value="{{ $item }}" @selected(old('cabang') === $item)>{{ $item }}</option>
+                    @endforeach
+                </select>
+                <label class="cek">
+                    <input type="checkbox" name="aktif" value="1" checked>
+                    Aktif
+                </label>
+                <button class="tombol utama" type="submit">Tambah User</button>
+            </form>
             <div class="daftar-pengaturan">
                 @foreach ($pengguna as $userItem)
                     <form class="baris-pengaturan baris-role-user" method="POST" action="{{ route('pengaturan.user-role.update', $userItem) }}">
                         @csrf
                         @method('PUT')
-                        <div>
+                        <div class="identitas-user">
                             <strong>{{ $userItem->name }}</strong>
                             <small>{{ $userItem->email }}</small>
                         </div>
-                        <select name="role" required>
-                            @foreach ($role as $item)
-                                <option value="{{ $item }}" @selected(old('role', $userItem->role) === $item)>{{ ucfirst($item) }}</option>
-                            @endforeach
-                        </select>
-                        <select name="cabang">
-                            <option value="">Semua cabang</option>
-                            @foreach ($daftarCabang as $item)
-                                <option value="{{ $item }}" @selected(old('cabang', $userItem->cabang) === $item)>{{ $item }}</option>
-                            @endforeach
-                        </select>
-                        <label class="cek">
-                            <input type="checkbox" name="aktif" value="1" @checked(old('aktif', $userItem->aktif ?? true))>
-                            Aktif
-                        </label>
-                        <button class="tombol sekunder" type="submit">Update</button>
+                        <div class="kontrol-role-user">
+                            <select name="role" required>
+                                @foreach ($role as $item)
+                                    <option value="{{ $item }}" @selected(old('role', $userItem->role) === $item)>{{ ucfirst($item) }}</option>
+                                @endforeach
+                            </select>
+                            <select name="cabang">
+                                <option value="">Semua cabang</option>
+                                @foreach ($daftarCabang as $item)
+                                    <option value="{{ $item }}" @selected(old('cabang', $userItem->cabang) === $item)>{{ $item }}</option>
+                                @endforeach
+                            </select>
+                            <label class="cek">
+                                <input type="checkbox" name="aktif" value="1" @checked(old('aktif', $userItem->aktif ?? true))>
+                                Aktif
+                            </label>
+                            <button class="tombol sekunder" type="submit">Update</button>
+                        </div>
                     </form>
                 @endforeach
             </div>

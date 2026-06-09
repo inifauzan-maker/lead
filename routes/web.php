@@ -52,6 +52,7 @@ Route::middleware('auth')->group(function () {
         Route::post('program', [PengaturanController::class, 'storeProgram'])->name('program.store');
         Route::put('program/{program}', [PengaturanController::class, 'updateProgram'])->name('program.update');
         Route::delete('program/{program}', [PengaturanController::class, 'destroyProgram'])->name('program.destroy');
+        Route::post('user', [PengaturanController::class, 'storeUser'])->name('user.store');
         Route::put('user/{user}/role', [PengaturanController::class, 'updateRoleUser'])->name('user-role.update');
     });
     Route::resource('pengguna', PenggunaController::class)->only(['index', 'store', 'update'])->middleware('role:superadmin');

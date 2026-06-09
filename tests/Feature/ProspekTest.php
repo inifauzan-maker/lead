@@ -343,6 +343,25 @@ class ProspekTest extends TestCase
             'nama' => 'Bekasi',
             'aktif' => true,
         ]);
+
+        $this->actingAs($user)
+            ->post(route('pengaturan.user.store'), [
+                'name' => 'Staff Bekasi',
+                'email' => 'staff.bekasi@leads.test',
+                'password' => 'password',
+                'role' => 'staff',
+                'cabang' => 'Bekasi',
+                'aktif' => '1',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('users', [
+            'name' => 'Staff Bekasi',
+            'email' => 'staff.bekasi@leads.test',
+            'role' => 'staff',
+            'cabang' => 'Bekasi',
+            'aktif' => true,
+        ]);
     }
 
     public function test_manajemen_role_user_menggunakan_cabang_master(): void

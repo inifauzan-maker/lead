@@ -1511,11 +1511,40 @@ td small {
 }
 
 .baris-role-user {
-    grid-template-columns: minmax(180px, 1.2fr) 130px 150px auto auto;
+    align-items: start;
+    grid-template-columns: minmax(180px, 1fr);
 }
 
 .baris-role-user small {
     color: var(--muted);
+}
+
+.identitas-user {
+    min-width: 0;
+}
+
+.kontrol-role-user {
+    align-items: center;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(110px, 150px) minmax(130px, 170px) auto auto;
+    width: 100%;
+}
+
+.form-tambah-user {
+    background: #f8fafc;
+    border: 1px solid var(--garis);
+    border-radius: 8px;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 14px;
+    padding: 12px;
+}
+
+.form-tambah-user .cek,
+.form-tambah-user .tombol {
+    align-self: center;
 }
 
 .bahaya {
@@ -1756,6 +1785,8 @@ body.sidebar-ciut .menu-item {
 
     .grid-pengguna,
     .baris-pengguna,
+    .form-tambah-user,
+    .kontrol-role-user,
     .form-pengaturan,
     .baris-pengaturan,
     .baris-pengaturan form,
