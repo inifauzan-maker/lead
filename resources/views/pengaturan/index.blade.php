@@ -42,7 +42,7 @@
             'placeholder' => 'Nama program',
         ])
 
-        <div class="panel">
+        <div class="panel panel-role-user">
             <div class="judul-panel">
                 <h2>Manajemen Role User</h2>
                 <span>{{ $pengguna->total() }} akun</span>
