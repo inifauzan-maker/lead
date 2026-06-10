@@ -7,6 +7,7 @@ use App\Models\Cabang;
 use App\Models\FollowUp;
 use App\Models\ProgramLead;
 use App\Models\SumberLead;
+use App\Models\SistemNotification;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -193,6 +194,7 @@ class ProspekController extends Controller
             'status' => $this->statusDariHasilFollowUp($data['hasil']),
             'user_id' => $prospek->user_id ?: $request->user()->id,
         ]);
+        $this->kirimNotifikasiFollowUp($prospek->fresh(), $data);
 
         return back()->with('berhasil', 'Aktivitas follow up berhasil dicatat.');
     }
@@ -343,6 +345,10 @@ class ProspekController extends Controller
 
         fclose($handle);
 
+        if ($berhasil > 0) {
+            $this->kirimNotifikasiImport($request, $berhasil, $dilewati);
+        }
+
         return back()->with('berhasil', "Import selesai. {$berhasil} data masuk, {$dilewati} data dilewati.");
     }
 
@@ -365,7 +371,8 @@ class ProspekController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $this->pastikanBolehUbah();
-        Prospek::create($this->validasi($request));
+        $prospek = Prospek::create($this->validasi($request));
+        $this->kirimNotifikasiLeads($prospek, 'Leads baru ditambahkan', "Leads {$prospek->nama} masuk ke cabang ".($prospek->cabang ?: '-').'.', 'Normal');
 
         return redirect()->route('prospek.index')->with('berhasil', 'Leads berhasil ditambahkan.');
     }
@@ -391,7 +398,24 @@ class ProspekController extends Controller
     {
         $this->pastikanBolehUbah();
         $this->pastikanBolehAkses($prospek);
+        $statusLama = $prospek->status;
+        $userLama = $prospek->user_id;
         $prospek->update($this->validasi($request, $prospek));
+
+        if ($statusLama !== $prospek->status) {
+            $prioritas = $prospek->status === 'Daftar' ? 'Tinggi' : 'Normal';
+            $this->kirimNotifikasiLeads($prospek, 'Status leads diperbarui', "Status {$prospek->nama} berubah dari {$statusLama} menjadi {$prospek->status}.", $prioritas);
+        }
+
+        if ((int) $userLama !== (int) $prospek->user_id && $prospek->user_id) {
+            $this->kirimNotifikasiKeUser($prospek->user_id, [
+                'tipe' => 'leads',
+                'judul' => 'Leads ditugaskan ke Anda',
+                'pesan' => "Anda menjadi penanggung jawab leads {$prospek->nama}.",
+                'tautan' => route('prospek.edit', $prospek),
+                'prioritas' => 'Tinggi',
+            ]);
+        }
 
         return redirect()->route('prospek.index')->with('berhasil', 'Leads berhasil diperbarui.');
     }
@@ -400,7 +424,16 @@ class ProspekController extends Controller
     {
         $this->pastikanBolehUbah();
         $this->pastikanBolehAkses($prospek);
+        $nama = $prospek->nama;
+        $cabang = $prospek->cabang;
         $prospek->delete();
+        $this->kirimNotifikasiCabang($cabang, [
+            'tipe' => 'leads',
+            'judul' => 'Leads dihapus',
+            'pesan' => "Leads {$nama} dihapus dari sistem.",
+            'tautan' => route('prospek.index'),
+            'prioritas' => 'Tinggi',
+        ]);
 
         return redirect()->route('prospek.index')->with('berhasil', 'Leads berhasil dihapus.');
     }
@@ -831,6 +864,71 @@ class ProspekController extends Controller
             ->when($cabang, fn ($query) => $query->where('cabang', $cabang))
             ->orderBy('name')
             ->get();
+    }
+
+    private function kirimNotifikasiLeads(Prospek $prospek, string $judul, string $pesan, string $prioritas = 'Normal'): void
+    {
+        $penerima = SistemNotification::penerimaCabang($prospek->cabang);
+
+        if ($prospek->user_id) {
+            $penerima = $penerima->push(User::find($prospek->user_id));
+        }
+
+        SistemNotification::kirim($penerima, [
+            'tipe' => 'leads',
+            'judul' => $judul,
+            'pesan' => $pesan,
+            'tautan' => route('prospek.index'),
+            'prioritas' => $prioritas,
+        ]);
+    }
+
+    private function kirimNotifikasiFollowUp(Prospek $prospek, array $data): void
+    {
+        $pesan = "Follow up {$prospek->nama} dicatat dengan hasil {$data['hasil']}.";
+
+        if (! blank($data['tanggal_follow_up_berikutnya'] ?? null)) {
+            $pesan .= ' Jadwal berikutnya '.$data['tanggal_follow_up_berikutnya'].'.';
+        }
+
+        $penerima = SistemNotification::penerimaCabang($prospek->cabang);
+
+        if ($prospek->user_id) {
+            $penerima = $penerima->push(User::find($prospek->user_id));
+        }
+
+        SistemNotification::kirim($penerima, [
+            'tipe' => 'follow_up',
+            'judul' => 'Aktivitas follow up baru',
+            'pesan' => $pesan,
+            'tautan' => route('follow-up.index'),
+            'prioritas' => ($data['prioritas'] ?? 'Normal') === 'Tinggi' ? 'Tinggi' : 'Normal',
+        ]);
+    }
+
+    private function kirimNotifikasiImport(Request $request, int $berhasil, int $dilewati): void
+    {
+        $penerima = $request->user()->aksesSemuaCabang()
+            ? User::query()->where('aktif', true)->whereIn('role', ['superadmin', 'direksi'])->get()
+            : SistemNotification::penerimaCabang($request->user()->cabang);
+
+        SistemNotification::kirim($penerima, [
+            'tipe' => 'leads',
+            'judul' => 'Import leads selesai',
+            'pesan' => "{$berhasil} leads berhasil diimport, {$dilewati} data dilewati.",
+            'tautan' => route('prospek.index'),
+            'prioritas' => 'Normal',
+        ]);
+    }
+
+    private function kirimNotifikasiCabang(?string $cabang, array $data): void
+    {
+        SistemNotification::kirim(SistemNotification::penerimaCabang($cabang), $data);
+    }
+
+    private function kirimNotifikasiKeUser(int $userId, array $data): void
+    {
+        SistemNotification::kirim(User::query()->where('id', $userId)->where('aktif', true)->get(), $data);
     }
 
     private function sekolahTersedia(): array

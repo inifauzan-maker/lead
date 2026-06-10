@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ModulController;
 use App\Http\Controllers\PenggunaController;
 use App\Http\Controllers\PengaturanController;
@@ -32,6 +33,7 @@ Route::middleware('auth')->group(function () {
     Route::get('notifikasi', [ModulController::class, 'notifikasi'])->name('notifikasi.index');
     Route::put('notifikasi/{notifikasi}/baca', [ModulController::class, 'bacaNotifikasi'])->name('notifikasi.baca');
     Route::put('notifikasi/baca-semua', [ModulController::class, 'bacaSemuaNotifikasi'])->name('notifikasi.baca-semua');
+    Route::get('log-aktivitas', [ActivityLogController::class, 'index'])->name('log-aktivitas.index')->middleware('role:superadmin,direksi');
     Route::get('/', [ProspekController::class, 'dashboard'])->name('dashboard');
     Route::get('prospek/export', [ProspekController::class, 'export'])->name('prospek.export');
     Route::get('prospek/contoh-import', [ProspekController::class, 'contohImport'])->name('prospek.contoh-import');

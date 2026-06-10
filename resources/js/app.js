@@ -29,6 +29,26 @@ lebarMobile.addEventListener('change', () => {
     }
 });
 
+const tombolProfil = document.querySelector('[data-toggle-profil]');
+const dropdownProfil = document.querySelector('[data-dropdown-profil]');
+const profilMenu = document.querySelector('[data-profil-menu]');
+
+function tutupDropdownProfil() {
+    dropdownProfil?.classList.remove('aktif');
+    tombolProfil?.setAttribute('aria-expanded', 'false');
+}
+
+tombolProfil?.addEventListener('click', () => {
+    const aktif = dropdownProfil?.classList.toggle('aktif');
+    tombolProfil.setAttribute('aria-expanded', aktif ? 'true' : 'false');
+});
+
+document.addEventListener('click', (event) => {
+    if (profilMenu && !profilMenu.contains(event.target)) {
+        tutupDropdownProfil();
+    }
+});
+
 const modalKonfirmasi = document.querySelector('[data-modal-konfirmasi]');
 const judulKonfirmasi = modalKonfirmasi?.querySelector('[data-judul-konfirmasi]');
 const pesanKonfirmasi = modalKonfirmasi?.querySelector('[data-pesan-konfirmasi]');
@@ -76,6 +96,10 @@ modalKonfirmasi?.addEventListener('click', (event) => {
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && modalKonfirmasi && !modalKonfirmasi.hidden) {
         tutupKonfirmasi(false);
+    }
+
+    if (event.key === 'Escape') {
+        tutupDropdownProfil();
     }
 });
 
@@ -224,3 +248,19 @@ formMassal?.addEventListener('submit', async (event) => {
 });
 
 perbaruiPilihanMassal();
+
+document.querySelectorAll('[data-toggle-password]').forEach((tombol) => {
+    tombol.addEventListener('click', () => {
+        const pembungkus = tombol.closest('.bungkus-password');
+        const input = pembungkus?.querySelector('[data-input-password]');
+
+        if (!input) {
+            return;
+        }
+
+        const tampil = input.type === 'password';
+        input.type = tampil ? 'text' : 'password';
+        tombol.setAttribute('aria-pressed', tampil ? 'true' : 'false');
+        tombol.setAttribute('aria-label', tampil ? 'Sembunyikan password' : 'Tampilkan password');
+    });
+});

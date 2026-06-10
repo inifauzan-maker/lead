@@ -110,7 +110,8 @@ class ModulController extends Controller
         }
 
         $data['created_by'] = $user->id;
-        Task::create($data);
+        $task = Task::create($data);
+        $this->kirimNotifikasiTugas($task, 'Tugas baru dibuat', "Tugas {$task->judul} dibuat dengan prioritas {$task->prioritas}.", 'Normal');
 
         return back()->with('berhasil', 'Tugas berhasil ditambahkan.');
     }
@@ -131,7 +132,13 @@ class ModulController extends Controller
             unset($data['assigned_to']);
         }
 
+        $statusLama = $task->status;
+        $assignedLama = $task->assigned_to;
         $task->update($data);
+
+        if ($statusLama !== $task->status || (int) $assignedLama !== (int) $task->assigned_to) {
+            $this->kirimNotifikasiTugas($task, 'Tugas diperbarui', "Tugas {$task->judul} diperbarui. Status sekarang {$task->status}.", $task->status === 'Selesai' ? 'Tinggi' : 'Normal');
+        }
 
         return back()->with('berhasil', 'Tugas berhasil diperbarui.');
     }
@@ -150,6 +157,7 @@ class ModulController extends Controller
             'user_id' => $request->user()->id,
             'komentar' => $data['komentar'],
         ]);
+        $this->kirimNotifikasiTugas($task, 'Komentar tugas baru', $request->user()->name." menambahkan komentar pada tugas {$task->judul}.", 'Normal', kecualiUserId: $request->user()->id);
 
         return back()->with('berhasil', 'Komentar tugas berhasil ditambahkan.');
     }
@@ -247,7 +255,7 @@ class ModulController extends Controller
             default => 'Belum Mulai',
         };
 
-        CourseProgress::updateOrCreate(
+        $progress = CourseProgress::updateOrCreate(
             [
                 'course_id' => $course->id,
                 'course_lesson_id' => null,
@@ -259,6 +267,10 @@ class ModulController extends Controller
                 'completed_at' => $status === 'Selesai' ? now() : null,
             ],
         );
+
+        if ($progress->wasRecentlyCreated || $progress->wasChanged('status')) {
+            $this->kirimNotifikasiPembelajaran($request, $course, $status);
+        }
 
         return back()->with('berhasil', 'Progress pembelajaran berhasil diperbarui.');
     }
@@ -370,6 +382,48 @@ class ModulController extends Controller
         }
 
         abort_unless($prospek->cabang === $user->cabang, 403);
+    }
+
+    private function kirimNotifikasiTugas(Task $task, string $judul, string $pesan, string $prioritas = 'Normal', ?int $kecualiUserId = null): void
+    {
+        $penerima = collect();
+
+        if ($task->assigned_to) {
+            $penerima = $penerima->push(User::find($task->assigned_to));
+        }
+
+        if ($task->created_by) {
+            $penerima = $penerima->push(User::find($task->created_by));
+        }
+
+        $penerima = $penerima
+            ->merge(SistemNotification::penerimaCabang($task->cabang, ['admin', 'leader']))
+            ->filter(fn ($user) => $user && (int) $user->id !== (int) $kecualiUserId);
+
+        SistemNotification::kirim($penerima, [
+            'tipe' => 'tugas',
+            'judul' => $judul,
+            'pesan' => $pesan,
+            'tautan' => route('profil.tugas'),
+            'prioritas' => $prioritas,
+        ]);
+    }
+
+    private function kirimNotifikasiPembelajaran(Request $request, Course $course, string $status): void
+    {
+        if ($status !== 'Selesai') {
+            return;
+        }
+
+        $penerima = SistemNotification::penerimaCabang($request->user()->cabang, ['admin', 'leader']);
+
+        SistemNotification::kirim($penerima, [
+            'tipe' => 'pembelajaran',
+            'judul' => 'Pembelajaran selesai',
+            'pesan' => $request->user()->name." menyelesaikan course {$course->judul}.",
+            'tautan' => route('profil.pembelajaran'),
+            'prioritas' => 'Normal',
+        ]);
     }
 
     private function formatDurasi(int $menit): string

@@ -55,4 +55,28 @@ class Prospek extends Model
     {
         return $this->hasMany(Task::class);
     }
+
+    public function noWaUntuk(?User $user): string
+    {
+        if (blank($this->no_wa)) {
+            return '-';
+        }
+
+        if ($user && (int) $this->user_id === (int) $user->id) {
+            return $this->no_wa;
+        }
+
+        return $this->samarkanDuaDigitTerakhir($this->no_wa);
+    }
+
+    private function samarkanDuaDigitTerakhir(string $nomor): string
+    {
+        $panjang = mb_strlen($nomor);
+
+        if ($panjang <= 2) {
+            return str_repeat('x', $panjang);
+        }
+
+        return mb_substr($nomor, 0, $panjang - 2).'xx';
+    }
 }

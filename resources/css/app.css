@@ -204,6 +204,132 @@ textarea {
     padding: 0;
 }
 
+.profil-menu {
+    margin-left: 0;
+    position: relative;
+}
+
+.tombol-profil {
+    border: 3px solid #4f46e5;
+    cursor: pointer;
+    padding: 0;
+}
+
+.dropdown-profil {
+    background: #ffffff;
+    border: 1px solid var(--garis);
+    border-radius: 14px;
+    box-shadow: 0 20px 55px rgba(15, 23, 42, 0.16);
+    display: none;
+    min-width: 280px;
+    overflow: hidden;
+    padding-top: 18px;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 12px);
+    z-index: 60;
+}
+
+.dropdown-profil.aktif {
+    display: block;
+}
+
+.ringkasan-dropdown-profil {
+    align-items: center;
+    display: grid;
+    justify-items: center;
+    padding: 6px 16px 12px;
+    text-align: center;
+}
+
+.avatar-dropdown {
+    background: linear-gradient(135deg, #d9f99d, #93c5fd);
+    border: 1px solid #dbeafe;
+    color: #0f766e;
+    font-size: 1.1rem;
+    height: 58px;
+    margin-bottom: 8px;
+    width: 58px;
+}
+
+.ringkasan-dropdown-profil strong {
+    color: #111827;
+    line-height: 1.2;
+}
+
+.ringkasan-dropdown-profil small {
+    color: #64748b;
+    font-weight: 700;
+}
+
+.paket-profil {
+    background: #f1f1f1;
+    border-radius: 8px;
+    display: grid;
+    gap: 5px;
+    margin: 0 8px 16px;
+    padding: 12px;
+    text-align: center;
+}
+
+.paket-profil strong {
+    color: #111827;
+}
+
+.paket-profil span {
+    color: #4f46e5;
+    font-weight: 800;
+}
+
+.paket-profil small {
+    background: #e5e7eb;
+    border-radius: 5px;
+    color: #111827;
+    justify-self: center;
+    margin-top: 4px;
+    padding: 5px 8px;
+    width: fit-content;
+}
+
+.daftar-menu-profil {
+    border-top: 1px solid var(--garis);
+    display: grid;
+    padding: 8px 0;
+}
+
+.daftar-menu-profil a,
+.daftar-menu-profil button {
+    align-items: center;
+    background: transparent;
+    color: #111827;
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    min-height: 42px;
+    padding: 10px 16px;
+    text-align: left;
+    width: 100%;
+}
+
+.daftar-menu-profil a:hover,
+.daftar-menu-profil button:hover {
+    background: #f8fafc;
+}
+
+.daftar-menu-profil button {
+    font-weight: 800;
+}
+
+.ikon-menu-profil {
+    align-items: center;
+    color: #111827;
+    display: inline-flex;
+    flex: 0 0 22px;
+    font-size: 1.1rem;
+    justify-content: center;
+    width: 22px;
+}
+
 .avatar-user {
     align-items: center;
     background: linear-gradient(135deg, var(--utama), #2563eb);
@@ -571,6 +697,8 @@ textarea {
     align-items: center;
     display: flex;
     justify-content: center;
+    min-height: 100dvh;
+    min-width: 100%;
     min-height: 100vh;
     padding: 20px;
 }
@@ -585,6 +713,50 @@ textarea {
     max-width: 420px;
     padding: 28px;
     width: 100%;
+}
+
+.kartu-login > div:first-child {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+}
+
+.bungkus-password {
+    display: block;
+    position: relative;
+}
+
+.bungkus-password input {
+    padding-right: 48px;
+}
+
+.tombol-mata-password {
+    align-items: center;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: inline-flex;
+    height: 42px;
+    justify-content: center;
+    padding: 0;
+    position: absolute;
+    right: 6px;
+    top: 0;
+    width: 42px;
+}
+
+.tombol-mata-password:hover {
+    color: var(--utama);
+}
+
+.tombol-mata-password svg {
+    fill: none;
+    height: 21px;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+    width: 21px;
 }
 
 .kartu-login h1 {
@@ -949,6 +1121,45 @@ td strong {
     white-space: nowrap;
 }
 
+.badge-log {
+    background: #eef2ff;
+    border-radius: 999px;
+    color: #1d4ed8;
+    display: inline-flex;
+    font-size: 0.78rem;
+    font-weight: 900;
+    padding: 6px 10px;
+    white-space: nowrap;
+}
+
+.url-log {
+    max-width: 420px;
+    overflow-wrap: anywhere;
+}
+
+.detail-payload {
+    margin-top: 8px;
+}
+
+.detail-payload summary {
+    color: var(--utama);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.detail-payload pre {
+    background: #0f172a;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 0.78rem;
+    margin: 8px 0 0;
+    max-height: 220px;
+    max-width: 520px;
+    overflow: auto;
+    padding: 12px;
+}
+
 .notifikasi {
     background: #ecfdf5;
     border: 1px solid #bbf7d0;
@@ -1045,6 +1256,10 @@ td strong {
 
 .filter-leads {
     grid-template-columns: minmax(260px, 1fr) 150px 150px 150px auto;
+}
+
+.filter-log {
+    grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(140px, 170px)) repeat(2, minmax(130px, 150px)) auto;
 }
 
 .aksi-data-leads {
@@ -1661,6 +1876,10 @@ body.sidebar-ciut .menu-item {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .filter-log {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .filter-dashboard {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -1728,6 +1947,7 @@ body.sidebar-ciut .menu-item {
     .grid-kartu-dashboard-profil,
     .filter,
     .filter-leads,
+    .filter-log,
     .filter-dashboard,
     .grid-form {
         grid-template-columns: 1fr;
@@ -1790,6 +2010,16 @@ body.sidebar-ciut .menu-item {
         margin-left: 58px;
         text-align: left;
         width: 100%;
+    }
+
+    .profil-menu {
+        margin-left: auto;
+    }
+
+    .dropdown-profil {
+        max-width: calc(100vw - 36px);
+        min-width: 270px;
+        right: 0;
     }
 
     .grid-pengguna,

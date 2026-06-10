@@ -1,4 +1,4 @@
-@extends('tata-letak', ['judul' => 'Sistem Informasi Leads'])
+@extends('tata-letak', ['judul' => 'CRM_SIVMI'])
 
 @section('konten')
     <section class="panel">

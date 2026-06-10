@@ -92,7 +92,7 @@
                                 <small>{{ $item->kota_asal ?: 'Kota belum diisi' }}</small>
                             </td>
                             <td>{{ $item->asal_sekolah ?: '-' }}</td>
-                            <td>{{ $item->no_wa ?: '-' }}</td>
+                            <td>{{ $item->noWaUntuk(auth()->user()) }}</td>
                             <td>{{ $item->program ?: '-' }}</td>
                             <td><span class="badge">{{ $item->status }}</span></td>
                             <td>{{ $item->cabang ?: '-' }}</td>
