@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
+use App\Models\CourseLesson;
 use App\Models\CourseProgress;
 use App\Models\Prospek;
 use App\Models\SistemNotification;
@@ -206,7 +207,7 @@ class ModulController extends Controller
             ->where('user_id', $request->user()->id)
             ->pluck('progress_persen', 'course_id');
         $kelas = Course::query()
-            ->where('aktif', true)
+            ->when(! $request->user()->bisaKelolaPengguna(), fn ($query) => $query->where('aktif', true))
             ->withCount(['lessons' => fn ($query) => $query->where('aktif', true)])
             ->orderBy('urutan')
             ->orderBy('judul')
@@ -219,17 +220,84 @@ class ModulController extends Controller
                     'durasi' => $this->formatDurasi($course->durasi_menit),
                     'progress' => (int) ($progress[$course->id] ?? 0),
                     'level' => $course->level,
+                    'topik' => $course->topik,
+                    'deskripsi' => $course->deskripsi,
+                    'durasi_menit' => $course->durasi_menit,
+                    'urutan' => $course->urutan,
+                    'aktif' => $course->aktif,
                 ];
             });
 
-        return view('pembelajaran.index', ['kelas' => $kelas]);
+        return view('pembelajaran.index', [
+            'kelas' => $kelas,
+            'bisaKelolaPembelajaran' => $request->user()->bisaKelolaPengguna(),
+        ]);
+    }
+
+    public function storePembelajaran(Request $request): RedirectResponse
+    {
+        $this->pastikanBolehKelolaPembelajaran($request);
+
+        Course::create($this->validasiPembelajaran($request));
+
+        return back()->with('berhasil', 'Materi pembelajaran berhasil ditambahkan.');
+    }
+
+    public function updatePembelajaran(Request $request, Course $course): RedirectResponse
+    {
+        $this->pastikanBolehKelolaPembelajaran($request);
+
+        $course->update($this->validasiPembelajaran($request));
+
+        return back()->with('berhasil', 'Materi pembelajaran berhasil diperbarui.');
+    }
+
+    public function destroyPembelajaran(Request $request, Course $course): RedirectResponse
+    {
+        $this->pastikanBolehKelolaPembelajaran($request);
+
+        $course->delete();
+
+        return redirect()->route('profil.pembelajaran')->with('berhasil', 'Materi pembelajaran berhasil dihapus.');
+    }
+
+    public function storeSubMateri(Request $request, Course $course): RedirectResponse
+    {
+        $this->pastikanBolehKelolaPembelajaran($request);
+
+        $course->lessons()->create($this->validasiSubMateri($request));
+
+        return back()->with('berhasil', 'Sub materi berhasil ditambahkan.');
+    }
+
+    public function updateSubMateri(Request $request, Course $course, CourseLesson $lesson): RedirectResponse
+    {
+        $this->pastikanBolehKelolaPembelajaran($request);
+        abort_unless((int) $lesson->course_id === (int) $course->id, 404);
+
+        $lesson->update($this->validasiSubMateri($request));
+
+        return back()->with('berhasil', 'Sub materi berhasil diperbarui.');
+    }
+
+    public function destroySubMateri(Request $request, Course $course, CourseLesson $lesson): RedirectResponse
+    {
+        $this->pastikanBolehKelolaPembelajaran($request);
+        abort_unless((int) $lesson->course_id === (int) $course->id, 404);
+
+        $lesson->delete();
+
+        return back()->with('berhasil', 'Sub materi berhasil dihapus.');
     }
 
     public function detailPembelajaran(Request $request, Course $course): View
     {
-        abort_unless($course->aktif, 404);
+        abort_unless($course->aktif || $request->user()->bisaKelolaPengguna(), 404);
 
-        $course->load(['lessons' => fn ($query) => $query->where('aktif', true)->orderBy('urutan')]);
+        $course->load(['lessons' => fn ($query) => $query
+            ->when(! $request->user()->bisaKelolaPengguna(), fn ($query) => $query->where('aktif', true))
+            ->orderBy('urutan')
+            ->orderBy('judul')]);
         $progress = CourseProgress::query()
             ->where('course_id', $course->id)
             ->where('user_id', $request->user()->id)
@@ -239,6 +307,7 @@ class ModulController extends Controller
             'course' => $course,
             'progress' => $progress,
             'durasi' => $this->formatDurasi($course->durasi_menit),
+            'bisaKelolaPembelajaran' => $request->user()->bisaKelolaPengguna(),
         ]);
     }
 
@@ -348,6 +417,48 @@ class ModulController extends Controller
     private function pastikanBolehUbah(Request $request): void
     {
         abort_if($request->user()->role === 'direksi', 403);
+    }
+
+    private function pastikanBolehKelolaPembelajaran(Request $request): void
+    {
+        abort_unless($request->user()->bisaKelolaPengguna(), 403);
+    }
+
+    private function validasiPembelajaran(Request $request): array
+    {
+        $data = $request->validate([
+            'judul' => ['required', 'string', 'max:255'],
+            'deskripsi' => ['nullable', 'string'],
+            'level' => ['required', 'string', 'max:100'],
+            'topik' => ['nullable', 'string', 'max:150'],
+            'durasi_menit' => ['nullable', 'integer', 'min:0', 'max:100000'],
+            'urutan' => ['nullable', 'integer', 'min:0', 'max:100000'],
+            'aktif' => ['nullable', 'boolean'],
+        ]);
+
+        $data['durasi_menit'] = (int) ($data['durasi_menit'] ?? 0);
+        $data['urutan'] = (int) ($data['urutan'] ?? 0);
+        $data['aktif'] = $request->boolean('aktif');
+
+        return $data;
+    }
+
+    private function validasiSubMateri(Request $request): array
+    {
+        $data = $request->validate([
+            'judul' => ['required', 'string', 'max:255'],
+            'konten' => ['nullable', 'string'],
+            'video_youtube' => ['nullable', 'url', 'max:255'],
+            'durasi_menit' => ['nullable', 'integer', 'min:0', 'max:100000'],
+            'urutan' => ['nullable', 'integer', 'min:0', 'max:100000'],
+            'aktif' => ['nullable', 'boolean'],
+        ]);
+
+        $data['durasi_menit'] = (int) ($data['durasi_menit'] ?? 0);
+        $data['urutan'] = (int) ($data['urutan'] ?? 0);
+        $data['aktif'] = $request->boolean('aktif');
+
+        return $data;
     }
 
     private function pastikanBolehAksesTugas(Request $request, Task $task): void

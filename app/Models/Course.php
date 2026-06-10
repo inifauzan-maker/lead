@@ -14,6 +14,7 @@ class Course extends Model
         'judul',
         'deskripsi',
         'level',
+        'topik',
         'durasi_menit',
         'aktif',
         'urutan',

@@ -27,6 +27,12 @@ Route::middleware('auth')->group(function () {
         Route::post('tugas/{task}/komentar', [ModulController::class, 'storeKomentarTugas'])->name('tugas.komentar.store');
         Route::get('laporan', [ModulController::class, 'laporan'])->name('laporan');
         Route::get('pembelajaran', [ModulController::class, 'pembelajaran'])->name('pembelajaran');
+        Route::post('pembelajaran', [ModulController::class, 'storePembelajaran'])->name('pembelajaran.store');
+        Route::put('pembelajaran/{course}', [ModulController::class, 'updatePembelajaran'])->name('pembelajaran.update');
+        Route::delete('pembelajaran/{course}', [ModulController::class, 'destroyPembelajaran'])->name('pembelajaran.destroy');
+        Route::post('pembelajaran/{course}/sub-materi', [ModulController::class, 'storeSubMateri'])->name('pembelajaran.sub-materi.store');
+        Route::put('pembelajaran/{course}/sub-materi/{lesson}', [ModulController::class, 'updateSubMateri'])->name('pembelajaran.sub-materi.update');
+        Route::delete('pembelajaran/{course}/sub-materi/{lesson}', [ModulController::class, 'destroySubMateri'])->name('pembelajaran.sub-materi.destroy');
         Route::get('pembelajaran/{course}', [ModulController::class, 'detailPembelajaran'])->name('pembelajaran.detail');
         Route::put('pembelajaran/{course}/progress', [ModulController::class, 'updateProgressPembelajaran'])->name('pembelajaran.progress');
     });
