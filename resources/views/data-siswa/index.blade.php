@@ -5,14 +5,12 @@
         <div class="toolbar-leads">
             <form class="filter filter-leads" method="GET" action="{{ route('data-siswa.index') }}">
                 <input type="search" name="cari" value="{{ request('cari') }}" placeholder="Cari nama, sekolah, WA, program">
-                @if (auth()->user()->aksesSemuaCabang())
-                    <select name="cabang">
-                        <option value="">Semua cabang</option>
-                        @foreach ($cabang as $item)
-                            <option value="{{ $item }}" @selected(request('cabang') === $item)>{{ $item }}</option>
-                        @endforeach
-                    </select>
-                @endif
+                <select name="cabang">
+                    <option value="">Semua cabang</option>
+                    @foreach ($cabang as $item)
+                        <option value="{{ $item }}" @selected(request('cabang') === $item)>{{ $item }}</option>
+                    @endforeach
+                </select>
                 <select name="admin">
                     <option value="">Semua admin</option>
                     @foreach ($adminCabang as $item)

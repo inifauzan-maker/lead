@@ -77,7 +77,7 @@ class ProspekController extends Controller
             ->orderByDesc('total')
             ->get();
         $grafikHarian = $this->grafikLeadsHarian((clone $query), $periode);
-        $staffFilter = $this->staffTersedia($request->string('cabang')->toString() ?: null);
+        $staffFilter = $this->staffTersedia($request->string('cabang')->toString() ?: null, batasiAkses: false);
 
         return view('dashboard', [
             'total' => $total,
@@ -162,7 +162,7 @@ class ProspekController extends Controller
             'closingFollowUp' => (clone $queryRiwayat)->where('hasil', 'Closing')->count(),
             'cabang' => $this->daftarCabang(),
             'adminCabang' => $this->daftarAdminCabang(),
-            'staffFilter' => $this->staffTersedia($request->string('cabang')->toString() ?: null),
+            'staffFilter' => $this->staffTersedia($request->string('cabang')->toString() ?: null, batasiAkses: false),
             'bulanFilter' => $periode['bulan'],
             'tahunFilter' => $periode['tahun'],
             'daftarBulan' => $this->daftarBulan(),
@@ -220,7 +220,7 @@ class ProspekController extends Controller
             'prospek' => $prospek,
             'cabang' => $this->daftarCabang(),
             'adminCabang' => $this->daftarAdminCabang(),
-            'staffFilter' => $this->staffTersedia($request->string('cabang')->toString() ?: null),
+            'staffFilter' => $this->staffTersedia($request->string('cabang')->toString() ?: null, batasiAkses: false),
         ]);
     }
 
@@ -574,20 +574,13 @@ class ProspekController extends Controller
             })
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->status))
             ->when($request->filled('sumber'), fn ($query) => $query->where('sumber', $request->sumber))
-            ->when($request->user()->aksesSemuaCabang() && $request->filled('cabang'), fn ($query) => $query->where('cabang', $request->cabang))
+            ->when($request->filled('cabang'), fn ($query) => $query->where('cabang', $request->cabang))
             ->latest();
     }
 
     private function queryAkses()
     {
-        $user = request()->user();
-        $query = Prospek::query();
-
-        if ($user->aksesSemuaCabang()) {
-            return $query;
-        }
-
-        return $query->where('cabang', $user->cabang);
+        return Prospek::query();
     }
 
     private function queryAksesUbah()
@@ -611,7 +604,7 @@ class ProspekController extends Controller
         $query = $this->queryAkses();
 
         return $query
-            ->when($request->user()->aksesSemuaCabang() && $request->filled('cabang'), fn ($query) => $query->where('cabang', $request->cabang))
+            ->when($request->filled('cabang'), fn ($query) => $query->where('cabang', $request->cabang))
             ->when($request->filled('admin'), fn ($query) => $query->where('diserahkan_ke', $request->admin))
             ->when($request->filled('staff'), fn ($query) => $query->where('user_id', $request->staff));
     }
@@ -645,12 +638,8 @@ class ProspekController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->aksesSemuaCabang()) {
-            $query->where('cabang', $user->cabang);
-        }
-
         return $query
-            ->when($user->aksesSemuaCabang() && $request->filled('cabang'), fn ($query) => $query->where('cabang', $request->cabang))
+            ->when($request->filled('cabang'), fn ($query) => $query->where('cabang', $request->cabang))
             ->when($request->filled('admin'), fn ($query) => $query->where('diserahkan_ke', $request->admin))
             ->when($request->filled('staff'), fn ($query) => $query->where('user_id', $request->staff));
     }
@@ -877,14 +866,14 @@ class ProspekController extends Controller
         abort_if(request()->user()->role === 'direksi', 403);
     }
 
-    private function staffTersedia(?string $cabang = null)
+    private function staffTersedia(?string $cabang = null, bool $batasiAkses = true)
     {
         $user = request()->user();
 
         return User::query()
             ->where('aktif', true)
             ->whereIn('role', ['leader', 'staff'])
-            ->when(! $user->aksesSemuaCabang(), fn ($query) => $query->where('cabang', $user->cabang))
+            ->when($batasiAkses && ! $user->aksesSemuaCabang(), fn ($query) => $query->where('cabang', $user->cabang))
             ->when($cabang, fn ($query) => $query->where('cabang', $cabang))
             ->orderBy('name')
             ->get();

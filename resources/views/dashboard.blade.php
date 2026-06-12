@@ -18,14 +18,12 @@
                         <option value="{{ $tahun }}" @selected((int) $tahunFilter === (int) $tahun)>{{ $tahun }}</option>
                     @endforeach
                 </select>
-                @if (auth()->user()->aksesSemuaCabang())
-                    <select name="cabang">
-                        <option value="">Semua cabang</option>
-                        @foreach ($cabang as $item)
-                            <option value="{{ $item }}" @selected(request('cabang') === $item)>{{ $item }}</option>
-                        @endforeach
-                    </select>
-                @endif
+                <select name="cabang">
+                    <option value="">Semua cabang</option>
+                    @foreach ($cabang as $item)
+                        <option value="{{ $item }}" @selected(request('cabang') === $item)>{{ $item }}</option>
+                    @endforeach
+                </select>
                 <select name="admin">
                     <option value="">Semua admin</option>
                     @foreach ($adminCabang as $item)

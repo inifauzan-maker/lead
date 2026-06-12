@@ -17,14 +17,12 @@
                         <option value="{{ $item }}" @selected(request('sumber') === $item)>{{ $item }}</option>
                     @endforeach
                 </select>
-                @if (auth()->user()->aksesSemuaCabang())
-                    <select name="cabang">
-                        <option value="">Semua cabang</option>
-                        @foreach ($cabang as $item)
-                            <option value="{{ $item }}" @selected(request('cabang') === $item)>{{ $item }}</option>
-                        @endforeach
-                    </select>
-                @endif
+                <select name="cabang">
+                    <option value="">Semua cabang</option>
+                    @foreach ($cabang as $item)
+                        <option value="{{ $item }}" @selected(request('cabang') === $item)>{{ $item }}</option>
+                    @endforeach
+                </select>
                 <button class="tombol sekunder" type="submit">Filter</button>
             </form>
             <div class="aksi-data-leads">
