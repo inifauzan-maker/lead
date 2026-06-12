@@ -69,6 +69,23 @@ class Prospek extends Model
         return $this->samarkanDuaDigitTerakhir($this->no_wa);
     }
 
+    public function bisaDiubahOleh(?User $user): bool
+    {
+        if (! $user || $user->role === 'direksi') {
+            return false;
+        }
+
+        if ($user->aksesSemuaCabang()) {
+            return true;
+        }
+
+        if ($user->role === 'staff') {
+            return (int) $this->user_id === (int) $user->id;
+        }
+
+        return $this->cabang === $user->cabang;
+    }
+
     private function samarkanDuaDigitTerakhir(string $nomor): string
     {
         $panjang = mb_strlen($nomor);

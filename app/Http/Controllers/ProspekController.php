@@ -133,7 +133,7 @@ class ProspekController extends Controller
             ->latest('tanggal_follow_up')
             ->limit(8)
             ->get();
-        $calonProspek = $this->queryAksesDashboard($request)
+        $calonProspek = $this->queryAksesUbahDashboard($request)
             ->withCount('followUps')
             ->whereNotIn('status', ['Daftar', 'Tidak Tertarik'])
             ->orderBy('nama')
@@ -242,14 +242,16 @@ class ProspekController extends Controller
             'ids.min' => 'Pilih minimal satu leads.',
         ]);
 
-        $query = $this->queryAkses()
-            ->whereIn('id', $data['ids']);
-
         if ($data['aksi'] === 'export') {
+            $query = $this->queryAkses()
+                ->whereIn('id', $data['ids']);
+
             return $this->unduhCsv($query->orderBy('id'), 'export-leads-terpilih-'.now()->format('Ymd-His').'.csv');
         }
 
         $this->pastikanBolehUbah();
+        $query = $this->queryAksesUbah()
+            ->whereIn('id', $data['ids']);
         $jumlah = (clone $query)->delete();
 
         return back()->with('berhasil', "{$jumlah} leads terpilih berhasil dihapus.");
@@ -542,6 +544,10 @@ class ProspekController extends Controller
             $query->chunk(200, function ($items) use ($handle, $kolom) {
                 foreach ($items as $item) {
                     fputcsv($handle, collect($kolom)->map(function ($kolom) use ($item) {
+                        if ($kolom === 'no_wa') {
+                            return $item->noWaUntuk(request()->user());
+                        }
+
                         return $kolom === 'tgl_masuk'
                             ? $item->tgl_masuk?->format('Y-m-d')
                             : $item->{$kolom};
@@ -581,6 +587,18 @@ class ProspekController extends Controller
             return $query;
         }
 
+        return $query->where('cabang', $user->cabang);
+    }
+
+    private function queryAksesUbah()
+    {
+        $user = request()->user();
+        $query = Prospek::query();
+
+        if ($user->aksesSemuaCabang()) {
+            return $query;
+        }
+
         if ($user->role === 'staff') {
             return $query->where('user_id', $user->id);
         }
@@ -591,6 +609,16 @@ class ProspekController extends Controller
     private function queryAksesDashboard(Request $request)
     {
         $query = $this->queryAkses();
+
+        return $query
+            ->when($request->user()->aksesSemuaCabang() && $request->filled('cabang'), fn ($query) => $query->where('cabang', $request->cabang))
+            ->when($request->filled('admin'), fn ($query) => $query->where('diserahkan_ke', $request->admin))
+            ->when($request->filled('staff'), fn ($query) => $query->where('user_id', $request->staff));
+    }
+
+    private function queryAksesUbahDashboard(Request $request)
+    {
+        $query = $this->queryAksesUbah();
 
         return $query
             ->when($request->user()->aksesSemuaCabang() && $request->filled('cabang'), fn ($query) => $query->where('cabang', $request->cabang))
@@ -618,11 +646,7 @@ class ProspekController extends Controller
         $user = $request->user();
 
         if (! $user->aksesSemuaCabang()) {
-            if ($user->role === 'staff') {
-                $query->where('user_id', $user->id);
-            } else {
-                $query->where('cabang', $user->cabang);
-            }
+            $query->where('cabang', $user->cabang);
         }
 
         return $query

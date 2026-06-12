@@ -179,12 +179,13 @@
                 <tbody>
                     @forelse ($prospek as $item)
                         @php($terakhir = $item->followUpTerakhir)
+                        @php($bisaUbah = $item->bisaDiubahOleh(auth()->user()))
                         <tr>
                             <td>
                                 <strong>{{ $item->nama }}</strong>
                                 <small>{{ $item->asal_sekolah ?: 'Sekolah belum diisi' }}</small>
                             </td>
-                            <td>{{ $item->no_wa ?: '-' }}</td>
+                            <td>{{ $item->noWaUntuk(auth()->user()) }}</td>
                             <td>{{ $item->program ?: '-' }}</td>
                             <td><span class="badge">{{ $item->status }}</span></td>
                             <td>
@@ -199,7 +200,11 @@
                             <td>{{ $terakhir?->user?->name ?: ($item->penanggungJawab?->name ?: '-') }}</td>
                             @if (auth()->user()->role !== 'direksi')
                                 <td class="aksi-tabel">
-                                    <a href="{{ route('prospek.edit', $item) }}">Edit</a>
+                                    @if ($bisaUbah)
+                                        <a href="{{ route('prospek.edit', $item) }}">Edit</a>
+                                    @else
+                                        <span class="petunjuk">Lihat saja</span>
+                                    @endif
                                 </td>
                             @endif
                         </tr>

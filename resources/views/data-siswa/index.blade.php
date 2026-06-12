@@ -55,6 +55,7 @@
                 </thead>
                 <tbody>
                     @forelse ($prospek as $item)
+                        @php($bisaUbah = $item->bisaDiubahOleh(auth()->user()))
                         <tr>
                             <td>
                                 <strong>{{ $item->nama }}</strong>
@@ -69,7 +70,11 @@
                             <td>{{ $item->updated_at?->format('d M Y') ?: '-' }}</td>
                             @if (auth()->user()->role !== 'direksi')
                                 <td class="aksi-tabel">
-                                    <a href="{{ route('prospek.edit', $item) }}">Edit</a>
+                                    @if ($bisaUbah)
+                                        <a href="{{ route('prospek.edit', $item) }}">Edit</a>
+                                    @else
+                                        <span class="petunjuk">Lihat saja</span>
+                                    @endif
                                 </td>
                             @endif
                         </tr>

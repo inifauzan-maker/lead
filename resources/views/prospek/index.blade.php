@@ -78,6 +78,7 @@
                 </thead>
                 <tbody>
                     @forelse ($prospek as $item)
+                        @php($bisaUbah = $item->bisaDiubahOleh(auth()->user()))
                         <tr>
                             <td class="kolom-pilih">
                                 <input
@@ -100,19 +101,23 @@
                             <td>{{ $item->tgl_masuk?->format('d M Y') ?: '-' }}</td>
                             @if (auth()->user()->role !== 'direksi')
                                 <td class="aksi-tabel">
-                                    <a href="{{ route('prospek.edit', $item) }}">Edit</a>
-                                    <form
-                                        method="POST"
-                                        action="{{ route('prospek.destroy', $item) }}"
-                                        data-konfirmasi
-                                        data-judul-konfirmasi="Hapus leads?"
-                                        data-pesan-konfirmasi="Hapus leads {{ $item->nama }}? Data yang dihapus tidak bisa dikembalikan."
-                                        data-label-setuju="Hapus"
-                                    >
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit">Hapus</button>
-                                    </form>
+                                    @if ($bisaUbah)
+                                        <a href="{{ route('prospek.edit', $item) }}">Edit</a>
+                                        <form
+                                            method="POST"
+                                            action="{{ route('prospek.destroy', $item) }}"
+                                            data-konfirmasi
+                                            data-judul-konfirmasi="Hapus leads?"
+                                            data-pesan-konfirmasi="Hapus leads {{ $item->nama }}? Data yang dihapus tidak bisa dikembalikan."
+                                            data-label-setuju="Hapus"
+                                        >
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit">Hapus</button>
+                                        </form>
+                                    @else
+                                        <span class="petunjuk">Lihat saja</span>
+                                    @endif
                                 </td>
                             @endif
                         </tr>
