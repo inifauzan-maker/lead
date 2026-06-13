@@ -51,6 +51,26 @@ class Prospek extends Model
         return $this->hasOne(FollowUp::class)->latestOfMany('tanggal_follow_up');
     }
 
+    public function followUpBerikutnya()
+    {
+        return $this->hasOne(FollowUp::class)
+            ->whereNotNull('tanggal_follow_up_berikutnya')
+            ->whereNotIn('hasil', ['Closing', 'Tidak tertarik'])
+            ->orderBy('tanggal_follow_up_berikutnya')
+            ->orderBy('id');
+    }
+
+    public function statusFollowUp(): string
+    {
+        $jadwal = $this->followUpBerikutnya;
+
+        if (! $jadwal) {
+            return $this->follow_ups_count > 0 ? 'Belum dijadwalkan' : 'Belum follow up';
+        }
+
+        return $jadwal->statusJadwal();
+    }
+
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);

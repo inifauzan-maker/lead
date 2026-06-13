@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Models\Prospek;
 use App\Models\Cabang;
 use App\Models\Course;
+use App\Models\FollowUp;
+use App\Models\Prospek;
 use App\Models\SistemNotification;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -89,6 +92,51 @@ class ProspekTest extends TestCase
         $this->assertDatabaseMissing('prospek', ['id' => $leadBandungSatu->id]);
         $this->assertDatabaseMissing('prospek', ['id' => $leadBandungDua->id]);
         $this->assertDatabaseHas('prospek', ['id' => $leadJaksel->id]);
+    }
+
+    public function test_import_csv_menampilkan_preview_error_per_baris(): void
+    {
+        $superadmin = User::factory()->create([
+            'role' => 'superadmin',
+            'aktif' => true,
+        ]);
+        Prospek::create([
+            'nama' => 'Lead Lama',
+            'status' => 'Baru',
+            'cabang' => 'Bandung',
+            'no_wa' => '081111111111',
+        ]);
+
+        $path = tempnam(sys_get_temp_dir(), 'leads-import-');
+        file_put_contents($path, implode("\n", [
+            'nama,asal_sekolah,kelas,kota_asal,no_wa,program,status,cabang,diserahkan_ke,sumber,keterangan,tgl_masuk',
+            'Lead Valid,SMA 1,12,Bandung,082222222222,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Valid,2026-06-13',
+            'Lead Duplikat,SMA 2,12,Bandung,081111111111,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Duplikat,2026-06-13',
+            'Lead Cabang,SMA 3,12,Bandung,083333333333,SR GOLD,Baru,Cabang Salah,Admin Bandung,Instagram,Cabang salah,2026-06-13',
+            'Lead Duplikat File,SMA 4,12,Bandung,082222222222,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Duplikat file,2026-06-13',
+        ]));
+
+        $response = $this->actingAs($superadmin)
+            ->post(route('prospek.import'), [
+                'file_import' => new UploadedFile($path, 'leads.csv', 'text/csv', null, true),
+            ]);
+
+        $response->assertRedirect()
+            ->assertSessionHas('error_import');
+
+        $errorImport = session('error_import');
+
+        $this->assertDatabaseHas('prospek', [
+            'nama' => 'Lead Valid',
+            'no_wa' => '082222222222',
+        ]);
+        $this->assertCount(3, $errorImport);
+        $this->assertSame(3, $errorImport[0]['baris']);
+        $this->assertStringContainsString('Nomor WA duplikat', implode(' ', $errorImport[0]['alasan']));
+        $this->assertSame(4, $errorImport[1]['baris']);
+        $this->assertStringContainsString('Cabang tidak valid', implode(' ', $errorImport[1]['alasan']));
+        $this->assertSame(5, $errorImport[2]['baris']);
+        $this->assertStringContainsString('Nomor WA duplikat di file import', implode(' ', $errorImport[2]['alasan']));
     }
 
     public function test_matriks_hak_akses_edit_leads_sesuai_role(): void
@@ -254,6 +302,68 @@ class ProspekTest extends TestCase
             'id' => $prospek->id,
             'status' => 'Follow Up',
         ]);
+    }
+
+    public function test_follow_up_menampilkan_jumlah_hasil_jadwal_overdue_dan_notifikasi(): void
+    {
+        Carbon::setTestNow('2026-06-13 08:00:00');
+
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $prospek = Prospek::create([
+            'nama' => 'Lead Overdue',
+            'status' => 'Follow Up',
+            'cabang' => 'Bandung',
+            'user_id' => $staff->id,
+        ]);
+
+        FollowUp::create([
+            'prospek_id' => $prospek->id,
+            'user_id' => $staff->id,
+            'tanggal_follow_up' => '2026-06-10 09:00:00',
+            'metode' => 'WhatsApp',
+            'hasil' => 'Tersambung',
+            'tindak_lanjut' => 'Kirim ulang brosur.',
+            'tanggal_follow_up_berikutnya' => '2026-06-12',
+            'prioritas' => 'Tinggi',
+        ]);
+        FollowUp::create([
+            'prospek_id' => $prospek->id,
+            'user_id' => $staff->id,
+            'tanggal_follow_up' => '2026-06-11 09:00:00',
+            'metode' => 'Telepon',
+            'hasil' => 'Berminat',
+            'tindak_lanjut' => 'Hubungi orang tua.',
+            'tanggal_follow_up_berikutnya' => '2026-06-14',
+            'prioritas' => 'Normal',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('follow-up.index'))
+            ->assertOk()
+            ->assertSee('Lead Overdue')
+            ->assertSee('2')
+            ->assertSee('Berminat')
+            ->assertSee('12 Jun 2026')
+            ->assertSee('Overdue')
+            ->assertSee('Kirim ulang brosur.');
+
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $staff->id,
+            'tipe' => 'follow_up_reminder',
+            'judul' => 'Follow up terlambat',
+            'prioritas' => 'Tinggi',
+        ]);
+
+        Carbon::setTestNow();
     }
 
     public function test_menu_data_siswa_menampilkan_leads_yang_sudah_daftar(): void

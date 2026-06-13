@@ -20,12 +20,12 @@
             <strong>{{ $prospek->followUps->count() }}</strong>
         </article>
         <article class="kartu-stat">
-            <span>Tugas</span>
-            <strong>{{ $prospek->tasks->count() }}</strong>
+            <span>Hasil Terakhir</span>
+            <strong>{{ $prospek->followUpTerakhir?->hasil ?: '-' }}</strong>
         </article>
         <article class="kartu-stat">
-            <span>PIC</span>
-            <strong>{{ $prospek->penanggungJawab?->name ?: '-' }}</strong>
+            <span>Status Jadwal</span>
+            <strong>{{ $prospek->statusFollowUp() }}</strong>
         </article>
     </section>
 
@@ -58,12 +58,21 @@
                 <h2>Reminder Follow Up</h2>
                 <span>{{ $prospek->followUps->whereNotNull('tanggal_follow_up_berikutnya')->count() }} jadwal</span>
             </div>
+            @if ($prospek->followUpBerikutnya)
+                <div class="baris-ringkas {{ $prospek->followUpBerikutnya->overdue() ? 'reminder-terlambat' : '' }}">
+                    <div>
+                        <strong>Jadwal aktif berikutnya</strong>
+                        <small>{{ $prospek->followUpBerikutnya->tanggal_follow_up_berikutnya?->format('d M Y') }} - {{ $prospek->followUpBerikutnya->statusJadwal() }}</small>
+                        <small>{{ $prospek->followUpBerikutnya->tindak_lanjut ?: 'Tindak lanjut belum diisi' }}</small>
+                    </div>
+                </div>
+            @endif
             <div class="daftar-ringkas">
                 @forelse ($prospek->followUps->whereNotNull('tanggal_follow_up_berikutnya')->take(5) as $item)
-                    <article class="baris-ringkas {{ $item->tanggal_follow_up_berikutnya?->isPast() && ! $item->tanggal_follow_up_berikutnya?->isToday() ? 'reminder-terlambat' : '' }}">
+                    <article class="baris-ringkas {{ $item->overdue() ? 'reminder-terlambat' : '' }}">
                         <div>
                             <strong>{{ $item->tanggal_follow_up_berikutnya?->format('d M Y') }}</strong>
-                            <small>{{ $item->tindak_lanjut ?: 'Tindak lanjut belum diisi' }}</small>
+                            <small>{{ $item->statusJadwal() }} - {{ $item->tindak_lanjut ?: 'Tindak lanjut belum diisi' }}</small>
                         </div>
                         <em>{{ $item->prioritas }}</em>
                     </article>

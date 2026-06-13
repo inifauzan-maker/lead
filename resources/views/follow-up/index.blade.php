@@ -29,14 +29,14 @@
         </div>
         <div class="daftar-ringkas">
             @forelse ($reminderFollowUp as $item)
-                @php($terlambat = $item->tanggal_follow_up_berikutnya?->isPast() && ! $item->tanggal_follow_up_berikutnya?->isToday())
-                <article class="baris-ringkas {{ $terlambat ? 'reminder-terlambat' : '' }}">
+                <article class="baris-ringkas {{ $item->overdue() ? 'reminder-terlambat' : '' }}">
                     <div>
                         <strong>{{ $item->prospek?->nama ?: 'Leads terhapus' }}</strong>
                         <small>
                             Jadwal: {{ $item->tanggal_follow_up_berikutnya?->format('d M Y') }}
-                            {{ $terlambat ? '(terlambat)' : '(hari ini)' }}
+                            ({{ $item->statusJadwal() }})
                         </small>
+                        <small>Hasil terakhir: {{ $item->hasil }} oleh {{ $item->user?->name ?: 'User tidak aktif' }}</small>
                         <small>{{ $item->tindak_lanjut ?: 'Tindak lanjut belum diisi' }}</small>
                     </div>
                     <div class="aksi-tabel">
@@ -200,6 +200,7 @@
                         <th>Follow Up Ke</th>
                         <th>Hasil Terakhir</th>
                         <th>Jadwal Berikutnya</th>
+                        <th>Status Jadwal</th>
                         <th>PIC Terakhir</th>
                         <th>Aksi</th>
                     </tr>
@@ -207,6 +208,7 @@
                 <tbody>
                     @forelse ($prospek as $item)
                         @php($terakhir = $item->followUpTerakhir)
+                        @php($berikutnya = $item->followUpBerikutnya)
                         @php($bisaUbah = $item->bisaDiubahOleh(auth()->user()))
                         <tr>
                             <td>
@@ -224,7 +226,16 @@
                                 <strong>{{ $terakhir?->hasil ?: '-' }}</strong>
                                 <small>{{ $terakhir?->tanggal_follow_up?->format('d M Y H:i') ?: 'Belum ada aktivitas' }}</small>
                             </td>
-                            <td>{{ $terakhir?->tanggal_follow_up_berikutnya?->format('d M Y') ?: '-' }}</td>
+                            <td>
+                                <strong>{{ $berikutnya?->tanggal_follow_up_berikutnya?->format('d M Y') ?: '-' }}</strong>
+                                <small>{{ $berikutnya?->tindak_lanjut ?: 'Belum ada tindak lanjut' }}</small>
+                            </td>
+                            <td>
+                                @php($statusJadwal = $item->statusFollowUp())
+                                <span class="badge {{ $statusJadwal === 'Overdue' ? 'badge-bahaya' : ($statusJadwal === 'Hari ini' ? 'badge-peringatan' : '') }}">
+                                    {{ $statusJadwal }}
+                                </span>
+                            </td>
                             <td>{{ $terakhir?->user?->name ?: ($item->penanggungJawab?->name ?: '-') }}</td>
                             <td class="aksi-tabel">
                                 <a href="{{ route('prospek.show', $item) }}">Detail</a>
@@ -237,7 +248,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="kosong">Belum ada data follow up.</td>
+                            <td colspan="10" class="kosong">Belum ada data follow up.</td>
                         </tr>
                     @endforelse
                 </tbody>

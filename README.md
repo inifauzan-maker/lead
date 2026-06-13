@@ -5,6 +5,7 @@ Aplikasi Laravel untuk pengelolaan leads, follow up, data siswa closing, dashboa
 Dokumentasi teknis awal tersedia di:
 
 - [dokumentasi.md](dokumentasi.md)
+- [panduan-penggunaan.md](panduan-penggunaan.md)
 
 Isi dokumentasi:
 
@@ -14,3 +15,10 @@ Isi dokumentasi:
 - Struktur tabel database
 - Enterprise Architecture
 - Catatan aturan data dan RBAC
+
+Isi panduan penggunaan:
+
+- Hak akses role
+- Cara memakai dashboard, data leads, import/export, follow up, data siswa, profil, pengaturan
+- Backup dan restore
+- Tips operasional harian

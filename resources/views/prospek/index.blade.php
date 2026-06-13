@@ -41,6 +41,43 @@
             </div>
         </div>
 
+        @if (session('error_import'))
+            <div class="preview-error-import">
+                <div class="judul-panel">
+                    <div>
+                        <h2>Preview Error Import</h2>
+                        <span>{{ count(session('error_import')) }} baris gagal diproses. Perbaiki file CSV lalu import ulang baris yang gagal.</span>
+                    </div>
+                </div>
+                <div class="bungkus-tabel">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Baris</th>
+                                <th>Nama</th>
+                                <th>No WA</th>
+                                <th>Alasan Gagal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (session('error_import') as $errorImport)
+                                <tr>
+                                    <td>{{ $errorImport['baris'] }}</td>
+                                    <td>{{ $errorImport['nama'] }}</td>
+                                    <td>{{ $errorImport['no_wa'] }}</td>
+                                    <td>
+                                        @foreach ($errorImport['alasan'] as $alasan)
+                                            <span class="badge badge-bahaya">{{ $alasan }}</span>
+                                        @endforeach
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
+
         <form class="aksi-massal" method="POST" action="{{ route('prospek.aksi-massal') }}" data-form-massal>
             @csrf
             <div data-input-massal></div>

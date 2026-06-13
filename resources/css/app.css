@@ -1137,6 +1137,16 @@ td strong {
     white-space: nowrap;
 }
 
+.badge-bahaya {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.badge-peringatan {
+    background: #fef3c7;
+    color: #92400e;
+}
+
 .badge-log {
     background: #eef2ff;
     border-radius: 999px;
@@ -1184,6 +1194,20 @@ td strong {
     font-weight: 800;
     margin-bottom: 16px;
     padding: 12px 14px;
+}
+
+.preview-error-import {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    margin: 16px 0;
+    padding: 14px;
+}
+
+.preview-error-import .badge {
+    display: inline-flex;
+    margin: 2px 4px 2px 0;
+    white-space: normal;
 }
 
 .error-box {

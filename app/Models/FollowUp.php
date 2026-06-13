@@ -39,4 +39,41 @@ class FollowUp extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function sudahSelesai(): bool
+    {
+        return in_array($this->hasil, ['Closing', 'Tidak tertarik'], true);
+    }
+
+    public function overdue(): bool
+    {
+        return $this->tanggal_follow_up_berikutnya
+            && $this->tanggal_follow_up_berikutnya->isPast()
+            && ! $this->tanggal_follow_up_berikutnya->isToday()
+            && ! $this->sudahSelesai();
+    }
+
+    public function jatuhTempoHariIni(): bool
+    {
+        return $this->tanggal_follow_up_berikutnya
+            && $this->tanggal_follow_up_berikutnya->isToday()
+            && ! $this->sudahSelesai();
+    }
+
+    public function statusJadwal(): string
+    {
+        if (! $this->tanggal_follow_up_berikutnya) {
+            return 'Belum dijadwalkan';
+        }
+
+        if ($this->overdue()) {
+            return 'Overdue';
+        }
+
+        if ($this->jatuhTempoHariIni()) {
+            return 'Hari ini';
+        }
+
+        return 'Terjadwal';
+    }
 }

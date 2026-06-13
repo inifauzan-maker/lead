@@ -127,6 +127,8 @@ class ProspekController extends Controller
         $prospek->load([
             'penanggungJawab',
             'followUps' => fn ($query) => $query->with('user')->latest('tanggal_follow_up'),
+            'followUpTerakhir.user',
+            'followUpBerikutnya',
             'tasks' => fn ($query) => $query->with(['penanggungJawab', 'komentar.user'])->latest(),
         ]);
 
@@ -146,7 +148,7 @@ class ProspekController extends Controller
         $akhir = $mulai->copy()->endOfMonth();
 
         $prospek = (clone $query)
-            ->with(['followUpTerakhir.user', 'penanggungJawab'])
+            ->with(['followUpTerakhir.user', 'followUpBerikutnya.user', 'penanggungJawab'])
             ->withCount('followUps')
             ->latest('updated_at')
             ->paginate(10)
@@ -325,46 +327,42 @@ class ProspekController extends Controller
         }
 
         $header = array_map(fn ($kolom) => str($kolom)->replace("\xEF\xBB\xBF", '')->lower()->replace(' ', '_')->trim()->toString(), $header);
+        $kolomKurang = array_values(array_diff(self::KOLOM_IMPORT, $header));
+
+        if ($kolomKurang) {
+            fclose($handle);
+
+            return back()->withErrors([
+                'file_import' => 'Kolom wajib tidak ditemukan: '.implode(', ', $kolomKurang).'. Gunakan tombol Contoh File sebagai format acuan.',
+            ]);
+        }
+
         $berhasil = 0;
         $dilewati = 0;
+        $errorImport = [];
+        $nomorWaDalamFile = [];
+        $nomorBaris = 1;
 
         while (($row = fgetcsv($handle)) !== false) {
+            $nomorBaris++;
             $row = array_slice(array_pad($row, count($header), null), 0, count($header));
             $baris = array_combine($header, $row);
 
-            if (! is_array($baris) || blank($baris['nama'] ?? null)) {
+            [$data, $errorBaris, $noWa] = $this->validasiBarisImport($baris, $request, $nomorWaDalamFile);
+
+            if ($noWa) {
+                $nomorWaDalamFile[$noWa] = true;
+            }
+
+            if ($errorBaris) {
                 $dilewati++;
+                $errorImport[] = [
+                    'baris' => $nomorBaris,
+                    'nama' => $this->nilaiImport($baris['nama'] ?? null) ?: '-',
+                    'no_wa' => $noWa ?: '-',
+                    'alasan' => $errorBaris,
+                ];
                 continue;
-            }
-
-            $noWa = $this->rapikanNomorWa($baris['no_wa'] ?? null);
-
-            if ($noWa && Prospek::where('no_wa', $noWa)->exists()) {
-                $dilewati++;
-                continue;
-            }
-
-            $data = [
-                'nama' => trim((string) ($baris['nama'] ?? '')),
-                'asal_sekolah' => $this->nilaiImport($baris['asal_sekolah'] ?? null),
-                'kelas' => $this->nilaiImport($baris['kelas'] ?? null),
-                'kota_asal' => $this->nilaiImport($baris['kota_asal'] ?? null),
-                'no_wa' => $noWa,
-                'program' => $this->nilaiImport($baris['program'] ?? null),
-                'status' => in_array($baris['status'] ?? '', self::STATUS, true) ? $baris['status'] : 'Baru',
-                'cabang' => in_array($baris['cabang'] ?? '', $this->daftarCabang(), true) ? $baris['cabang'] : null,
-                'diserahkan_ke' => in_array($baris['diserahkan_ke'] ?? '', $this->daftarAdminCabang(), true) ? $baris['diserahkan_ke'] : null,
-                'sumber' => $this->nilaiImport($baris['sumber'] ?? null),
-                'keterangan' => $this->nilaiImport($baris['keterangan'] ?? null),
-                'tgl_masuk' => $this->tanggalImport($baris['tgl_masuk'] ?? null),
-            ];
-
-            if (! $request->user()->bisaMengubahSemuaLeads()) {
-                $data['cabang'] = $request->user()->cabang;
-            }
-
-            if ($request->user()->bisaMengubahLeadsMilikSendiri()) {
-                $data['user_id'] = $request->user()->id;
             }
 
             Prospek::create($data);
@@ -377,7 +375,9 @@ class ProspekController extends Controller
             $this->kirimNotifikasiImport($request, $berhasil, $dilewati);
         }
 
-        return back()->with('berhasil', "Import selesai. {$berhasil} data masuk, {$dilewati} data dilewati.");
+        return back()
+            ->with('berhasil', "Import selesai. {$berhasil} data masuk, {$dilewati} data gagal.")
+            ->with('error_import', $errorImport);
     }
 
     public function create(): View
@@ -543,6 +543,83 @@ class ProspekController extends Controller
         $nilai = trim((string) $nilai);
 
         return $nilai === '' ? null : $nilai;
+    }
+
+    private function validasiBarisImport(array|false $baris, Request $request, array $nomorWaDalamFile): array
+    {
+        if (! is_array($baris)) {
+            return [null, ['Format baris CSV tidak valid.'], null];
+        }
+
+        $error = [];
+        $noWa = $this->rapikanNomorWa($baris['no_wa'] ?? null);
+        $nama = $this->nilaiImport($baris['nama'] ?? null);
+        $status = $this->nilaiImport($baris['status'] ?? null);
+        $cabang = $this->nilaiImport($baris['cabang'] ?? null);
+        $diserahkanKe = $this->nilaiImport($baris['diserahkan_ke'] ?? null);
+        $tanggalMasukMentah = $this->nilaiImport($baris['tgl_masuk'] ?? null);
+        $tanggalMasuk = $this->tanggalImport($tanggalMasukMentah);
+
+        if (! $nama) {
+            $error[] = 'Nama wajib diisi.';
+        }
+
+        if ($noWa && Prospek::where('no_wa', $noWa)->exists()) {
+            $error[] = "Nomor WA duplikat dengan data sistem: {$noWa}.";
+        }
+
+        if ($noWa && isset($nomorWaDalamFile[$noWa])) {
+            $error[] = "Nomor WA duplikat di file import: {$noWa}.";
+        }
+
+        if ($status && ! in_array($status, self::STATUS, true)) {
+            $error[] = "Status tidak valid: {$status}.";
+        }
+
+        if ($request->user()->bisaMengubahSemuaLeads()) {
+            if ($cabang && ! in_array($cabang, $this->daftarCabang(), true)) {
+                $error[] = "Cabang tidak valid: {$cabang}.";
+            }
+        } elseif ($cabang && $cabang !== $request->user()->cabang) {
+            $error[] = "Cabang tidak sesuai akses user: {$cabang}.";
+        }
+
+        if ($diserahkanKe && ! in_array($diserahkanKe, $this->daftarAdminCabang(), true)) {
+            $error[] = "Diserahkan ke tidak valid: {$diserahkanKe}.";
+        }
+
+        if ($tanggalMasukMentah && ! $tanggalMasuk) {
+            $error[] = "Tanggal masuk tidak valid: {$tanggalMasukMentah}.";
+        }
+
+        if ($error) {
+            return [null, $error, $noWa];
+        }
+
+        $data = [
+            'nama' => $nama,
+            'asal_sekolah' => $this->nilaiImport($baris['asal_sekolah'] ?? null),
+            'kelas' => $this->nilaiImport($baris['kelas'] ?? null),
+            'kota_asal' => $this->nilaiImport($baris['kota_asal'] ?? null),
+            'no_wa' => $noWa,
+            'program' => $this->nilaiImport($baris['program'] ?? null),
+            'status' => $status ?: 'Baru',
+            'cabang' => $cabang,
+            'diserahkan_ke' => $diserahkanKe,
+            'sumber' => $this->nilaiImport($baris['sumber'] ?? null),
+            'keterangan' => $this->nilaiImport($baris['keterangan'] ?? null),
+            'tgl_masuk' => $tanggalMasuk,
+        ];
+
+        if (! $request->user()->bisaMengubahSemuaLeads()) {
+            $data['cabang'] = $request->user()->cabang;
+        }
+
+        if ($request->user()->bisaMengubahLeadsMilikSendiri()) {
+            $data['user_id'] = $request->user()->id;
+        }
+
+        return [$data, [], $noWa];
     }
 
     private function tanggalImport($nilai): ?string
@@ -885,7 +962,8 @@ class ProspekController extends Controller
             ->whereNotNull('tanggal_follow_up_berikutnya')
             ->whereDate('tanggal_follow_up_berikutnya', '<=', now()->toDateString())
             ->whereNotIn('hasil', ['Closing', 'Tidak tertarik'])
-            ->whereHas('prospek', fn ($query) => $this->filterAksesDashboard($query, $request))
+            ->whereHas('prospek', fn ($query) => $this->filterAksesDashboard($query, $request)
+                ->whereNotIn('status', ['Daftar', 'Tidak Tertarik']))
             ->latest('tanggal_follow_up_berikutnya')
             ->limit(10)
             ->get();
@@ -910,7 +988,7 @@ class ProspekController extends Controller
                 SistemNotification::kirimSekali($penerima, [
                     'tipe' => 'follow_up_reminder',
                     'judul' => $terlambat ? 'Follow up terlambat' : 'Follow up hari ini',
-                    'pesan' => "Leads {$prospek->nama} perlu di-follow up pada ".$followUp->tanggal_follow_up_berikutnya?->format('d M Y').'.',
+                    'pesan' => "Leads {$prospek->nama} perlu di-follow up pada ".$followUp->tanggal_follow_up_berikutnya?->format('d M Y').'. Hasil terakhir: '.$followUp->hasil.'.',
                     'tautan' => route('prospek.show', $prospek),
                     'prioritas' => $terlambat ? 'Tinggi' : 'Normal',
                 ]);
