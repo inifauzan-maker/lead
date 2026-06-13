@@ -99,7 +99,7 @@
 
     <section class="grid-ringkasan">
         <article class="kartu-stat">
-            <span>Total Leads</span>
+            <span>Total Leads Aktif</span>
             <strong>{{ $total }}</strong>
         </article>
         <article class="kartu-stat">

@@ -54,26 +54,27 @@ class ProspekController extends Controller
         $periode = $this->periodeDashboard($request);
         $dashboardRole = $this->konteksDashboard($request);
         $query = $this->filterPeriodeDashboard($this->queryDashboardPerRole($request), $periode);
-        $total = (clone $query)->count();
-        $baru = (clone $query)->where('status', 'Baru')->count();
-        $followUp = (clone $query)->whereIn('status', ['Dihubungi', 'Follow Up'])->count();
+        $queryLeadsAktif = $this->queryLeadsAktif(clone $query);
+        $total = (clone $queryLeadsAktif)->count();
+        $baru = (clone $queryLeadsAktif)->where('status', 'Baru')->count();
+        $followUp = (clone $queryLeadsAktif)->whereIn('status', ['Dihubungi', 'Follow Up'])->count();
         $daftar = (clone $query)->where('status', 'Daftar')->count();
-        $perSumber = (clone $query)->selectRaw('COALESCE(sumber, "Tanpa Sumber") as sumber, COUNT(*) as total')
+        $perSumber = (clone $queryLeadsAktif)->selectRaw('COALESCE(sumber, "Tanpa Sumber") as sumber, COUNT(*) as total')
             ->groupBy('sumber')
             ->orderByDesc('total')
             ->limit(6)
             ->get();
-        $perProgram = (clone $query)->selectRaw('COALESCE(program, "Tanpa Program") as program, COUNT(*) as total')
+        $perProgram = (clone $queryLeadsAktif)->selectRaw('COALESCE(program, "Tanpa Program") as program, COUNT(*) as total')
             ->groupBy('program')
             ->orderByDesc('total')
             ->limit(8)
             ->get();
-        $perSekolah = (clone $query)->selectRaw('COALESCE(asal_sekolah, "Tanpa Sekolah") as asal_sekolah, COUNT(*) as total')
+        $perSekolah = (clone $queryLeadsAktif)->selectRaw('COALESCE(asal_sekolah, "Tanpa Sekolah") as asal_sekolah, COUNT(*) as total')
             ->groupBy('asal_sekolah')
             ->orderByDesc('total')
             ->limit(5)
             ->get();
-        $perCabang = (clone $query)->selectRaw('COALESCE(cabang, "Tanpa Cabang") as cabang, COUNT(*) as total')
+        $perCabang = (clone $queryLeadsAktif)->selectRaw('COALESCE(cabang, "Tanpa Cabang") as cabang, COUNT(*) as total')
             ->groupBy('cabang')
             ->orderByDesc('total')
             ->get();
@@ -723,6 +724,11 @@ class ProspekController extends Controller
             ->when($request->filled('staff'), fn ($query) => $query->where('user_id', $request->staff));
     }
 
+    private function queryLeadsAktif($query)
+    {
+        return $query->whereNotIn('status', ['Daftar', 'Tidak Tertarik']);
+    }
+
     private function queryDashboardPerRole(Request $request)
     {
         $user = $request->user();
@@ -843,12 +849,14 @@ class ProspekController extends Controller
 
     private function performaPribadiDashboard($query, array $konteks): array
     {
-        $total = (clone $query)->count();
-        $followUp = (clone $query)->whereIn('status', ['Dihubungi', 'Follow Up'])->count();
+        $queryAktif = $this->queryLeadsAktif(clone $query);
+        $total = (clone $queryAktif)->count();
+        $followUp = (clone $queryAktif)->whereIn('status', ['Dihubungi', 'Follow Up'])->count();
         $closing = (clone $query)->where('status', 'Daftar')->count();
-        $baru = (clone $query)->where('status', 'Baru')->count();
-        $rasio = $total > 0 ? round(($closing / $total) * 100) : 0;
-        $maks = max(1, $total);
+        $baru = (clone $queryAktif)->where('status', 'Baru')->count();
+        $basisRasio = $total + $closing;
+        $rasio = $basisRasio > 0 ? round(($closing / $basisRasio) * 100) : 0;
+        $maks = max(1, $total, $closing);
 
         return [
             'judul' => $konteks['panelJudul'],
@@ -864,9 +872,14 @@ class ProspekController extends Controller
 
     private function performaTimDashboard($query, array $konteks): array
     {
-        $items = (clone $query)
+        $queryAktif = $this->queryLeadsAktif(clone $query);
+        $closingPerUser = (clone $query)
+            ->where('status', 'Daftar')
             ->selectRaw('COALESCE(user_id, 0) as user_id, COUNT(*) as total')
-            ->selectRaw('SUM(CASE WHEN status = "Daftar" THEN 1 ELSE 0 END) as closing')
+            ->groupBy('user_id')
+            ->pluck('total', 'user_id');
+        $items = (clone $queryAktif)
+            ->selectRaw('COALESCE(user_id, 0) as user_id, COUNT(*) as total')
             ->selectRaw('SUM(CASE WHEN status IN ("Dihubungi", "Follow Up") THEN 1 ELSE 0 END) as follow_up')
             ->groupBy('user_id')
             ->orderByDesc('total')
@@ -883,7 +896,7 @@ class ProspekController extends Controller
             'items' => $items->map(fn ($item) => [
                 'label' => (int) $item->user_id > 0 ? ($namaUser[$item->user_id] ?? 'User tidak aktif') : 'Belum ditugaskan',
                 'total' => (int) $item->total,
-                'closing' => (int) $item->closing,
+                'closing' => (int) ($closingPerUser[$item->user_id] ?? 0),
                 'follow_up' => (int) $item->follow_up,
                 'persen' => round(((int) $item->total / $maks) * 100),
             ]),
@@ -892,9 +905,14 @@ class ProspekController extends Controller
 
     private function performaCabangDashboard($query, array $konteks): array
     {
-        $items = (clone $query)
+        $queryAktif = $this->queryLeadsAktif(clone $query);
+        $closingPerCabang = (clone $query)
+            ->where('status', 'Daftar')
             ->selectRaw('COALESCE(cabang, "Tanpa Cabang") as label, COUNT(*) as total')
-            ->selectRaw('SUM(CASE WHEN status = "Daftar" THEN 1 ELSE 0 END) as closing')
+            ->groupBy('label')
+            ->pluck('total', 'label');
+        $items = (clone $queryAktif)
+            ->selectRaw('COALESCE(cabang, "Tanpa Cabang") as label, COUNT(*) as total')
             ->selectRaw('SUM(CASE WHEN status IN ("Dihubungi", "Follow Up") THEN 1 ELSE 0 END) as follow_up')
             ->groupBy('label')
             ->orderByDesc('total')
@@ -907,7 +925,7 @@ class ProspekController extends Controller
             'items' => $items->map(fn ($item) => [
                 'label' => $item->label,
                 'total' => (int) $item->total,
-                'closing' => (int) $item->closing,
+                'closing' => (int) ($closingPerCabang[$item->label] ?? 0),
                 'follow_up' => (int) $item->follow_up,
                 'persen' => round(((int) $item->total / $maks) * 100),
             ]),
@@ -1039,7 +1057,7 @@ class ProspekController extends Controller
     {
         $mulai = Carbon::create($periode['tahun'], $periode['bulan'], 1)->startOfMonth();
         $akhir = $mulai->copy()->endOfMonth();
-        $jumlahLead = (clone $query)
+        $jumlahLead = $this->queryLeadsAktif(clone $query)
             ->selectRaw('DATE(COALESCE(tgl_masuk, created_at)) as tanggal, COUNT(*) as total')
             ->whereRaw('DATE(COALESCE(tgl_masuk, created_at)) between ? and ?', [
                 $mulai->toDateString(),

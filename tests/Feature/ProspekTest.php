@@ -392,6 +392,47 @@ class ProspekTest extends TestCase
             ->assertDontSee('Lead Follow Up');
     }
 
+    public function test_dashboard_menghitung_leads_aktif_dan_closing_masuk_data_siswa(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        Prospek::create([
+            'nama' => 'Lead Aktif',
+            'status' => 'Follow Up',
+            'cabang' => 'Bandung',
+            'tgl_masuk' => '2026-06-13',
+        ]);
+        Prospek::create([
+            'nama' => 'Siswa Closing Satu',
+            'status' => 'Daftar',
+            'cabang' => 'Bandung',
+            'tgl_masuk' => '2026-06-13',
+        ]);
+        Prospek::create([
+            'nama' => 'Siswa Closing Dua',
+            'status' => 'Daftar',
+            'cabang' => 'Bandung',
+            'tgl_masuk' => '2026-06-13',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
+            ->assertOk()
+            ->assertSee('Total Leads Aktif')
+            ->assertSeeInOrder(['Total Leads Aktif', '1', 'Leads Baru', '0', 'Butuh Follow Up', '1', 'Closing', '2']);
+
+        $this->actingAs($admin)
+            ->get(route('data-siswa.index'))
+            ->assertOk()
+            ->assertSee('Siswa Closing Satu')
+            ->assertSee('Siswa Closing Dua')
+            ->assertDontSee('Lead Aktif');
+    }
+
     public function test_user_bisa_membuka_dan_memperbarui_profil(): void
     {
         $user = User::factory()->create([
