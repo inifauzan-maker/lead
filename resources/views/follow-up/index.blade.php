@@ -20,7 +20,39 @@
         </div>
     </section>
 
-    @if (auth()->user()->role !== 'direksi')
+    <section class="panel jarak-atas">
+        <div class="judul-panel">
+            <div>
+                <h2>Reminder Follow Up</h2>
+                <span>{{ $reminderFollowUp->count() }} jadwal hari ini atau terlambat.</span>
+            </div>
+        </div>
+        <div class="daftar-ringkas">
+            @forelse ($reminderFollowUp as $item)
+                @php($terlambat = $item->tanggal_follow_up_berikutnya?->isPast() && ! $item->tanggal_follow_up_berikutnya?->isToday())
+                <article class="baris-ringkas {{ $terlambat ? 'reminder-terlambat' : '' }}">
+                    <div>
+                        <strong>{{ $item->prospek?->nama ?: 'Leads terhapus' }}</strong>
+                        <small>
+                            Jadwal: {{ $item->tanggal_follow_up_berikutnya?->format('d M Y') }}
+                            {{ $terlambat ? '(terlambat)' : '(hari ini)' }}
+                        </small>
+                        <small>{{ $item->tindak_lanjut ?: 'Tindak lanjut belum diisi' }}</small>
+                    </div>
+                    <div class="aksi-tabel">
+                        @if ($item->prospek)
+                            <a href="{{ route('prospek.show', $item->prospek) }}">Detail</a>
+                        @endif
+                        <em>{{ $item->prioritas }}</em>
+                    </div>
+                </article>
+            @empty
+                <p class="kosong">Tidak ada reminder follow up hari ini.</p>
+            @endforelse
+        </div>
+    </section>
+
+    @if (auth()->user()->bisaInputLeads())
         <section class="panel">
             <div class="judul-panel">
                 <div>
@@ -169,9 +201,7 @@
                         <th>Hasil Terakhir</th>
                         <th>Jadwal Berikutnya</th>
                         <th>PIC Terakhir</th>
-                        @if (auth()->user()->role !== 'direksi')
-                            <th>Aksi</th>
-                        @endif
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -196,19 +226,18 @@
                             </td>
                             <td>{{ $terakhir?->tanggal_follow_up_berikutnya?->format('d M Y') ?: '-' }}</td>
                             <td>{{ $terakhir?->user?->name ?: ($item->penanggungJawab?->name ?: '-') }}</td>
-                            @if (auth()->user()->role !== 'direksi')
-                                <td class="aksi-tabel">
-                                    @if ($bisaUbah)
-                                        <a href="{{ route('prospek.edit', $item) }}">Edit</a>
-                                    @else
-                                        <span class="petunjuk">Lihat saja</span>
-                                    @endif
-                                </td>
-                            @endif
+                            <td class="aksi-tabel">
+                                <a href="{{ route('prospek.show', $item) }}">Detail</a>
+                                @if ($bisaUbah)
+                                    <a href="{{ route('prospek.edit', $item) }}">Edit</a>
+                                @else
+                                    <span class="petunjuk">Lihat saja</span>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ auth()->user()->role !== 'direksi' ? 9 : 8 }}" class="kosong">Belum ada data follow up.</td>
+                            <td colspan="9" class="kosong">Belum ada data follow up.</td>
                         </tr>
                     @endforelse
                 </tbody>

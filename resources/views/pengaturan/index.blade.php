@@ -102,4 +102,24 @@
             <div class="paginasi">{{ $pengguna->links() }}</div>
         </div>
     </section>
+
+    <section class="panel jarak-atas">
+        <div class="judul-panel">
+            <div>
+                <h2>Backup dan Restore Data</h2>
+                <span>Export semua data penting aplikasi ke file SQL untuk arsip dan proses restore manual.</span>
+            </div>
+            <a class="tombol utama" href="{{ route('pengaturan.backup.export') }}">Export Backup SQL</a>
+        </div>
+        <div class="daftar-ringkas">
+            <div class="baris-ringkas">
+                <strong>Isi backup</strong>
+                <small>Cabang, sumber leads, program, user, leads, follow up, tugas, pembelajaran, notifikasi, dan log aktivitas.</small>
+            </div>
+            <div class="baris-ringkas">
+                <strong>Restore database</strong>
+                <small>Restore dilakukan dari phpMyAdmin atau perintah MySQL. Ikuti panduan di file dokumentasi.md sebelum menimpa database produksi.</small>
+            </div>
+        </div>
+    </section>
 @endsection

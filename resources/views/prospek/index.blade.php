@@ -28,7 +28,7 @@
             <div class="aksi-data-leads">
                 <a class="tombol sekunder" href="{{ route('prospek.contoh-import') }}">Contoh File</a>
                 <a class="tombol sekunder" href="{{ route('prospek.export', request()->query()) }}">Export</a>
-                @if (auth()->user()->role !== 'direksi')
+                @if (auth()->user()->bisaInputLeads())
                     <form class="form-import" method="POST" action="{{ route('prospek.import') }}" enctype="multipart/form-data">
                         @csrf
                         <label class="tombol sekunder">
@@ -47,7 +47,7 @@
             <span><strong data-jumlah-terpilih>0</strong> leads dipilih</span>
             <select name="aksi" aria-label="Aksi massal">
                 <option value="export">Export terpilih</option>
-                @if (auth()->user()->role !== 'direksi')
+                @if (auth()->user()->bisaInputLeads())
                     <option value="hapus">Hapus terpilih</option>
                 @endif
             </select>
@@ -69,9 +69,7 @@
                         <th>Cabang</th>
                         <th>Sumber</th>
                         <th>Tgl Masuk</th>
-                        @if (auth()->user()->role !== 'direksi')
-                            <th>Aksi</th>
-                        @endif
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -97,31 +95,30 @@
                             <td>{{ $item->cabang ?: '-' }}</td>
                             <td>{{ $item->sumber ?: '-' }}</td>
                             <td>{{ $item->tgl_masuk?->format('d M Y') ?: '-' }}</td>
-                            @if (auth()->user()->role !== 'direksi')
-                                <td class="aksi-tabel">
-                                    @if ($bisaUbah)
-                                        <a href="{{ route('prospek.edit', $item) }}">Edit</a>
-                                        <form
-                                            method="POST"
-                                            action="{{ route('prospek.destroy', $item) }}"
-                                            data-konfirmasi
-                                            data-judul-konfirmasi="Hapus leads?"
-                                            data-pesan-konfirmasi="Hapus leads {{ $item->nama }}? Data yang dihapus tidak bisa dikembalikan."
-                                            data-label-setuju="Hapus"
-                                        >
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit">Hapus</button>
-                                        </form>
-                                    @else
-                                        <span class="petunjuk">Lihat saja</span>
-                                    @endif
-                                </td>
-                            @endif
+                            <td class="aksi-tabel">
+                                <a href="{{ route('prospek.show', $item) }}">Detail</a>
+                                @if ($bisaUbah)
+                                    <a href="{{ route('prospek.edit', $item) }}">Edit</a>
+                                    <form
+                                        method="POST"
+                                        action="{{ route('prospek.destroy', $item) }}"
+                                        data-konfirmasi
+                                        data-judul-konfirmasi="Hapus leads?"
+                                        data-pesan-konfirmasi="Hapus leads {{ $item->nama }}? Data yang dihapus tidak bisa dikembalikan."
+                                        data-label-setuju="Hapus"
+                                    >
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit">Hapus</button>
+                                    </form>
+                                @else
+                                    <span class="petunjuk">Lihat saja</span>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ auth()->user()->role !== 'direksi' ? 10 : 9 }}" class="kosong">Belum ada data leads.</td>
+                            <td colspan="10" class="kosong">Belum ada data leads.</td>
                         </tr>
                     @endforelse
                 </tbody>

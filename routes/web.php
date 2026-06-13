@@ -48,9 +48,10 @@ Route::middleware('auth')->group(function () {
     Route::get('follow-up', [ProspekController::class, 'followUp'])->name('follow-up.index');
     Route::post('follow-up', [ProspekController::class, 'storeFollowUp'])->name('follow-up.store');
     Route::get('data-siswa', [ProspekController::class, 'dataSiswa'])->name('data-siswa.index');
-    Route::resource('prospek', ProspekController::class)->except(['show']);
+    Route::resource('prospek', ProspekController::class);
     Route::prefix('pengaturan')->name('pengaturan.')->middleware('role:superadmin')->group(function () {
         Route::get('/', [PengaturanController::class, 'index'])->name('index');
+        Route::get('backup/export', [PengaturanController::class, 'exportBackup'])->name('backup.export');
         Route::post('cabang', [PengaturanController::class, 'storeCabang'])->name('cabang.store');
         Route::put('cabang/{cabang}', [PengaturanController::class, 'updateCabang'])->name('cabang.update');
         Route::delete('cabang/{cabang}', [PengaturanController::class, 'destroyCabang'])->name('cabang.destroy');

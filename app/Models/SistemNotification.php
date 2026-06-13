@@ -58,6 +58,40 @@ class SistemNotification extends Model
             });
     }
 
+    public static function kirimSekali(iterable $penerima, array $data): void
+    {
+        if (! Schema::hasTable('notifications')) {
+            return;
+        }
+
+        collect($penerima)
+            ->filter()
+            ->unique('id')
+            ->each(function (User $user) use ($data) {
+                $sudahAda = self::query()
+                    ->where('user_id', $user->id)
+                    ->where('tipe', $data['tipe'] ?? 'info')
+                    ->where('judul', $data['judul'])
+                    ->where('tautan', $data['tautan'] ?? null)
+                    ->whereDate('created_at', now()->toDateString())
+                    ->exists();
+
+                if ($sudahAda) {
+                    return;
+                }
+
+                self::create([
+                    'user_id' => $user->id,
+                    'tipe' => $data['tipe'] ?? 'info',
+                    'judul' => $data['judul'],
+                    'pesan' => $data['pesan'] ?? null,
+                    'tautan' => $data['tautan'] ?? null,
+                    'prioritas' => $data['prioritas'] ?? 'Normal',
+                    'dibaca_pada' => null,
+                ]);
+            });
+    }
+
     public static function penerimaCabang(?string $cabang, array $roleCabang = ['admin', 'leader']): Collection
     {
         if (! Schema::hasTable('users')) {

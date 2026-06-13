@@ -52,7 +52,8 @@ class ProspekController extends Controller
     public function dashboard(Request $request): View
     {
         $periode = $this->periodeDashboard($request);
-        $query = $this->queryAksesDashboard($request);
+        $dashboardRole = $this->konteksDashboard($request);
+        $query = $this->filterPeriodeDashboard($this->queryDashboardPerRole($request), $periode);
         $total = (clone $query)->count();
         $baru = (clone $query)->where('status', 'Baru')->count();
         $followUp = (clone $query)->whereIn('status', ['Dihubungi', 'Follow Up'])->count();
@@ -77,9 +78,13 @@ class ProspekController extends Controller
             ->orderByDesc('total')
             ->get();
         $grafikHarian = $this->grafikLeadsHarian((clone $query), $periode);
-        $staffFilter = $this->staffTersedia($request->string('cabang')->toString() ?: null, batasiAkses: false);
+        $cabangStaffFilter = $dashboardRole['cabangTerkunci'] ?? ($request->string('cabang')->toString() ?: null);
+        $staffFilter = $dashboardRole['bolehFilterStaff']
+            ? $this->staffTersedia($cabangStaffFilter, batasiAkses: false)
+            : collect();
 
         return view('dashboard', [
+            'dashboardRole' => $dashboardRole,
             'total' => $total,
             'baru' => $baru,
             'followUp' => $followUp,
@@ -88,9 +93,10 @@ class ProspekController extends Controller
             'perProgram' => $perProgram,
             'perSekolah' => $perSekolah,
             'perCabang' => $perCabang,
+            'performaRole' => $this->performaDashboardRole((clone $query), $dashboardRole),
             'grafikHarian' => $grafikHarian,
             'cabang' => $this->daftarCabang(),
-            'adminCabang' => $this->daftarAdminCabang(),
+            'adminCabang' => $this->daftarAdminCabang($dashboardRole['cabangTerkunci']),
             'staffFilter' => $staffFilter,
             'bulanFilter' => $periode['bulan'],
             'tahunFilter' => $periode['tahun'],
@@ -102,6 +108,7 @@ class ProspekController extends Controller
     public function index(Request $request): View
     {
         $prospek = $this->queryDaftar($request)
+            ->with(['penanggungJawab'])
             ->paginate(10)
             ->withQueryString();
 
@@ -113,10 +120,28 @@ class ProspekController extends Controller
         ]);
     }
 
+    public function show(Request $request, Prospek $prospek): View
+    {
+        $this->pastikanBolehLihat($prospek);
+
+        $prospek->load([
+            'penanggungJawab',
+            'followUps' => fn ($query) => $query->with('user')->latest('tanggal_follow_up'),
+            'tasks' => fn ($query) => $query->with(['penanggungJawab', 'komentar.user'])->latest(),
+        ]);
+
+        return view('prospek.detail', [
+            'prospek' => $prospek,
+            'bisaUbah' => $prospek->bisaDiubahOleh($request->user()),
+        ]);
+    }
+
     public function followUp(Request $request): View
     {
         $periode = $this->periodeDashboard($request);
         $query = $this->queryAksesFollowUp($request);
+        $this->buatNotifikasiReminderFollowUp($request);
+        $reminderFollowUp = $this->reminderFollowUp($request);
         $mulai = Carbon::create($periode['tahun'], $periode['bulan'], 1)->startOfMonth();
         $akhir = $mulai->copy()->endOfMonth();
 
@@ -146,6 +171,7 @@ class ProspekController extends Controller
             'kalender' => $kalender,
             'aktivitasTerbaru' => $aktivitasTerbaru,
             'calonProspek' => $calonProspek,
+            'reminderFollowUp' => $reminderFollowUp,
             'metodeFollowUp' => self::METODE_FOLLOW_UP,
             'hasilFollowUp' => self::HASIL_FOLLOW_UP,
             'prioritasFollowUp' => self::PRIORITAS_FOLLOW_UP,
@@ -333,11 +359,11 @@ class ProspekController extends Controller
                 'tgl_masuk' => $this->tanggalImport($baris['tgl_masuk'] ?? null),
             ];
 
-            if (! $request->user()->aksesSemuaCabang()) {
+            if (! $request->user()->bisaMengubahSemuaLeads()) {
                 $data['cabang'] = $request->user()->cabang;
             }
 
-            if ($request->user()->role === 'staff') {
+            if ($request->user()->bisaMengubahLeadsMilikSendiri()) {
                 $data['user_id'] = $request->user()->id;
             }
 
@@ -471,11 +497,11 @@ class ProspekController extends Controller
 
         $user = $request->user();
 
-        if (! $user->aksesSemuaCabang()) {
+        if (! $user->bisaMengubahSemuaLeads()) {
             $data['cabang'] = $user->cabang;
         }
 
-        if ($user->role === 'staff') {
+        if ($user->bisaMengubahLeadsMilikSendiri()) {
             $data['user_id'] = $user->id;
         }
 
@@ -580,7 +606,14 @@ class ProspekController extends Controller
 
     private function queryAkses()
     {
-        return Prospek::query();
+        $user = request()->user();
+        $query = Prospek::query();
+
+        if ($user?->bisaLihatSemuaLeads()) {
+            return $query;
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     private function queryAksesUbah()
@@ -588,15 +621,19 @@ class ProspekController extends Controller
         $user = request()->user();
         $query = Prospek::query();
 
-        if ($user->aksesSemuaCabang()) {
+        if ($user->bisaMengubahSemuaLeads()) {
             return $query;
         }
 
-        if ($user->role === 'staff') {
+        if ($user->bisaMengubahLeadsMilikSendiri()) {
             return $query->where('user_id', $user->id);
         }
 
-        return $query->where('cabang', $user->cabang);
+        if ($user->bisaMengubahLeadsCabang()) {
+            return $query->where('cabang', $user->cabang);
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     private function queryAksesDashboard(Request $request)
@@ -607,6 +644,197 @@ class ProspekController extends Controller
             ->when($request->filled('cabang'), fn ($query) => $query->where('cabang', $request->cabang))
             ->when($request->filled('admin'), fn ($query) => $query->where('diserahkan_ke', $request->admin))
             ->when($request->filled('staff'), fn ($query) => $query->where('user_id', $request->staff));
+    }
+
+    private function queryDashboardPerRole(Request $request)
+    {
+        $user = $request->user();
+        $konteks = $this->konteksDashboard($request);
+        $query = $this->queryAkses();
+
+        if ($user->role === 'staff') {
+            return $query->where('user_id', $user->id);
+        }
+
+        if ($konteks['cabangTerkunci']) {
+            $query->where('cabang', $konteks['cabangTerkunci']);
+        } elseif ($konteks['bolehFilterCabang'] && $request->filled('cabang')) {
+            $query->where('cabang', $request->cabang);
+        }
+
+        return $query
+            ->when($konteks['bolehFilterAdmin'] && $request->filled('admin'), fn ($query) => $query->where('diserahkan_ke', $request->admin))
+            ->when($konteks['bolehFilterStaff'] && $request->filled('staff'), fn ($query) => $query->where('user_id', $request->staff));
+    }
+
+    private function filterPeriodeDashboard($query, array $periode)
+    {
+        $mulai = Carbon::create($periode['tahun'], $periode['bulan'], 1)->startOfMonth();
+        $akhir = $mulai->copy()->endOfMonth();
+
+        return $query->whereRaw('DATE(COALESCE(tgl_masuk, created_at)) between ? and ?', [
+            $mulai->toDateString(),
+            $akhir->toDateString(),
+        ]);
+    }
+
+    private function konteksDashboard(Request $request): array
+    {
+        $user = $request->user();
+
+        return match ($user->role) {
+            'admin' => [
+                'role' => 'admin',
+                'labelRole' => 'Admin',
+                'judul' => 'Performa Cabang '.$user->cabang,
+                'deskripsi' => 'Fokus pada performa leads, follow up, dan closing cabang '.$user->cabang.'.',
+                'panelJudul' => 'Kontribusi Tim Cabang',
+                'panelSubjudul' => 'Perbandingan leads per PIC di cabang '.$user->cabang.'.',
+                'cabangTerkunci' => $user->cabang,
+                'bolehFilterCabang' => false,
+                'bolehFilterAdmin' => true,
+                'bolehFilterStaff' => true,
+                'tipePanel' => 'tim',
+            ],
+            'leader' => [
+                'role' => 'leader',
+                'labelRole' => 'Leader',
+                'judul' => 'Performa Tim '.$user->cabang,
+                'deskripsi' => 'Pantau pembagian leads, follow up, dan closing tim di cabang '.$user->cabang.'.',
+                'panelJudul' => 'Performa Tim',
+                'panelSubjudul' => 'Urutan kontribusi anggota tim berdasarkan leads masuk.',
+                'cabangTerkunci' => $user->cabang,
+                'bolehFilterCabang' => false,
+                'bolehFilterAdmin' => true,
+                'bolehFilterStaff' => true,
+                'tipePanel' => 'tim',
+            ],
+            'staff' => [
+                'role' => 'staff',
+                'labelRole' => 'Staff',
+                'judul' => 'Target Pribadi',
+                'deskripsi' => 'Ringkasan leads milik Anda pada periode yang dipilih.',
+                'panelJudul' => 'Capaian Pribadi',
+                'panelSubjudul' => 'Target operasional dihitung dari leads pribadi pada bulan berjalan.',
+                'cabangTerkunci' => $user->cabang,
+                'bolehFilterCabang' => false,
+                'bolehFilterAdmin' => false,
+                'bolehFilterStaff' => false,
+                'tipePanel' => 'pribadi',
+            ],
+            'direksi' => [
+                'role' => 'direksi',
+                'labelRole' => 'Direksi',
+                'judul' => 'Ringkasan Semua Cabang',
+                'deskripsi' => 'Pantau total leads, follow up, closing, dan kontribusi setiap cabang.',
+                'panelJudul' => 'Performa Cabang',
+                'panelSubjudul' => 'Perbandingan semua cabang berdasarkan leads masuk.',
+                'cabangTerkunci' => null,
+                'bolehFilterCabang' => true,
+                'bolehFilterAdmin' => true,
+                'bolehFilterStaff' => true,
+                'tipePanel' => 'cabang',
+            ],
+            default => [
+                'role' => 'superadmin',
+                'labelRole' => 'Superadmin',
+                'judul' => 'Kontrol Semua Cabang',
+                'deskripsi' => 'Akses penuh untuk memantau performa semua cabang dan seluruh user.',
+                'panelJudul' => 'Performa Cabang',
+                'panelSubjudul' => 'Perbandingan semua cabang berdasarkan leads masuk.',
+                'cabangTerkunci' => null,
+                'bolehFilterCabang' => true,
+                'bolehFilterAdmin' => true,
+                'bolehFilterStaff' => true,
+                'tipePanel' => 'cabang',
+            ],
+        };
+    }
+
+    private function performaDashboardRole($query, array $konteks): array
+    {
+        if ($konteks['tipePanel'] === 'pribadi') {
+            return $this->performaPribadiDashboard($query, $konteks);
+        }
+
+        if ($konteks['tipePanel'] === 'tim') {
+            return $this->performaTimDashboard($query, $konteks);
+        }
+
+        return $this->performaCabangDashboard($query, $konteks);
+    }
+
+    private function performaPribadiDashboard($query, array $konteks): array
+    {
+        $total = (clone $query)->count();
+        $followUp = (clone $query)->whereIn('status', ['Dihubungi', 'Follow Up'])->count();
+        $closing = (clone $query)->where('status', 'Daftar')->count();
+        $baru = (clone $query)->where('status', 'Baru')->count();
+        $rasio = $total > 0 ? round(($closing / $total) * 100) : 0;
+        $maks = max(1, $total);
+
+        return [
+            'judul' => $konteks['panelJudul'],
+            'subjudul' => $konteks['panelSubjudul'],
+            'items' => collect([
+                ['label' => 'Leads Baru', 'total' => $baru, 'closing' => 0, 'follow_up' => 0, 'persen' => round(($baru / $maks) * 100)],
+                ['label' => 'Butuh Follow Up', 'total' => $followUp, 'closing' => 0, 'follow_up' => $followUp, 'persen' => round(($followUp / $maks) * 100)],
+                ['label' => 'Closing', 'total' => $closing, 'closing' => $closing, 'follow_up' => 0, 'persen' => round(($closing / $maks) * 100)],
+                ['label' => 'Rasio Closing', 'total' => $rasio, 'closing' => $closing, 'follow_up' => $followUp, 'persen' => min(100, $rasio), 'satuan' => '%'],
+            ]),
+        ];
+    }
+
+    private function performaTimDashboard($query, array $konteks): array
+    {
+        $items = (clone $query)
+            ->selectRaw('COALESCE(user_id, 0) as user_id, COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN status = "Daftar" THEN 1 ELSE 0 END) as closing')
+            ->selectRaw('SUM(CASE WHEN status IN ("Dihubungi", "Follow Up") THEN 1 ELSE 0 END) as follow_up')
+            ->groupBy('user_id')
+            ->orderByDesc('total')
+            ->limit(8)
+            ->get();
+        $namaUser = User::query()
+            ->whereIn('id', $items->pluck('user_id')->filter()->all())
+            ->pluck('name', 'id');
+        $maks = max(1, (int) $items->max('total'));
+
+        return [
+            'judul' => $konteks['panelJudul'],
+            'subjudul' => $konteks['panelSubjudul'],
+            'items' => $items->map(fn ($item) => [
+                'label' => (int) $item->user_id > 0 ? ($namaUser[$item->user_id] ?? 'User tidak aktif') : 'Belum ditugaskan',
+                'total' => (int) $item->total,
+                'closing' => (int) $item->closing,
+                'follow_up' => (int) $item->follow_up,
+                'persen' => round(((int) $item->total / $maks) * 100),
+            ]),
+        ];
+    }
+
+    private function performaCabangDashboard($query, array $konteks): array
+    {
+        $items = (clone $query)
+            ->selectRaw('COALESCE(cabang, "Tanpa Cabang") as label, COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN status = "Daftar" THEN 1 ELSE 0 END) as closing')
+            ->selectRaw('SUM(CASE WHEN status IN ("Dihubungi", "Follow Up") THEN 1 ELSE 0 END) as follow_up')
+            ->groupBy('label')
+            ->orderByDesc('total')
+            ->get();
+        $maks = max(1, (int) $items->max('total'));
+
+        return [
+            'judul' => $konteks['panelJudul'],
+            'subjudul' => $konteks['panelSubjudul'],
+            'items' => $items->map(fn ($item) => [
+                'label' => $item->label,
+                'total' => (int) $item->total,
+                'closing' => (int) $item->closing,
+                'follow_up' => (int) $item->follow_up,
+                'persen' => round(((int) $item->total / $maks) * 100),
+            ]),
+        ];
     }
 
     private function queryAksesUbahDashboard(Request $request)
@@ -648,6 +876,45 @@ class ProspekController extends Controller
     {
         return $this->queryAksesDashboard($request)
             ->where('status', 'Daftar');
+    }
+
+    private function reminderFollowUp(Request $request)
+    {
+        return FollowUp::query()
+            ->with(['prospek.penanggungJawab', 'user'])
+            ->whereNotNull('tanggal_follow_up_berikutnya')
+            ->whereDate('tanggal_follow_up_berikutnya', '<=', now()->toDateString())
+            ->whereNotIn('hasil', ['Closing', 'Tidak tertarik'])
+            ->whereHas('prospek', fn ($query) => $this->filterAksesDashboard($query, $request))
+            ->latest('tanggal_follow_up_berikutnya')
+            ->limit(10)
+            ->get();
+    }
+
+    private function buatNotifikasiReminderFollowUp(Request $request): void
+    {
+        $this->reminderFollowUp($request)
+            ->filter(fn ($item) => $item->prospek)
+            ->each(function (FollowUp $followUp) {
+                $prospek = $followUp->prospek;
+                $terlambat = $followUp->tanggal_follow_up_berikutnya?->isPast()
+                    && ! $followUp->tanggal_follow_up_berikutnya?->isToday();
+                $penerima = collect();
+
+                if ($prospek->user_id) {
+                    $penerima = $penerima->push(User::find($prospek->user_id));
+                }
+
+                $penerima = $penerima->merge(SistemNotification::penerimaCabang($prospek->cabang));
+
+                SistemNotification::kirimSekali($penerima, [
+                    'tipe' => 'follow_up_reminder',
+                    'judul' => $terlambat ? 'Follow up terlambat' : 'Follow up hari ini',
+                    'pesan' => "Leads {$prospek->nama} perlu di-follow up pada ".$followUp->tanggal_follow_up_berikutnya?->format('d M Y').'.',
+                    'tautan' => route('prospek.show', $prospek),
+                    'prioritas' => $terlambat ? 'Tinggi' : 'Normal',
+                ]);
+            });
     }
 
     private function kalenderFollowUp($query, Carbon $mulai, Carbon $akhir): array
@@ -821,9 +1088,11 @@ class ProspekController extends Controller
         return $items ?: ['Bandung', 'Jaksel', 'Jakpus'];
     }
 
-    private function daftarAdminCabang(): array
+    private function daftarAdminCabang(?string $cabangTertentu = null): array
     {
-        return collect($this->daftarCabang())
+        $cabang = $cabangTertentu ? [$cabangTertentu] : $this->daftarCabang();
+
+        return collect($cabang)
             ->map(fn ($cabang) => 'Admin '.$cabang)
             ->all();
     }
@@ -848,22 +1117,21 @@ class ProspekController extends Controller
     {
         $user = request()->user();
 
-        if ($user->aksesSemuaCabang()) {
+        if ($prospek->bisaDiubahOleh($user)) {
             return;
         }
 
-        if ($user->role === 'staff') {
-            abort_unless((int) $prospek->user_id === (int) $user->id, 403);
+        abort(403);
+    }
 
-            return;
-        }
-
-        abort_unless($prospek->cabang === $user->cabang, 403);
+    private function pastikanBolehLihat(Prospek $prospek): void
+    {
+        abort_unless(request()->user()?->bisaLihatSemuaLeads(), 403);
     }
 
     private function pastikanBolehUbah(): void
     {
-        abort_if(request()->user()->role === 'direksi', 403);
+        abort_unless(request()->user()?->bisaInputLeads(), 403);
     }
 
     private function staffTersedia(?string $cabang = null, bool $batasiAkses = true)

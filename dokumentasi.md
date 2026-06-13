@@ -711,6 +711,104 @@ Catatan deployment shared hosting:
 - Jalankan `php artisan migrate --force` dan `php artisan db:seed --force` untuk menyiapkan tabel dan akun awal.
 - Pastikan `storage` dan `bootstrap/cache` writable.
 
+## Backup dan Restore Database
+
+Backup data penting tersedia dari menu **Pengaturan > Backup dan Restore Data > Export Backup SQL**.
+
+File backup yang dihasilkan berbentuk `.sql` dan berisi data penting aplikasi:
+
+- `cabang`
+- `sumber_leads`
+- `program_leads`
+- `users`
+- `prospek`
+- `follow_ups`
+- `tasks`
+- `task_comments`
+- `courses`
+- `course_lessons`
+- `course_progress`
+- `notifications`
+- `activity_logs`
+
+File backup tidak menyertakan data sementara seperti `cache`, `sessions`, `jobs`, `failed_jobs`, `password_reset_tokens`, dan file referensi `database/sekolahVM.json`.
+
+### Cara Membuat Backup
+
+1. Login sebagai `superadmin`.
+2. Buka menu **Pengaturan**.
+3. Pada panel **Backup dan Restore Data**, klik **Export Backup SQL**.
+4. Simpan file `.sql` di lokasi aman.
+
+Catatan keamanan:
+
+- File backup berisi data user, hash password, nomor WhatsApp leads, riwayat follow up, dan log aktivitas.
+- Jangan membagikan file backup melalui kanal publik.
+- Simpan backup berkala sebelum deploy, migrasi database, atau perubahan besar.
+
+### Cara Restore via phpMyAdmin
+
+Gunakan cara ini untuk shared hosting seperti hPanel/Hostinger.
+
+1. Aktifkan mode maintenance jika aplikasi sudah dipakai:
+
+```bash
+php artisan down
+```
+
+2. Backup database aktif terlebih dahulu dari phpMyAdmin agar ada titik balik.
+3. Pastikan struktur tabel sudah sesuai versi aplikasi:
+
+```bash
+php artisan migrate --force
+```
+
+4. Buka phpMyAdmin, pilih database aplikasi.
+5. Masuk tab **Import**.
+6. Pilih file backup `.sql` hasil export dari aplikasi.
+7. Jalankan import.
+8. Setelah selesai, bersihkan cache Laravel:
+
+```bash
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+```
+
+9. Matikan mode maintenance:
+
+```bash
+php artisan up
+```
+
+### Cara Restore via Terminal MySQL
+
+Gunakan cara ini jika server menyediakan akses SSH dan perintah `mysql`.
+
+```bash
+cd ~/domains/lead.sivmi.id/public_html
+php artisan down
+php artisan migrate --force
+mysql -u DB_USERNAME -p DB_DATABASE < backup-crm-sivmi-YYYYMMDD-HHMMSS.sql
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+php artisan up
+```
+
+Ganti:
+
+- `DB_USERNAME` dengan username database dari `.env`.
+- `DB_DATABASE` dengan nama database dari `.env`.
+- `backup-crm-sivmi-YYYYMMDD-HHMMSS.sql` dengan nama file backup yang akan direstore.
+
+### Catatan Restore Penting
+
+- Restore akan mengosongkan lalu mengisi ulang tabel penting yang tercantum dalam file backup.
+- Jangan restore ke database produksi tanpa backup database aktif terlebih dahulu.
+- Pastikan file backup berasal dari versi aplikasi yang sama atau kompatibel dengan migration terbaru.
+- Jika restore dilakukan di server baru, upload juga file aplikasi, jalankan `composer install` jika diperlukan, set `.env`, generate `APP_KEY` bila belum ada, lalu jalankan migration sebelum import backup.
+
 ## Catatan Pengembangan Lanjutan
 
 Fitur lanjutan yang sudah memiliki fondasi tabel:

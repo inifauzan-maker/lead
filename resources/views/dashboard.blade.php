@@ -1,6 +1,15 @@
 @extends('tata-letak', ['judul' => 'Dashboard Leads'])
 
 @section('konten')
+    <section class="hero-modul">
+        <div>
+            <span>{{ $dashboardRole['labelRole'] }}</span>
+            <h2>{{ $dashboardRole['judul'] }}</h2>
+            <p>{{ $dashboardRole['deskripsi'] }}</p>
+        </div>
+        <strong>{{ $dashboardRole['cabangTerkunci'] ?: 'Semua Cabang' }}</strong>
+    </section>
+
     <section class="panel panel-heatmap">
         <div class="judul-panel judul-heatmap">
             <div>
@@ -18,26 +27,40 @@
                         <option value="{{ $tahun }}" @selected((int) $tahunFilter === (int) $tahun)>{{ $tahun }}</option>
                     @endforeach
                 </select>
-                <select name="cabang">
-                    <option value="">Semua cabang</option>
-                    @foreach ($cabang as $item)
-                        <option value="{{ $item }}" @selected(request('cabang') === $item)>{{ $item }}</option>
+                @if ($dashboardRole['bolehFilterCabang'])
+                    <select name="cabang">
+                        <option value="">Semua cabang</option>
+                        @foreach ($cabang as $item)
+                            <option value="{{ $item }}" @selected(request('cabang') === $item)>{{ $item }}</option>
+                        @endforeach
+                    </select>
+                @endif
+                @if ($dashboardRole['bolehFilterAdmin'])
+                    <select name="admin">
+                        <option value="">Semua admin</option>
+                        @foreach ($adminCabang as $item)
+                            <option value="{{ $item }}" @selected(request('admin') === $item)>{{ $item }}</option>
+                        @endforeach
+                    </select>
+                @endif
+                @if ($dashboardRole['bolehFilterStaff'])
+                    <select name="staff">
+                        <option value="">Semua staff</option>
+                        @foreach ($staffFilter as $item)
+                            <option value="{{ $item->id }}" @selected((string) request('staff') === (string) $item->id)>
+                                {{ $item->name }}{{ $item->cabang ? ' - '.$item->cabang : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                @endif
+                @if (! $dashboardRole['bolehFilterCabang'] && $dashboardRole['cabangTerkunci'])
+                    <input type="hidden" name="cabang" value="{{ $dashboardRole['cabangTerkunci'] }}">
+                @endif
+                @if (! $dashboardRole['bolehFilterStaff'])
+                    @foreach (['admin', 'staff'] as $field)
+                        <input type="hidden" name="{{ $field }}" value="">
                     @endforeach
-                </select>
-                <select name="admin">
-                    <option value="">Semua admin</option>
-                    @foreach ($adminCabang as $item)
-                        <option value="{{ $item }}" @selected(request('admin') === $item)>{{ $item }}</option>
-                    @endforeach
-                </select>
-                <select name="staff">
-                    <option value="">Semua staff</option>
-                    @foreach ($staffFilter as $item)
-                        <option value="{{ $item->id }}" @selected((string) request('staff') === (string) $item->id)>
-                            {{ $item->name }}{{ $item->cabang ? ' - '.$item->cabang : '' }}
-                        </option>
-                    @endforeach
-                </select>
+                @endif
                 <button class="tombol sekunder" type="submit">Filter</button>
             </form>
         </div>
@@ -91,6 +114,35 @@
             <span>Closing</span>
             <strong>{{ $daftar }}</strong>
         </article>
+    </section>
+
+    <section class="panel jarak-atas">
+        <div class="judul-panel">
+            <div>
+                <h2>{{ $performaRole['judul'] }}</h2>
+                <span>{{ $performaRole['subjudul'] }}</span>
+            </div>
+        </div>
+        <div class="daftar-progress">
+            @forelse ($performaRole['items'] as $item)
+                <div class="bar-progress">
+                    <div>
+                        <strong>{{ $item['label'] }}</strong>
+                        <span>
+                            {{ $item['total'] }}{{ $item['satuan'] ?? ' leads' }}
+                            @if (! isset($item['satuan']))
+                                | {{ $item['closing'] }} closing | {{ $item['follow_up'] }} follow up
+                            @endif
+                        </span>
+                    </div>
+                    <span class="progress-kelas">
+                        <i style="width: {{ max(0, min(100, $item['persen'])) }}%"></i>
+                    </span>
+                </div>
+            @empty
+                <p class="kosong">Belum ada data performa pada periode ini.</p>
+            @endforelse
+        </div>
     </section>
 
     <section class="grid-dua">

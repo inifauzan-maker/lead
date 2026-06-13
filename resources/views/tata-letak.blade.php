@@ -48,7 +48,7 @@
                 <a class="menu-item {{ request()->routeIs('data-siswa.*') ? 'aktif' : '' }}" href="{{ route('data-siswa.index') }}">
                     <span>Data Siswa</span>
                 </a>
-                @if (auth()->user()->role !== 'direksi')
+                @if (auth()->user()->bisaInputLeads())
                     <a class="menu-item" href="{{ route('prospek.create') }}">
                         <span>Tambah Leads</span>
                     </a>

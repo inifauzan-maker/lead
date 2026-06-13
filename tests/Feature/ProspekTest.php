@@ -91,6 +91,99 @@ class ProspekTest extends TestCase
         $this->assertDatabaseHas('prospek', ['id' => $leadJaksel->id]);
     }
 
+    public function test_matriks_hak_akses_edit_leads_sesuai_role(): void
+    {
+        $superadmin = User::factory()->create(['role' => 'superadmin', 'aktif' => true]);
+        $adminBandung = User::factory()->create(['role' => 'admin', 'cabang' => 'Bandung', 'aktif' => true]);
+        $leaderBandung = User::factory()->create(['role' => 'leader', 'cabang' => 'Bandung', 'aktif' => true]);
+        $staffBandung = User::factory()->create(['role' => 'staff', 'cabang' => 'Bandung', 'aktif' => true]);
+        $staffLain = User::factory()->create(['role' => 'staff', 'cabang' => 'Bandung', 'aktif' => true]);
+        $direksi = User::factory()->create(['role' => 'direksi', 'aktif' => true]);
+
+        $leadBandung = Prospek::create([
+            'nama' => 'Lead Bandung',
+            'status' => 'Baru',
+            'cabang' => 'Bandung',
+            'user_id' => $staffBandung->id,
+        ]);
+        $leadJaksel = Prospek::create([
+            'nama' => 'Lead Jaksel',
+            'status' => 'Baru',
+            'cabang' => 'Jaksel',
+            'user_id' => $staffLain->id,
+        ]);
+
+        $this->assertTrue($leadBandung->bisaDiubahOleh($superadmin));
+        $this->assertTrue($leadJaksel->bisaDiubahOleh($superadmin));
+        $this->assertTrue($leadBandung->bisaDiubahOleh($adminBandung));
+        $this->assertFalse($leadJaksel->bisaDiubahOleh($adminBandung));
+        $this->assertTrue($leadBandung->bisaDiubahOleh($leaderBandung));
+        $this->assertFalse($leadJaksel->bisaDiubahOleh($leaderBandung));
+        $this->assertTrue($leadBandung->bisaDiubahOleh($staffBandung));
+        $this->assertFalse($leadBandung->bisaDiubahOleh($staffLain));
+        $this->assertFalse($leadBandung->bisaDiubahOleh($direksi));
+    }
+
+    public function test_semua_role_login_bisa_melihat_detail_leads(): void
+    {
+        $lead = Prospek::create([
+            'nama' => 'Lead Bisa Dilihat',
+            'status' => 'Baru',
+            'cabang' => 'Jaksel',
+        ]);
+
+        foreach (['superadmin', 'admin', 'leader', 'staff', 'direksi'] as $role) {
+            $user = User::factory()->create([
+                'role' => $role,
+                'cabang' => 'Bandung',
+                'aktif' => true,
+            ]);
+
+            $this->actingAs($user)
+                ->get(route('prospek.show', $lead))
+                ->assertOk()
+                ->assertSee('Lead Bisa Dilihat');
+        }
+    }
+
+    public function test_superadmin_bisa_export_backup_sql(): void
+    {
+        $superadmin = User::factory()->create([
+            'role' => 'superadmin',
+            'aktif' => true,
+        ]);
+
+        Prospek::create([
+            'nama' => 'Lead Backup',
+            'status' => 'Baru',
+            'cabang' => 'Bandung',
+        ]);
+
+        $response = $this->actingAs($superadmin)
+            ->get(route('pengaturan.backup.export'))
+            ->assertOk();
+
+        $konten = $response->streamedContent();
+
+        $this->assertStringContainsString('Backup CRM_SIVMI', $konten);
+        $this->assertStringContainsString('DELETE FROM `prospek`;', $konten);
+        $this->assertStringContainsString('INSERT INTO `prospek`', $konten);
+        $this->assertStringContainsString('Lead Backup', $konten);
+    }
+
+    public function test_staff_tidak_bisa_export_backup_sql(): void
+    {
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        $this->actingAs($staff)
+            ->get(route('pengaturan.backup.export'))
+            ->assertForbidden();
+    }
+
     public function test_menu_follow_up_menampilkan_leads_yang_sudah_difollow_up(): void
     {
         $admin = User::factory()->create([

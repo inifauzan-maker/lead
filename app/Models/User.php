@@ -46,6 +46,36 @@ class User extends Authenticatable
         return $this->role === 'superadmin';
     }
 
+    public function bisaLihatSemuaLeads(): bool
+    {
+        return in_array($this->role, ['superadmin', 'admin', 'leader', 'staff', 'direksi'], true);
+    }
+
+    public function bisaInputLeads(): bool
+    {
+        return ! $this->hanyaLihatLeads();
+    }
+
+    public function bisaMengubahSemuaLeads(): bool
+    {
+        return $this->role === 'superadmin';
+    }
+
+    public function bisaMengubahLeadsCabang(): bool
+    {
+        return in_array($this->role, ['admin', 'leader'], true);
+    }
+
+    public function bisaMengubahLeadsMilikSendiri(): bool
+    {
+        return $this->role === 'staff';
+    }
+
+    public function hanyaLihatLeads(): bool
+    {
+        return $this->role === 'direksi';
+    }
+
     public function aksesSemuaCabang(): bool
     {
         return in_array($this->role, ['superadmin', 'direksi'], true);

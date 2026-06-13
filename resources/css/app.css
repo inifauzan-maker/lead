@@ -1104,6 +1104,22 @@ textarea {
     box-shadow: inset 4px 0 0 var(--utama);
 }
 
+.baris-ringkas.reminder-terlambat {
+    border-color: #fecaca;
+    box-shadow: inset 4px 0 0 #dc2626;
+}
+
+.catatan-detail {
+    border-top: 1px solid var(--garis);
+    margin-top: 14px;
+    padding-top: 14px;
+}
+
+.catatan-detail p {
+    color: var(--muted);
+    margin: 6px 0 0;
+}
+
 .baris-ringkas strong,
 td strong {
     display: block;
@@ -1460,6 +1476,12 @@ td small {
     font-size: clamp(1.25rem, 2.2vw, 1.85rem);
     line-height: 1.2;
     margin: 0;
+    max-width: 760px;
+}
+
+.hero-modul p {
+    color: rgba(255, 255, 255, 0.82);
+    margin: 8px 0 0;
     max-width: 760px;
 }
 

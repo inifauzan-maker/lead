@@ -71,19 +71,23 @@ class Prospek extends Model
 
     public function bisaDiubahOleh(?User $user): bool
     {
-        if (! $user || $user->role === 'direksi') {
+        if (! $user || $user->hanyaLihatLeads()) {
             return false;
         }
 
-        if ($user->aksesSemuaCabang()) {
+        if ($user->bisaMengubahSemuaLeads()) {
             return true;
         }
 
-        if ($user->role === 'staff') {
+        if ($user->bisaMengubahLeadsMilikSendiri()) {
             return (int) $this->user_id === (int) $user->id;
         }
 
-        return $this->cabang === $user->cabang;
+        if ($user->bisaMengubahLeadsCabang()) {
+            return $this->cabang === $user->cabang;
+        }
+
+        return false;
     }
 
     private function samarkanDuaDigitTerakhir(string $nomor): string

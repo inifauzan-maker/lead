@@ -60,13 +60,13 @@
     </label>
     <label>
         Cabang
-        <select name="cabang" @disabled(! auth()->user()->aksesSemuaCabang())>
+        <select name="cabang" @disabled(! auth()->user()->bisaMengubahSemuaLeads())>
             <option value="">Pilih cabang</option>
             @foreach ($cabang as $item)
                 <option value="{{ $item }}" @selected(old('cabang', $prospek->cabang ?: auth()->user()->cabang) === $item)>{{ $item }}</option>
             @endforeach
         </select>
-        @if (! auth()->user()->aksesSemuaCabang())
+        @if (! auth()->user()->bisaMengubahSemuaLeads())
             <input type="hidden" name="cabang" value="{{ auth()->user()->cabang }}">
         @endif
         @error('cabang') <small class="error">{{ $message }}</small> @enderror
