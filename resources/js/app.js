@@ -119,6 +119,41 @@ document.querySelectorAll('form[data-konfirmasi]').forEach((form) => {
     });
 });
 
+document.querySelectorAll('form[data-form-closing]').forEach((form) => {
+    const status = form.querySelector('[data-status-leads]');
+    const sectionClosing = form.querySelector('[data-section-closing]');
+    const statusAwal = status?.value;
+
+    function perbaruiSectionClosing() {
+        if (!sectionClosing || !status) {
+            return;
+        }
+
+        sectionClosing.hidden = status.value !== 'Daftar';
+    }
+
+    perbaruiSectionClosing();
+    status?.addEventListener('change', perbaruiSectionClosing);
+
+    form.addEventListener('submit', async (event) => {
+        if (!status || status.value !== 'Daftar' || statusAwal === 'Daftar') {
+            return;
+        }
+
+        event.preventDefault();
+
+        const setuju = await mintaKonfirmasi({
+            judul: 'Closing leads?',
+            pesan: 'Leads akan dipindahkan dari Data Leads ke Data Siswa. Pastikan data siswa/closing sudah benar.',
+            labelSetuju: 'Closing',
+        });
+
+        if (setuju) {
+            form.submit();
+        }
+    });
+});
+
 const inputSekolah = document.querySelector('[data-input-sekolah]');
 const panelSekolah = document.querySelector('[data-panel-sekolah]');
 const dataSekolah = document.querySelector('[data-data-sekolah]');

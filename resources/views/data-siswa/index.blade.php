@@ -25,8 +25,15 @@
                         </option>
                     @endforeach
                 </select>
+                <select name="status_pembayaran">
+                    <option value="">Semua pembayaran</option>
+                    @foreach ($statusPembayaran as $item)
+                        <option value="{{ $item }}" @selected(request('status_pembayaran') === $item)>{{ $item }}</option>
+                    @endforeach
+                </select>
                 <button class="tombol sekunder" type="submit">Filter</button>
             </form>
+            <a class="tombol utama" href="{{ route('data-siswa.export', request()->query()) }}">Export Data Siswa</a>
         </div>
 
         <div class="judul-panel">
@@ -42,10 +49,10 @@
                         <th>Asal Sekolah</th>
                         <th>WA</th>
                         <th>Program</th>
+                        <th>Pembayaran</th>
                         <th>Cabang</th>
-                        <th>Sumber</th>
-                        <th>Tgl Masuk</th>
                         <th>Tgl Closing</th>
+                        <th>Kelas</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -59,13 +66,16 @@
                             </td>
                             <td>{{ $item->asal_sekolah ?: '-' }}</td>
                             <td>{{ $item->noWaUntuk(auth()->user()) }}</td>
-                            <td>{{ $item->program ?: '-' }}</td>
+                            <td>{{ $item->program_final ?: ($item->program ?: '-') }}</td>
+                            <td>
+                                <strong>{{ $item->status_pembayaran ?: 'Belum Diisi' }}</strong>
+                                <small>{{ $item->nominal_pembayaran ? 'Rp '.number_format((float) $item->nominal_pembayaran, 0, ',', '.') : 'Nominal belum diisi' }}</small>
+                            </td>
                             <td>{{ $item->cabang ?: '-' }}</td>
-                            <td>{{ $item->sumber ?: '-' }}</td>
-                            <td>{{ $item->tgl_masuk?->format('d M Y') ?: '-' }}</td>
-                            <td>{{ $item->updated_at?->format('d M Y') ?: '-' }}</td>
+                            <td>{{ $item->tanggal_daftar?->format('d M Y') ?: $item->updated_at?->format('d M Y') }}</td>
+                            <td>{{ $item->kelas_angkatan ?: ($item->kelas ?: '-') }}</td>
                             <td class="aksi-tabel">
-                                <a href="{{ route('prospek.show', $item) }}">Detail</a>
+                                <a href="{{ route('data-siswa.show', $item) }}">Detail</a>
                                 @if ($bisaUbah)
                                     <a href="{{ route('prospek.edit', $item) }}">Edit</a>
                                 @else

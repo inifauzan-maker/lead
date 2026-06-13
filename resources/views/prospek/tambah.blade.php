@@ -2,7 +2,7 @@
 
 @section('konten')
     <section class="panel">
-        <form class="formulir" method="POST" action="{{ route('prospek.store') }}">
+        <form class="formulir" method="POST" action="{{ route('prospek.store') }}" data-form-closing>
             @csrf
             @include('prospek._formulir')
             <div class="aksi-form">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cabang;
 use App\Models\ProgramLead;
 use App\Models\SumberLead;
+use App\Models\TargetKinerja;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ class PengaturanController extends Controller
         'program_leads',
         'users',
         'prospek',
+        'prospek_status_histories',
         'follow_ups',
         'tasks',
         'task_comments',
@@ -32,6 +34,7 @@ class PengaturanController extends Controller
         'course_progress',
         'notifications',
         'activity_logs',
+        'target_kinerja',
     ];
 
     public function index(): View
@@ -43,6 +46,20 @@ class PengaturanController extends Controller
             'pengguna' => User::orderBy('name')->paginate(10),
             'role' => self::ROLE,
             'daftarCabang' => $this->daftarCabang(),
+            'targetKinerja' => TargetKinerja::with('user')
+                ->orderByDesc('tahun')
+                ->orderByDesc('bulan')
+                ->orderBy('tipe')
+                ->orderBy('cabang')
+                ->paginate(8, ['*'], 'target_page'),
+            'staffTarget' => User::query()
+                ->where('aktif', true)
+                ->whereIn('role', ['leader', 'staff'])
+                ->orderBy('cabang')
+                ->orderBy('name')
+                ->get(),
+            'daftarBulan' => $this->daftarBulan(),
+            'daftarTahun' => range((int) now()->year + 1, (int) now()->year - 5),
         ]);
     }
 
@@ -123,6 +140,32 @@ class PengaturanController extends Controller
         return back()->with('berhasil', 'User berhasil ditambahkan.');
     }
 
+    public function storeTargetKinerja(Request $request): RedirectResponse
+    {
+        $data = $this->validasiTargetKinerja($request);
+
+        TargetKinerja::updateOrCreate(
+            $this->identitasTarget($data),
+            $this->nilaiTarget($data)
+        );
+
+        return back()->with('berhasil', 'Target kinerja berhasil disimpan.');
+    }
+
+    public function updateTargetKinerja(Request $request, TargetKinerja $target): RedirectResponse
+    {
+        $target->update($this->validasiTargetKinerja($request));
+
+        return back()->with('berhasil', 'Target kinerja berhasil diperbarui.');
+    }
+
+    public function destroyTargetKinerja(TargetKinerja $target): RedirectResponse
+    {
+        $target->delete();
+
+        return back()->with('berhasil', 'Target kinerja berhasil dihapus.');
+    }
+
     public function exportBackup()
     {
         $namaFile = 'backup-crm-sivmi-'.now()->format('Ymd-His').'.sql';
@@ -193,6 +236,80 @@ class PengaturanController extends Controller
         }
 
         return $data;
+    }
+
+    private function validasiTargetKinerja(Request $request): array
+    {
+        $data = $request->validate([
+            'bulan' => ['required', 'integer', 'between:1,12'],
+            'tahun' => ['required', 'integer', 'between:2020,2100'],
+            'tipe' => ['required', Rule::in(['cabang', 'staff'])],
+            'cabang' => ['nullable', Rule::in($this->daftarCabang())],
+            'user_id' => ['nullable', 'exists:users,id'],
+            'target_leads' => ['required', 'integer', 'min:0'],
+            'target_closing' => ['required', 'integer', 'min:0'],
+        ]);
+
+        if ($data['tipe'] === 'cabang') {
+            if (blank($data['cabang'] ?? null)) {
+                throw ValidationException::withMessages(['cabang' => 'Cabang wajib diisi untuk target cabang.']);
+            }
+
+            $data['user_id'] = null;
+        }
+
+        if ($data['tipe'] === 'staff') {
+            if (blank($data['user_id'] ?? null)) {
+                throw ValidationException::withMessages(['user_id' => 'Staff wajib dipilih untuk target staff.']);
+            }
+
+            $user = User::query()
+                ->where('id', $data['user_id'])
+                ->where('aktif', true)
+                ->whereIn('role', ['leader', 'staff'])
+                ->firstOrFail();
+
+            $data['cabang'] = $user->cabang;
+        }
+
+        return $data;
+    }
+
+    private function identitasTarget(array $data): array
+    {
+        return [
+            'bulan' => $data['bulan'],
+            'tahun' => $data['tahun'],
+            'tipe' => $data['tipe'],
+            'cabang' => $data['cabang'] ?? null,
+            'user_id' => $data['user_id'] ?? null,
+        ];
+    }
+
+    private function nilaiTarget(array $data): array
+    {
+        return [
+            'target_leads' => $data['target_leads'],
+            'target_closing' => $data['target_closing'],
+        ];
+    }
+
+    private function daftarBulan(): array
+    {
+        return [
+            1 => 'January',
+            2 => 'February',
+            3 => 'March',
+            4 => 'April',
+            5 => 'May',
+            6 => 'June',
+            7 => 'July',
+            8 => 'August',
+            9 => 'September',
+            10 => 'October',
+            11 => 'November',
+            12 => 'December',
+        ];
     }
 
     private function buatSqlBackup(): string

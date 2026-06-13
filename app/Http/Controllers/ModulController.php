@@ -174,7 +174,7 @@ class ModulController extends Controller
 
     public function laporan(Request $request): View
     {
-        $query = $this->queryAkses($request);
+        $query = $this->queryLaporanPribadi($request);
         $total = (clone $query)->count();
         $closing = (clone $query)->where('status', 'Daftar')->count();
         $followUp = (clone $query)->whereIn('status', ['Dihubungi', 'Follow Up'])->count();
@@ -199,6 +199,63 @@ class ModulController extends Controller
             'perCabang' => $perCabang,
             'perStatus' => $perStatus,
         ]);
+    }
+
+    public function exportLaporan(Request $request)
+    {
+        $namaFile = 'laporan-leads-closing-saya-'.now()->format('Ymd-His').'.csv';
+        $kolom = [
+            'nama',
+            'asal_sekolah',
+            'kelas',
+            'kota_asal',
+            'no_wa',
+            'program',
+            'program_final',
+            'status',
+            'status_pembayaran',
+            'nominal_pembayaran',
+            'cabang',
+            'sumber',
+            'tgl_masuk',
+            'tanggal_closing',
+            'keterangan',
+            'catatan_administrasi',
+        ];
+
+        $query = $this->queryLaporanPribadi($request)
+            ->orderByRaw('COALESCE(tanggal_daftar, tgl_masuk, updated_at) desc');
+
+        return response()->streamDownload(function () use ($query, $kolom, $request) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, $kolom);
+
+            $query->chunk(200, function ($items) use ($handle, $request) {
+                foreach ($items as $item) {
+                    fputcsv($handle, [
+                        $item->nama,
+                        $item->asal_sekolah,
+                        $item->kelas,
+                        $item->kota_asal,
+                        $item->noWaUntuk($request->user()),
+                        $item->program,
+                        $item->program_final ?: $item->program,
+                        $item->status,
+                        $item->status_pembayaran,
+                        $item->nominal_pembayaran,
+                        $item->cabang,
+                        $item->sumber,
+                        $item->tgl_masuk?->format('Y-m-d'),
+                        $item->status === 'Daftar' ? ($item->tanggal_daftar?->format('Y-m-d') ?: $item->updated_at?->format('Y-m-d')) : null,
+                        $item->keterangan,
+                        $item->catatan_administrasi,
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        }, $namaFile, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function pembelajaran(Request $request): View
@@ -386,6 +443,13 @@ class ModulController extends Controller
         }
 
         return $query->where('cabang', $user->cabang);
+    }
+
+    private function queryLaporanPribadi(Request $request)
+    {
+        return Prospek::query()
+            ->where('user_id', $request->user()->id)
+            ->whereIn('status', ['Baru', 'Dihubungi', 'Follow Up', 'Daftar']);
     }
 
     private function queryTugas(Request $request)

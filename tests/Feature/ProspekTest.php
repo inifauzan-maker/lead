@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\FollowUp;
 use App\Models\Prospek;
 use App\Models\SistemNotification;
+use App\Models\TargetKinerja;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -18,20 +19,23 @@ class ProspekTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_superadmin_bisa_memperbarui_cabang_leads(): void
+    public function test_superadmin_tidak_bisa_input_edit_import_atau_follow_up_leads(): void
     {
         $superadmin = User::factory()->create([
             'role' => 'superadmin',
             'aktif' => true,
         ]);
-
         $prospek = Prospek::create([
             'nama' => 'Johan',
             'status' => 'Baru',
-            'cabang' => null,
+            'cabang' => 'Jaksel',
             'sumber' => 'Instagram',
             'tgl_masuk' => '2030-05-26',
         ]);
+
+        $this->actingAs($superadmin)
+            ->get(route('prospek.create'))
+            ->assertForbidden();
 
         $this->actingAs($superadmin)
             ->put(route('prospek.update', $prospek), [
@@ -49,12 +53,33 @@ class ProspekTest extends TestCase
                 'keterangan' => null,
                 'tgl_masuk' => '2030-05-26',
             ])
-            ->assertRedirect(route('prospek.index'));
+            ->assertForbidden();
 
-        $this->assertDatabaseHas('prospek', [
-            'id' => $prospek->id,
-            'cabang' => 'Jaksel',
-            'diserahkan_ke' => 'Admin Jaksel',
+        $this->actingAs($superadmin)
+            ->post(route('follow-up.store'), [
+                'prospek_id' => $prospek->id,
+                'tanggal_follow_up' => '2026-06-13 10:00:00',
+                'metode' => 'WhatsApp',
+                'hasil' => 'Berminat',
+                'tanggal_follow_up_berikutnya' => null,
+                'prioritas' => 'Normal',
+            ])
+            ->assertForbidden();
+
+        $path = tempnam(sys_get_temp_dir(), 'leads-import-');
+        file_put_contents($path, implode("\n", [
+            'nama,asal_sekolah,kelas,kota_asal,no_wa,program,status,cabang,diserahkan_ke,sumber,keterangan,tgl_masuk',
+            'Lead Superadmin,SMA 1,12,Bandung,089999999999,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Valid,2026-06-13',
+        ]));
+
+        $this->actingAs($superadmin)
+            ->post(route('prospek.import'), [
+                'file_import' => new UploadedFile($path, 'leads.csv', 'text/csv', null, true),
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseMissing('prospek', [
+            'nama' => 'Lead Superadmin',
         ]);
     }
 
@@ -96,8 +121,9 @@ class ProspekTest extends TestCase
 
     public function test_import_csv_menampilkan_preview_error_per_baris(): void
     {
-        $superadmin = User::factory()->create([
-            'role' => 'superadmin',
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
             'aktif' => true,
         ]);
         Prospek::create([
@@ -116,7 +142,7 @@ class ProspekTest extends TestCase
             'Lead Duplikat File,SMA 4,12,Bandung,082222222222,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Duplikat file,2026-06-13',
         ]));
 
-        $response = $this->actingAs($superadmin)
+        $response = $this->actingAs($admin)
             ->post(route('prospek.import'), [
                 'file_import' => new UploadedFile($path, 'leads.csv', 'text/csv', null, true),
             ]);
@@ -134,7 +160,7 @@ class ProspekTest extends TestCase
         $this->assertSame(3, $errorImport[0]['baris']);
         $this->assertStringContainsString('Nomor WA duplikat', implode(' ', $errorImport[0]['alasan']));
         $this->assertSame(4, $errorImport[1]['baris']);
-        $this->assertStringContainsString('Cabang tidak valid', implode(' ', $errorImport[1]['alasan']));
+        $this->assertStringContainsString('Cabang tidak sesuai akses user', implode(' ', $errorImport[1]['alasan']));
         $this->assertSame(5, $errorImport[2]['baris']);
         $this->assertStringContainsString('Nomor WA duplikat di file import', implode(' ', $errorImport[2]['alasan']));
     }
@@ -161,8 +187,8 @@ class ProspekTest extends TestCase
             'user_id' => $staffLain->id,
         ]);
 
-        $this->assertTrue($leadBandung->bisaDiubahOleh($superadmin));
-        $this->assertTrue($leadJaksel->bisaDiubahOleh($superadmin));
+        $this->assertFalse($leadBandung->bisaDiubahOleh($superadmin));
+        $this->assertFalse($leadJaksel->bisaDiubahOleh($superadmin));
         $this->assertTrue($leadBandung->bisaDiubahOleh($adminBandung));
         $this->assertFalse($leadJaksel->bisaDiubahOleh($adminBandung));
         $this->assertTrue($leadBandung->bisaDiubahOleh($leaderBandung));
@@ -392,6 +418,224 @@ class ProspekTest extends TestCase
             ->assertDontSee('Lead Follow Up');
     }
 
+    public function test_update_status_daftar_mengisi_data_siswa_dan_dashboard_closing(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        $prospek = Prospek::create([
+            'nama' => 'Lead Jadi Siswa',
+            'asal_sekolah' => 'SMAN 1 Bandung',
+            'kota_asal' => 'Bandung',
+            'no_wa' => '081234567890',
+            'program' => 'SR GOLD',
+            'status' => 'Follow Up',
+            'cabang' => 'Bandung',
+            'sumber' => 'Instagram',
+            'tgl_masuk' => '2026-06-10',
+            'user_id' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('prospek.update', $prospek), [
+                'nama' => 'Lead Jadi Siswa',
+                'asal_sekolah' => 'SMAN 1 Bandung',
+                'kelas' => '12',
+                'kota_asal' => 'Bandung',
+                'no_wa' => '081234567890',
+                'program' => 'SR GOLD',
+                'status' => 'Daftar',
+                'cabang' => 'Bandung',
+                'user_id' => null,
+                'diserahkan_ke' => null,
+                'sumber' => 'Instagram',
+                'keterangan' => null,
+                'tgl_masuk' => '2026-06-10',
+                'tanggal_daftar' => '2026-06-12',
+                'program_final' => 'SR GOLD',
+                'nominal_pembayaran' => 1500000,
+                'status_pembayaran' => 'DP',
+                'kelas_angkatan' => 'Angkatan 2026',
+                'catatan_administrasi' => 'Sudah kirim bukti pembayaran.',
+            ])
+            ->assertRedirect(route('prospek.index'));
+
+        $prospek->refresh();
+
+        $this->assertSame('Daftar', $prospek->status);
+        $this->assertSame('2026-06-12', $prospek->tanggal_daftar?->toDateString());
+        $this->assertSame('SR GOLD', $prospek->program_final);
+        $this->assertSame('DP', $prospek->status_pembayaran);
+        $this->assertSame('Angkatan 2026', $prospek->kelas_angkatan);
+        $this->assertDatabaseHas('prospek_status_histories', [
+            'prospek_id' => $prospek->id,
+            'user_id' => $admin->id,
+            'status_lama' => 'Follow Up',
+            'status_baru' => 'Daftar',
+            'sumber' => 'manual',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('prospek.index'))
+            ->assertOk()
+            ->assertDontSee('Lead Jadi Siswa');
+
+        $this->actingAs($admin)
+            ->get(route('data-siswa.index'))
+            ->assertOk()
+            ->assertSee('Lead Jadi Siswa')
+            ->assertSee('DP')
+            ->assertSee('Rp 1.500.000')
+            ->assertSee('12 Jun 2026')
+            ->assertSee('Angkatan 2026');
+
+        $this->actingAs($admin)
+            ->get(route('data-siswa.show', $prospek))
+            ->assertOk()
+            ->assertSee('Detail Data Siswa')
+            ->assertSee('Riwayat Perubahan Status')
+            ->assertSee('Follow Up -> Daftar', false)
+            ->assertSee('Status diperbarui dari form leads.');
+
+        $this->actingAs($admin)
+            ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
+            ->assertOk()
+            ->assertSee('Dashboard Closing')
+            ->assertSee('Status Pembayaran Closing')
+            ->assertSee('Rp 1.500.000')
+            ->assertSee('DP');
+    }
+
+    public function test_data_leads_tidak_menampilkan_leads_yang_sudah_daftar(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        Prospek::create([
+            'nama' => 'Siswa Sudah Closing',
+            'status' => 'Daftar',
+            'cabang' => 'Bandung',
+        ]);
+        Prospek::create([
+            'nama' => 'Lead Masih Aktif',
+            'status' => 'Follow Up',
+            'cabang' => 'Bandung',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('prospek.index'))
+            ->assertOk()
+            ->assertSee('Lead Masih Aktif')
+            ->assertDontSee('Siswa Sudah Closing');
+    }
+
+    public function test_follow_up_closing_mencatat_riwayat_status_data_siswa(): void
+    {
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $prospek = Prospek::create([
+            'nama' => 'Lead Closing Follow Up',
+            'status' => 'Follow Up',
+            'program' => 'AR ONLINE',
+            'cabang' => 'Bandung',
+            'user_id' => $staff->id,
+        ]);
+
+        $this->actingAs($staff)
+            ->post(route('follow-up.store'), [
+                'prospek_id' => $prospek->id,
+                'tanggal_follow_up' => '2026-06-13 10:00:00',
+                'metode' => 'WhatsApp',
+                'hasil' => 'Closing',
+                'catatan' => 'Sudah daftar.',
+                'tindak_lanjut' => null,
+                'tanggal_follow_up_berikutnya' => null,
+                'prioritas' => 'Tinggi',
+            ])
+            ->assertRedirect();
+
+        $prospek->refresh();
+
+        $this->assertSame('Daftar', $prospek->status);
+        $this->assertSame('AR ONLINE', $prospek->program_final);
+        $this->assertSame('Belum Bayar', $prospek->status_pembayaran);
+        $this->assertDatabaseHas('prospek_status_histories', [
+            'prospek_id' => $prospek->id,
+            'user_id' => $staff->id,
+            'status_lama' => 'Follow Up',
+            'status_baru' => 'Daftar',
+            'sumber' => 'follow_up',
+        ]);
+
+        $this->actingAs($staff)
+            ->get(route('data-siswa.show', $prospek))
+            ->assertOk()
+            ->assertSee('Lead Closing Follow Up')
+            ->assertSee('Follow Up -> Daftar', false)
+            ->assertSee('Hasil follow up: Closing');
+    }
+
+    public function test_admin_bisa_export_data_siswa_sesuai_filter(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        Prospek::create([
+            'nama' => 'Siswa Export',
+            'asal_sekolah' => 'SMAN 1 Bandung',
+            'kelas' => '12',
+            'kelas_angkatan' => 'Angkatan 2026',
+            'kota_asal' => 'Bandung',
+            'no_wa' => '081234567890',
+            'program' => 'SR GOLD',
+            'program_final' => 'SR GOLD',
+            'status' => 'Daftar',
+            'status_pembayaran' => 'Lunas',
+            'nominal_pembayaran' => 2500000,
+            'cabang' => 'Bandung',
+            'sumber' => 'Instagram',
+            'user_id' => $staff->id,
+            'tgl_masuk' => '2026-06-01',
+            'tanggal_daftar' => '2026-06-12',
+            'catatan_administrasi' => 'Lengkap.',
+        ]);
+        Prospek::create([
+            'nama' => 'Lead Aktif Export',
+            'status' => 'Follow Up',
+            'cabang' => 'Bandung',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('data-siswa.export', ['status_pembayaran' => 'Lunas']))
+            ->assertOk();
+
+        $konten = $response->streamedContent();
+
+        $this->assertStringContainsString('tanggal_closing', $konten);
+        $this->assertStringContainsString('Siswa Export', $konten);
+        $this->assertStringContainsString('0812345678xx', $konten);
+        $this->assertStringContainsString('Lunas', $konten);
+        $this->assertStringContainsString('2500000', $konten);
+        $this->assertStringNotContainsString('Lead Aktif Export', $konten);
+    }
+
     public function test_dashboard_menghitung_leads_aktif_dan_closing_masuk_data_siswa(): void
     {
         $admin = User::factory()->create([
@@ -431,6 +675,155 @@ class ProspekTest extends TestCase
             ->assertSee('Siswa Closing Satu')
             ->assertSee('Siswa Closing Dua')
             ->assertDontSee('Lead Aktif');
+    }
+
+    public function test_dashboard_menampilkan_target_konversi_dan_ranking(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        TargetKinerja::create([
+            'bulan' => 6,
+            'tahun' => 2026,
+            'tipe' => 'cabang',
+            'cabang' => 'Bandung',
+            'target_leads' => 10,
+            'target_closing' => 4,
+        ]);
+        TargetKinerja::create([
+            'bulan' => 6,
+            'tahun' => 2026,
+            'tipe' => 'staff',
+            'cabang' => 'Bandung',
+            'user_id' => $staff->id,
+            'target_leads' => 5,
+            'target_closing' => 2,
+        ]);
+
+        Prospek::create([
+            'nama' => 'Lead Aktif Target',
+            'status' => 'Follow Up',
+            'cabang' => 'Bandung',
+            'user_id' => $staff->id,
+            'tgl_masuk' => '2026-06-03',
+        ]);
+        Prospek::create([
+            'nama' => 'Closing Target',
+            'status' => 'Daftar',
+            'cabang' => 'Bandung',
+            'user_id' => $staff->id,
+            'tgl_masuk' => '2026-06-02',
+            'tanggal_daftar' => '2026-06-10',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
+            ->assertOk()
+            ->assertSee('Target dan Konversi')
+            ->assertSee('Akumulasi target semua cabang')
+            ->assertSee('1 / 10 leads aktif')
+            ->assertSee('1 / 4 closing')
+            ->assertSee('50%')
+            ->assertSee('Ranking Cabang')
+            ->assertSee('Bandung');
+    }
+
+    public function test_dashboard_admin_melihat_data_seluruh_user_dan_cabang(): void
+    {
+        $adminJaksel = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Jaksel',
+            'aktif' => true,
+        ]);
+        $staffBandung = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        Prospek::create([
+            'nama' => 'Lead Staff Bandung',
+            'status' => 'Follow Up',
+            'cabang' => 'Bandung',
+            'user_id' => $staffBandung->id,
+            'tgl_masuk' => '2026-06-03',
+        ]);
+        Prospek::create([
+            'nama' => 'Closing Jakpus',
+            'status' => 'Daftar',
+            'cabang' => 'Jakpus',
+            'tgl_masuk' => '2026-06-04',
+            'tanggal_daftar' => '2026-06-10',
+        ]);
+
+        $this->actingAs($adminJaksel)
+            ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
+            ->assertOk()
+            ->assertSee('Dashboard Semua User')
+            ->assertSeeInOrder(['Total Leads Aktif', '1', 'Leads Baru', '0', 'Butuh Follow Up', '1', 'Closing', '1'])
+            ->assertSee('Bandung')
+            ->assertSee('Jakpus');
+    }
+
+    public function test_superadmin_bisa_mengelola_target_kinerja(): void
+    {
+        $superadmin = User::factory()->create([
+            'role' => 'superadmin',
+            'aktif' => true,
+        ]);
+        Cabang::create([
+            'nama' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        $this->actingAs($superadmin)
+            ->post(route('pengaturan.target-kinerja.store'), [
+                'bulan' => 6,
+                'tahun' => 2026,
+                'tipe' => 'cabang',
+                'cabang' => 'Bandung',
+                'user_id' => null,
+                'target_leads' => 25,
+                'target_closing' => 8,
+            ])
+            ->assertRedirect();
+
+        $target = TargetKinerja::firstOrFail();
+
+        $this->assertDatabaseHas('target_kinerja', [
+            'bulan' => 6,
+            'tahun' => 2026,
+            'tipe' => 'cabang',
+            'cabang' => 'Bandung',
+            'target_leads' => 25,
+            'target_closing' => 8,
+        ]);
+
+        $this->actingAs($superadmin)
+            ->put(route('pengaturan.target-kinerja.update', $target), [
+                'bulan' => 6,
+                'tahun' => 2026,
+                'tipe' => 'cabang',
+                'cabang' => 'Bandung',
+                'user_id' => null,
+                'target_leads' => 30,
+                'target_closing' => 10,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('target_kinerja', [
+            'id' => $target->id,
+            'target_leads' => 30,
+            'target_closing' => 10,
+        ]);
     }
 
     public function test_user_bisa_membuka_dan_memperbarui_profil(): void
@@ -491,6 +884,67 @@ class ProspekTest extends TestCase
         $this->actingAs($user)->get(route('profil.tugas'))->assertOk()->assertSee('Task Management');
         $this->actingAs($user)->get(route('profil.laporan'))->assertOk()->assertSee('Report Center');
         $this->actingAs($user)->get(route('profil.pembelajaran'))->assertOk()->assertSee('Online Course');
+    }
+
+    public function test_laporan_export_hanya_data_leads_dan_closing_user_sendiri(): void
+    {
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $staffLain = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        Prospek::create([
+            'nama' => 'Lead Milik Saya',
+            'status' => 'Follow Up',
+            'cabang' => 'Bandung',
+            'user_id' => $staff->id,
+            'no_wa' => '081111111111',
+            'tgl_masuk' => '2026-06-10',
+        ]);
+        Prospek::create([
+            'nama' => 'Closing Milik Saya',
+            'status' => 'Daftar',
+            'cabang' => 'Bandung',
+            'user_id' => $staff->id,
+            'no_wa' => '082222222222',
+            'program' => 'SR GOLD',
+            'program_final' => 'SR GOLD',
+            'status_pembayaran' => 'Lunas',
+            'nominal_pembayaran' => 3000000,
+            'tgl_masuk' => '2026-06-09',
+            'tanggal_daftar' => '2026-06-12',
+        ]);
+        Prospek::create([
+            'nama' => 'Lead User Lain',
+            'status' => 'Follow Up',
+            'cabang' => 'Bandung',
+            'user_id' => $staffLain->id,
+        ]);
+
+        $this->actingAs($staff)
+            ->get(route('profil.laporan'))
+            ->assertOk()
+            ->assertSee('Ringkasan leads dan closing milik user login')
+            ->assertSeeInOrder(['Total Leads', '2', 'Leads Baru', '0', 'Follow Up', '1', 'Rasio Closing', '50%']);
+
+        $response = $this->actingAs($staff)
+            ->get(route('profil.laporan.export'))
+            ->assertOk();
+
+        $konten = $response->streamedContent();
+
+        $this->assertStringContainsString('Lead Milik Saya', $konten);
+        $this->assertStringContainsString('Closing Milik Saya', $konten);
+        $this->assertStringContainsString('Lunas', $konten);
+        $this->assertStringContainsString('3000000', $konten);
+        $this->assertStringContainsString('081111111111', $konten);
+        $this->assertStringNotContainsString('Lead User Lain', $konten);
     }
 
     public function test_user_bisa_membuat_tugas_dan_update_progress_course(): void

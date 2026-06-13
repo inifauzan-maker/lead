@@ -106,6 +106,80 @@
     <section class="panel jarak-atas">
         <div class="judul-panel">
             <div>
+                <h2>Target Kinerja Bulanan</h2>
+                <span>Atur target leads dan closing per cabang atau per staff.</span>
+            </div>
+            <strong>{{ $targetKinerja->total() }} target</strong>
+        </div>
+        <form class="form-target-kinerja" method="POST" action="{{ route('pengaturan.target-kinerja.store') }}">
+            @csrf
+            <select name="bulan" required>
+                @foreach ($daftarBulan as $value => $label)
+                    <option value="{{ $value }}" @selected((int) old('bulan', now()->month) === (int) $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <select name="tahun" required>
+                @foreach ($daftarTahun as $tahun)
+                    <option value="{{ $tahun }}" @selected((int) old('tahun', now()->year) === (int) $tahun)>{{ $tahun }}</option>
+                @endforeach
+            </select>
+            <select name="tipe" required>
+                <option value="cabang" @selected(old('tipe', 'cabang') === 'cabang')>Target cabang</option>
+                <option value="staff" @selected(old('tipe') === 'staff')>Target staff</option>
+            </select>
+            <select name="cabang">
+                <option value="">Pilih cabang</option>
+                @foreach ($daftarCabang as $item)
+                    <option value="{{ $item }}" @selected(old('cabang') === $item)>{{ $item }}</option>
+                @endforeach
+            </select>
+            <select name="user_id">
+                <option value="">Pilih staff</option>
+                @foreach ($staffTarget as $userItem)
+                    <option value="{{ $userItem->id }}" @selected((string) old('user_id') === (string) $userItem->id)>
+                        {{ $userItem->name }}{{ $userItem->cabang ? ' - '.$userItem->cabang : '' }}
+                    </option>
+                @endforeach
+            </select>
+            <input type="number" name="target_leads" value="{{ old('target_leads', 0) }}" min="0" placeholder="Target leads" required>
+            <input type="number" name="target_closing" value="{{ old('target_closing', 0) }}" min="0" placeholder="Target closing" required>
+            <button class="tombol utama" type="submit">Simpan Target</button>
+        </form>
+        <div class="daftar-pengaturan">
+            @forelse ($targetKinerja as $target)
+                <div class="baris-pengaturan baris-target-kinerja">
+                    <form method="POST" action="{{ route('pengaturan.target-kinerja.update', $target) }}">
+                        @csrf
+                        @method('PUT')
+                        <div class="identitas-user">
+                            <strong>{{ $target->tipe === 'staff' ? ($target->user?->name ?: 'Staff tidak aktif') : $target->cabang }}</strong>
+                            <small>{{ $daftarBulan[$target->bulan] ?? $target->bulan }} {{ $target->tahun }} | {{ ucfirst($target->tipe) }}{{ $target->cabang ? ' - '.$target->cabang : '' }}</small>
+                        </div>
+                        <input type="hidden" name="bulan" value="{{ $target->bulan }}">
+                        <input type="hidden" name="tahun" value="{{ $target->tahun }}">
+                        <input type="hidden" name="tipe" value="{{ $target->tipe }}">
+                        <input type="hidden" name="cabang" value="{{ $target->cabang }}">
+                        <input type="hidden" name="user_id" value="{{ $target->user_id }}">
+                        <input type="number" name="target_leads" value="{{ $target->target_leads }}" min="0" required>
+                        <input type="number" name="target_closing" value="{{ $target->target_closing }}" min="0" required>
+                        <button class="tombol sekunder" type="submit">Update</button>
+                    </form>
+                    <form method="POST" action="{{ route('pengaturan.target-kinerja.destroy', $target) }}" data-konfirmasi data-judul-konfirmasi="Hapus target?" data-pesan-konfirmasi="Target kinerja ini akan dihapus." data-label-setuju="Hapus">
+                        @csrf
+                        @method('DELETE')
+                        <button class="tombol bahaya" type="submit">Hapus</button>
+                    </form>
+                </div>
+            @empty
+                <p class="kosong">Belum ada target kinerja.</p>
+            @endforelse
+        </div>
+        <div class="paginasi">{{ $targetKinerja->links() }}</div>
+    </section>
+
+    <section class="panel jarak-atas">
+        <div class="judul-panel">
+            <div>
                 <h2>Backup dan Restore Data</h2>
                 <span>Export semua data penting aplikasi ke file SQL untuk arsip dan proses restore manual.</span>
             </div>

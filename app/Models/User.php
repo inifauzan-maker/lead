@@ -53,12 +53,12 @@ class User extends Authenticatable
 
     public function bisaInputLeads(): bool
     {
-        return ! $this->hanyaLihatLeads();
+        return in_array($this->role, ['admin', 'leader', 'staff'], true);
     }
 
     public function bisaMengubahSemuaLeads(): bool
     {
-        return $this->role === 'superadmin';
+        return false;
     }
 
     public function bisaMengubahLeadsCabang(): bool
@@ -84,6 +84,11 @@ class User extends Authenticatable
     public function followUps(): HasMany
     {
         return $this->hasMany(FollowUp::class);
+    }
+
+    public function riwayatStatusProspek(): HasMany
+    {
+        return $this->hasMany(ProspekStatusHistory::class);
     }
 
     public function tasks(): HasMany

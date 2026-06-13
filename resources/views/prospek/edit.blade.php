@@ -2,7 +2,7 @@
 
 @section('konten')
     <section class="panel">
-        <form class="formulir" method="POST" action="{{ route('prospek.update', $prospek) }}">
+        <form class="formulir" method="POST" action="{{ route('prospek.update', $prospek) }}" data-form-closing>
             @csrf
             @method('PUT')
             @include('prospek._formulir')

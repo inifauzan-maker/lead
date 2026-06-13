@@ -40,7 +40,10 @@ erDiagram
     USERS ||--o{ TASK_COMMENTS : "memberi komentar"
     USERS ||--o{ COURSE_PROGRESS : "mengikuti"
     USERS ||--o{ NOTIFICATIONS : "menerima"
+    USERS ||--o{ PROSPEK_STATUS_HISTORIES : "mengubah status"
+    USERS ||--o{ TARGET_KINERJA : "memiliki target"
     PROSPEK ||--o{ FOLLOW_UPS : "memiliki riwayat"
+    PROSPEK ||--o{ PROSPEK_STATUS_HISTORIES : "memiliki histori status"
     PROSPEK ||--o{ TASKS : "terhubung tugas"
     TASKS ||--o{ TASK_COMMENTS : "memiliki komentar"
     COURSES ||--o{ COURSE_LESSONS : "memiliki materi"
@@ -49,6 +52,7 @@ erDiagram
     USERS ||--o{ SESSIONS : "memiliki sesi"
     CABANG ||..o{ USERS : "referensi cabang"
     CABANG ||..o{ PROSPEK : "referensi cabang"
+    CABANG ||..o{ TARGET_KINERJA : "referensi target"
     SUMBER_LEADS ||..o{ PROSPEK : "referensi sumber"
     PROGRAM_LEADS ||..o{ PROSPEK : "referensi program"
     USERS {
@@ -84,6 +88,12 @@ erDiagram
         string sumber
         text keterangan
         date tgl_masuk
+        date tanggal_daftar
+        string program_final
+        decimal nominal_pembayaran
+        string status_pembayaran
+        string kelas_angkatan
+        text catatan_administrasi
         timestamp created_at
         timestamp updated_at
     }
@@ -98,6 +108,17 @@ erDiagram
         text tindak_lanjut
         date tanggal_follow_up_berikutnya
         string prioritas
+        timestamp created_at
+        timestamp updated_at
+    }
+    PROSPEK_STATUS_HISTORIES {
+        bigint id PK
+        bigint prospek_id FK
+        bigint user_id FK
+        string status_lama
+        string status_baru
+        string sumber
+        text catatan
         timestamp created_at
         timestamp updated_at
     }
@@ -165,6 +186,18 @@ erDiagram
         string tautan
         string prioritas
         timestamp dibaca_pada
+        timestamp created_at
+        timestamp updated_at
+    }
+    TARGET_KINERJA {
+        bigint id PK
+        integer bulan
+        integer tahun
+        string tipe
+        string cabang
+        bigint user_id FK
+        integer target_leads
+        integer target_closing
         timestamp created_at
         timestamp updated_at
     }

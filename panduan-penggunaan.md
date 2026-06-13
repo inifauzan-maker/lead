@@ -17,7 +17,7 @@ Panduan ini ditujukan untuk user operasional, leader, admin cabang, superadmin, 
 
 | Role | Akses Lihat | Akses Input/Edit | Menu Khusus |
 | --- | --- | --- | --- |
-| `superadmin` | Semua data | Semua data | Pengaturan, backup, log aktivitas |
+| `superadmin` | Semua data | Tidak input/edit leads | Pengaturan, backup, log aktivitas |
 | `admin` | Semua leads | Edit leads cabang sendiri | Dashboard performa cabang |
 | `leader` | Semua leads | Edit leads cabang sendiri | Dashboard performa tim |
 | `staff` | Semua leads | Edit leads miliknya sendiri | Dashboard target pribadi |
@@ -25,6 +25,7 @@ Panduan ini ditujukan untuk user operasional, leader, admin cabang, superadmin, 
 
 Catatan:
 
+- Superadmin berfungsi sebagai pengatur sistem: kelola master data, user, target, backup, dan log aktivitas. Superadmin tidak melakukan input/edit leads, import leads, hapus leads, atau follow up.
 - Admin dan leader dapat melihat semua data, tetapi hanya dapat mengubah data pada cabangnya.
 - Staff dapat melihat semua data, tetapi hanya dapat mengubah leads yang menjadi miliknya.
 - Direksi tidak dapat input, edit, hapus, import, atau mencatat follow up.
@@ -41,24 +42,49 @@ Menu **Dashboard** menampilkan ringkasan performa berdasarkan role.
 
 ### Admin
 
-- Fokus pada performa cabang sendiri.
-- Bisa melihat kontribusi tim di cabangnya.
-- Cabang dikunci sesuai akun admin.
+- Melihat ringkasan seluruh data input user.
+- Bisa memakai filter cabang, admin, dan staff.
+- Tetap hanya dapat mengubah data leads sesuai hak akses cabangnya.
 
 ### Leader
 
-- Fokus pada performa tim cabangnya.
-- Bisa melihat kontribusi staff dan PIC leads.
+- Melihat ringkasan seluruh data input user.
+- Bisa memakai filter cabang, admin, dan staff.
+- Tetap hanya dapat mengubah data leads sesuai hak akses cabangnya.
 
 ### Staff
 
-- Fokus pada target pribadi.
-- Data dashboard dihitung dari leads yang menjadi miliknya.
+- Melihat ringkasan seluruh data input user.
+- Bisa memakai filter untuk melihat data pribadi atau staff tertentu.
+- Tetap hanya dapat mengubah leads miliknya sendiri.
 
 ### Direksi
 
 - Ringkasan semua cabang.
 - Lihat performa tanpa akses edit.
+
+Dashboard juga memiliki panel **Dashboard Closing** untuk melihat:
+
+- total siswa closing pada periode filter,
+- nominal pembayaran yang tercatat,
+- closing berdasarkan program final,
+- status pembayaran closing,
+- closing per cabang.
+
+Panel **Target dan Konversi** menampilkan:
+
+- target leads pada periode filter,
+- target closing,
+- capaian leads aktif,
+- capaian closing,
+- rasio konversi leads ke closing.
+
+Secara default dashboard memakai kumpulan data dari seluruh user yang input data. Filter cabang/admin/staff digunakan hanya untuk menyaring tampilan, bukan membatasi akses lihat dashboard.
+
+Panel **Ranking** menampilkan urutan performa:
+
+- default menampilkan ranking cabang,
+- jika filter cabang/staff digunakan, data ranking mengikuti filter tersebut.
 
 ## 4. Data Leads
 
@@ -85,6 +111,8 @@ Catatan:
 - Nomor WA yang sama akan ditolak untuk mencegah input ganda.
 - Field asal sekolah memiliki autosuggest dari `database/sekolahVM.json`, tetapi tetap bisa diisi manual.
 - Cabang hanya dapat diubah oleh superadmin. Role lain otomatis memakai cabang akunnya.
+- Jika status diubah menjadi `Daftar`, leads akan masuk ke **Data Siswa** dan tidak tampil lagi di daftar leads aktif.
+- Saat status `Daftar`, lengkapi field closing: tanggal daftar, program final, nominal pembayaran, status pembayaran, kelas/angkatan, dan catatan administrasi.
 
 ### Mengedit Leads
 
@@ -217,11 +245,24 @@ Gunakan menu ini untuk melihat data closing, termasuk:
 - nama,
 - asal sekolah,
 - nomor WA tersamarkan sesuai akses,
-- program,
+- program final,
+- status pembayaran,
+- nominal pembayaran,
 - cabang,
 - sumber,
-- tanggal masuk,
-- tanggal closing.
+- tanggal closing,
+- kelas/angkatan,
+- catatan administrasi.
+
+Klik **Detail** pada Data Siswa untuk melihat:
+
+- profil siswa dan asal leads,
+- administrasi closing,
+- riwayat perubahan status,
+- riwayat follow up sebelum closing,
+- tugas terkait siswa.
+
+Klik **Export Data Siswa** untuk mengunduh data closing sesuai filter aktif. File export berisi data administrasi closing seperti program final, status pembayaran, nominal pembayaran, tanggal closing, kelas/angkatan, dan catatan administrasi.
 
 ## 9. Profil User
 
@@ -267,9 +308,11 @@ Direksi hanya melihat data tanpa mengubah.
 
 ## 12. Laporan
 
-Menu **Laporan** menampilkan ringkasan report leads, status, cabang, dan rasio closing.
+Menu **Laporan** menampilkan ringkasan report leads, status, cabang, dan rasio closing milik user login.
 
 Gunakan menu ini untuk evaluasi berkala.
+
+Tombol **Export Leads & Closing Saya** mengunduh data leads aktif dan closing yang menjadi milik user login. Data user lain tidak masuk ke file export laporan.
 
 ## 13. Pembelajaran
 
@@ -309,7 +352,19 @@ Fitur:
 - CRUD Program,
 - Manajemen Role User,
 - tambah user,
+- target kinerja bulanan,
 - backup data.
+
+### Target Kinerja Bulanan
+
+Superadmin dapat mengatur:
+
+- bulan dan tahun target,
+- tipe target `cabang` atau `staff`,
+- target leads,
+- target closing.
+
+Target ini digunakan di dashboard untuk menghitung capaian dan ranking.
 
 ### Manajemen Role User
 
@@ -410,4 +465,3 @@ Log mencatat:
 - Gunakan filter bulan dan tahun untuk evaluasi performa.
 - Lakukan backup sebelum deploy, migrasi, atau import data besar.
 - Jangan membagikan file backup karena berisi data sensitif.
-

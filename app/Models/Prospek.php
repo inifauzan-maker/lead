@@ -27,12 +27,20 @@ class Prospek extends Model
         'sumber',
         'keterangan',
         'tgl_masuk',
+        'tanggal_daftar',
+        'program_final',
+        'nominal_pembayaran',
+        'status_pembayaran',
+        'kelas_angkatan',
+        'catatan_administrasi',
     ];
 
     protected function casts(): array
     {
         return [
             'tgl_masuk' => 'date',
+            'tanggal_daftar' => 'date',
+            'nominal_pembayaran' => 'decimal:2',
         ];
     }
 
@@ -44,6 +52,11 @@ class Prospek extends Model
     public function followUps(): HasMany
     {
         return $this->hasMany(FollowUp::class);
+    }
+
+    public function riwayatStatus(): HasMany
+    {
+        return $this->hasMany(ProspekStatusHistory::class);
     }
 
     public function followUpTerakhir()

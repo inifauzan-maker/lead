@@ -1462,6 +1462,13 @@ td small {
     grid-column: 1 / -1;
 }
 
+.panel-form-closing {
+    background: #f8fafc;
+    border: 1px solid var(--garis);
+    border-radius: 8px;
+    padding: 14px;
+}
+
 .aksi-form {
     justify-content: flex-end;
     margin-top: 18px;
@@ -1898,6 +1905,29 @@ td small {
     align-self: center;
 }
 
+.form-target-kinerja {
+    background: #f8fafc;
+    border: 1px solid var(--garis);
+    border-radius: 8px;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-bottom: 14px;
+    padding: 12px;
+}
+
+.form-target-kinerja .tombol {
+    width: 100%;
+}
+
+.baris-target-kinerja {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.baris-target-kinerja > form:first-child {
+    grid-template-columns: minmax(220px, 1fr) 130px 130px auto;
+}
+
 .bahaya {
     background: #fee2e2;
     color: #b91c1c;
@@ -2152,11 +2182,14 @@ body.sidebar-ciut .menu-item {
     .grid-pengguna,
     .baris-pengguna,
     .form-tambah-user,
+    .form-target-kinerja,
     .kontrol-role-user,
     .form-pengaturan,
     .baris-pengaturan,
     .baris-pengaturan form,
-    .baris-role-user {
+    .baris-role-user,
+    .baris-target-kinerja,
+    .baris-target-kinerja > form:first-child {
         grid-template-columns: 1fr;
     }
 }

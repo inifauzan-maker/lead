@@ -83,6 +83,30 @@
         </div>
     </section>
 
+    @if ($prospek->status === 'Daftar')
+        <section class="panel jarak-atas">
+            <div class="judul-panel">
+                <div>
+                    <h2>Data Siswa / Closing</h2>
+                    <span>Data administrasi siswa setelah leads dinyatakan closing.</span>
+                </div>
+            </div>
+            <div class="daftar-ringkas">
+                <div class="baris-ringkas"><strong>Tgl Daftar</strong><span>{{ $prospek->tanggal_daftar?->format('d M Y') ?: '-' }}</span></div>
+                <div class="baris-ringkas"><strong>Program Final</strong><span>{{ $prospek->program_final ?: ($prospek->program ?: '-') }}</span></div>
+                <div class="baris-ringkas"><strong>Status Pembayaran</strong><span>{{ $prospek->status_pembayaran ?: 'Belum Diisi' }}</span></div>
+                <div class="baris-ringkas"><strong>Nominal Pembayaran</strong><span>{{ $prospek->nominal_pembayaran ? 'Rp '.number_format((float) $prospek->nominal_pembayaran, 0, ',', '.') : '-' }}</span></div>
+                <div class="baris-ringkas"><strong>Kelas / Angkatan</strong><span>{{ $prospek->kelas_angkatan ?: '-' }}</span></div>
+            </div>
+            @if ($prospek->catatan_administrasi)
+                <div class="catatan-detail">
+                    <strong>Catatan Administrasi</strong>
+                    <p>{{ $prospek->catatan_administrasi }}</p>
+                </div>
+            @endif
+        </section>
+    @endif
+
     <section class="grid-dua jarak-atas">
         <div class="panel">
             <div class="judul-panel">

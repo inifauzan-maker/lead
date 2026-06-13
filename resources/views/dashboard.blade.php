@@ -1,6 +1,17 @@
 @extends('tata-letak', ['judul' => 'Dashboard Leads'])
 
 @section('konten')
+    @php
+        $warnaSumber = ['#ef4444', '#3b82f6', '#cbdde3', '#f59e0b', '#b91c1c', '#c27ba0', '#10b981', '#8b5cf6'];
+        $warnaProgram = ['#ef4444', '#3b82f6', '#cbdde3', '#f59e0b', '#b91c1c', '#c27ba0', '#10b981', '#8b5cf6'];
+        $warnaCabang = ['#ef4444', '#3b82f6', '#f59e0b', '#10b981'];
+        $warnaSekolah = ['#ef4444', '#3b82f6', '#cbdde3', '#f59e0b', '#b91c1c'];
+        $maksSumber = max(1, (int) $perSumber->max('total'));
+        $maksProgram = max(1, (int) $perProgram->max('total'));
+        $maksCabang = max(1, (int) $perCabang->max('total'));
+        $maksSekolah = max(1, (int) $perSekolah->max('total'));
+    @endphp
+
     <section class="hero-modul">
         <div>
             <span>{{ $dashboardRole['labelRole'] }}</span>
@@ -116,6 +127,72 @@
         </article>
     </section>
 
+    <section class="grid-dua jarak-atas">
+        <div class="panel">
+            <div class="judul-panel">
+                <div>
+                    <h2>Target dan Konversi</h2>
+                    <span>{{ $targetKinerja['labelTarget'] }}</span>
+                </div>
+                <strong>{{ $targetKinerja['rasioKonversi'] }}%</strong>
+            </div>
+            <div class="daftar-progress">
+                <div class="bar-progress">
+                    <div>
+                        <strong>Target Leads</strong>
+                        <span>{{ $targetKinerja['leadsAktif'] }} / {{ $targetKinerja['targetLeads'] }} leads aktif</span>
+                    </div>
+                    <span class="progress-kelas"><i style="width: {{ $targetKinerja['persenLeads'] }}%"></i></span>
+                </div>
+                <div class="bar-progress">
+                    <div>
+                        <strong>Target Closing</strong>
+                        <span>{{ $targetKinerja['closing'] }} / {{ $targetKinerja['targetClosing'] }} closing</span>
+                    </div>
+                    <span class="progress-kelas"><i style="width: {{ $targetKinerja['persenClosing'] }}%"></i></span>
+                </div>
+                <div class="bar-progress">
+                    <div>
+                        <strong>Rasio Konversi</strong>
+                        <span>{{ $targetKinerja['closing'] }} closing dari {{ $targetKinerja['leadsAktif'] + $targetKinerja['closing'] }} total leads periode ini</span>
+                    </div>
+                    <span class="progress-kelas"><i style="width: {{ min(100, $targetKinerja['rasioKonversi']) }}%"></i></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="judul-panel">
+                <div>
+                    <h2>{{ $rankingKinerja['judul'] }}</h2>
+                    <span>{{ $rankingKinerja['subjudul'] }}</span>
+                </div>
+            </div>
+            <div class="daftar-progress">
+                @forelse ($rankingKinerja['items'] as $item)
+                    @php
+                        $persenRanking = $item['target_closing'] > 0
+                            ? min(100, round(($item['closing'] / $item['target_closing']) * 100, 1))
+                            : min(100, $item['closing'] * 10);
+                    @endphp
+                    <div class="bar-progress">
+                        <div>
+                            <strong>{{ $loop->iteration }}. {{ $item['label'] }}</strong>
+                            <span>
+                                {{ $item['leads'] }} leads | {{ $item['closing'] }} closing
+                                | target {{ $item['target_closing'] }}
+                                | konversi {{ $item['rasio'] }}%
+                            </span>
+                        </div>
+                        <span class="progress-kelas"><i style="width: {{ $persenRanking }}%"></i></span>
+                    </div>
+                @empty
+                    <p class="kosong">Belum ada data ranking pada periode ini.</p>
+                @endforelse
+            </div>
+        </div>
+    </section>
+
     <section class="panel jarak-atas">
         <div class="judul-panel">
             <div>
@@ -141,6 +218,84 @@
                 </div>
             @empty
                 <p class="kosong">Belum ada data performa pada periode ini.</p>
+            @endforelse
+        </div>
+    </section>
+
+    <section class="grid-dua jarak-atas">
+        <div class="panel">
+            <div class="judul-panel">
+                <div>
+                    <h2>Dashboard Closing</h2>
+                    <span>{{ $dashboardClosing['total'] }} siswa closing pada periode ini.</span>
+                </div>
+                <strong>Rp {{ number_format((float) $dashboardClosing['nominal'], 0, ',', '.') }}</strong>
+            </div>
+            @php
+                $maksClosingProgram = max(1, (int) $dashboardClosing['perProgram']->max('total'));
+            @endphp
+            <div class="daftar-progress">
+                @forelse ($dashboardClosing['perProgram'] as $item)
+                    <div class="bar-progress">
+                        <div>
+                            <strong>{{ $item->label }}</strong>
+                            <span>{{ $item->total }} siswa</span>
+                        </div>
+                        <span class="progress-kelas"><i style="width: {{ round(($item->total / $maksClosingProgram) * 100) }}%"></i></span>
+                    </div>
+                @empty
+                    <p class="kosong">Belum ada closing pada periode ini.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="judul-panel">
+                <div>
+                    <h2>Status Pembayaran Closing</h2>
+                    <span>Distribusi pembayaran siswa closing.</span>
+                </div>
+            </div>
+            @php
+                $maksPembayaran = max(1, (int) $dashboardClosing['perPembayaran']->max('total'));
+            @endphp
+            <div class="daftar-progress">
+                @forelse ($dashboardClosing['perPembayaran'] as $item)
+                    <div class="bar-progress">
+                        <div>
+                            <strong>{{ $item->label }}</strong>
+                            <span>{{ $item->total }} siswa</span>
+                        </div>
+                        <span class="progress-kelas"><i style="width: {{ round(($item->total / $maksPembayaran) * 100) }}%"></i></span>
+                    </div>
+                @empty
+                    <p class="kosong">Belum ada status pembayaran closing.</p>
+                @endforelse
+            </div>
+        </div>
+    </section>
+
+    <section class="panel jarak-atas">
+        <div class="judul-panel">
+            <div>
+                <h2>Closing per Cabang</h2>
+                <span>Jumlah siswa closing per cabang pada periode filter.</span>
+            </div>
+        </div>
+        @php
+            $maksClosingCabang = max(1, (int) $dashboardClosing['perCabang']->max('total'));
+        @endphp
+        <div class="daftar-progress">
+            @forelse ($dashboardClosing['perCabang'] as $item)
+                <div class="bar-progress">
+                    <div>
+                        <strong>{{ $item->label }}</strong>
+                        <span>{{ $item->total }} siswa</span>
+                    </div>
+                    <span class="progress-kelas"><i style="width: {{ round(($item->total / $maksClosingCabang) * 100) }}%"></i></span>
+                </div>
+            @empty
+                <p class="kosong">Belum ada closing per cabang pada periode ini.</p>
             @endforelse
         </div>
     </section>

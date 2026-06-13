@@ -26,6 +26,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('tugas/{task}', [ModulController::class, 'destroyTugas'])->name('tugas.destroy');
         Route::post('tugas/{task}/komentar', [ModulController::class, 'storeKomentarTugas'])->name('tugas.komentar.store');
         Route::get('laporan', [ModulController::class, 'laporan'])->name('laporan');
+        Route::get('laporan/export', [ModulController::class, 'exportLaporan'])->name('laporan.export');
         Route::get('pembelajaran', [ModulController::class, 'pembelajaran'])->name('pembelajaran');
         Route::post('pembelajaran', [ModulController::class, 'storePembelajaran'])->name('pembelajaran.store');
         Route::put('pembelajaran/{course}', [ModulController::class, 'updatePembelajaran'])->name('pembelajaran.update');
@@ -47,7 +48,9 @@ Route::middleware('auth')->group(function () {
     Route::post('prospek/aksi-massal', [ProspekController::class, 'aksiMassal'])->name('prospek.aksi-massal');
     Route::get('follow-up', [ProspekController::class, 'followUp'])->name('follow-up.index');
     Route::post('follow-up', [ProspekController::class, 'storeFollowUp'])->name('follow-up.store');
+    Route::get('data-siswa/export', [ProspekController::class, 'exportDataSiswa'])->name('data-siswa.export');
     Route::get('data-siswa', [ProspekController::class, 'dataSiswa'])->name('data-siswa.index');
+    Route::get('data-siswa/{prospek}', [ProspekController::class, 'detailDataSiswa'])->name('data-siswa.show');
     Route::resource('prospek', ProspekController::class);
     Route::prefix('pengaturan')->name('pengaturan.')->middleware('role:superadmin')->group(function () {
         Route::get('/', [PengaturanController::class, 'index'])->name('index');
@@ -63,6 +66,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('program/{program}', [PengaturanController::class, 'destroyProgram'])->name('program.destroy');
         Route::post('user', [PengaturanController::class, 'storeUser'])->name('user.store');
         Route::put('user/{user}/role', [PengaturanController::class, 'updateRoleUser'])->name('user-role.update');
+        Route::post('target-kinerja', [PengaturanController::class, 'storeTargetKinerja'])->name('target-kinerja.store');
+        Route::put('target-kinerja/{target}', [PengaturanController::class, 'updateTargetKinerja'])->name('target-kinerja.update');
+        Route::delete('target-kinerja/{target}', [PengaturanController::class, 'destroyTargetKinerja'])->name('target-kinerja.destroy');
     });
     Route::resource('pengguna', PenggunaController::class)->only(['index', 'store', 'update'])->middleware('role:superadmin');
 });

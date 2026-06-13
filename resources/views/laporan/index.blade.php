@@ -4,9 +4,9 @@
     <section class="hero-modul">
         <div>
             <span>Report Center</span>
-            <h2>Ringkasan performa leads dan closing berdasarkan akses cabang.</h2>
+            <h2>Ringkasan leads dan closing milik user login.</h2>
         </div>
-        <a class="tombol sekunder" href="{{ route('prospek.export') }}">Export Leads</a>
+        <a class="tombol sekunder" href="{{ route('profil.laporan.export') }}">Export Leads & Closing Saya</a>
     </section>
 
     <section class="grid-ringkasan">

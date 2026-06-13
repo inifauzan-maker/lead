@@ -51,11 +51,12 @@
     </label>
     <label>
         Status
-        <select name="status" required>
+        <select name="status" required data-status-leads>
             @foreach ($status as $item)
                 <option value="{{ $item }}" @selected(old('status', $prospek->status) === $item)>{{ $item }}</option>
             @endforeach
         </select>
+        <small class="petunjuk">Jika status diubah menjadi Daftar, data akan otomatis keluar dari Data Leads dan masuk ke Data Siswa.</small>
         @error('status') <small class="error">{{ $message }}</small> @enderror
     </label>
     <label>
@@ -101,4 +102,58 @@
         <textarea name="keterangan" rows="4">{{ old('keterangan', $prospek->keterangan) }}</textarea>
         @error('keterangan') <small class="error">{{ $message }}</small> @enderror
     </label>
+
+    <div class="panel-form-closing penuh" data-section-closing>
+        <div class="judul-panel">
+            <div>
+                <h2>Data Siswa / Closing</h2>
+                <span>Isi saat leads sudah daftar. Data ini tampil di menu Data Siswa.</span>
+            </div>
+        </div>
+        <div class="grid-form">
+            <label>
+                Tgl Daftar
+                <input type="date" name="tanggal_daftar" value="{{ old('tanggal_daftar', $prospek->tanggal_daftar?->format('Y-m-d')) }}">
+                @error('tanggal_daftar') <small class="error">{{ $message }}</small> @enderror
+            </label>
+            <label>
+                Program Final
+                <select name="program_final">
+                    <option value="">Ikuti program leads</option>
+                    @foreach ($program as $item)
+                        <option value="{{ $item }}" @selected(old('program_final', $prospek->program_final) === $item)>{{ $item }}</option>
+                    @endforeach
+                    @if ($prospek->program_final && ! in_array($prospek->program_final, $program, true))
+                        <option value="{{ $prospek->program_final }}" selected>{{ $prospek->program_final }}</option>
+                    @endif
+                </select>
+                @error('program_final') <small class="error">{{ $message }}</small> @enderror
+            </label>
+            <label>
+                Nominal Pembayaran
+                <input type="number" name="nominal_pembayaran" min="0" step="1000" value="{{ old('nominal_pembayaran', $prospek->nominal_pembayaran) }}">
+                @error('nominal_pembayaran') <small class="error">{{ $message }}</small> @enderror
+            </label>
+            <label>
+                Status Pembayaran
+                <select name="status_pembayaran">
+                    <option value="">Pilih status pembayaran</option>
+                    @foreach ($statusPembayaran as $item)
+                        <option value="{{ $item }}" @selected(old('status_pembayaran', $prospek->status_pembayaran) === $item)>{{ $item }}</option>
+                    @endforeach
+                </select>
+                @error('status_pembayaran') <small class="error">{{ $message }}</small> @enderror
+            </label>
+            <label>
+                Kelas / Angkatan
+                <input type="text" name="kelas_angkatan" value="{{ old('kelas_angkatan', $prospek->kelas_angkatan) }}">
+                @error('kelas_angkatan') <small class="error">{{ $message }}</small> @enderror
+            </label>
+            <label class="penuh">
+                Catatan Administrasi
+                <textarea name="catatan_administrasi" rows="3">{{ old('catatan_administrasi', $prospek->catatan_administrasi) }}</textarea>
+                @error('catatan_administrasi') <small class="error">{{ $message }}</small> @enderror
+            </label>
+        </div>
+    </div>
 </div>
