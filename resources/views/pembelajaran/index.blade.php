@@ -25,7 +25,7 @@
                 </label>
                 <label>
                     Level/Kategori
-                    <input type="text" name="level" value="{{ old('level', 'Gratis') }}" placeholder="Gratis, Sales, Staff, Leader" required>
+                    <input type="text" name="level" value="{{ old('level', 'Gratis') }}" placeholder="Gratis, Sales, Staff, Admin" required>
                 </label>
                 <label>
                     Topik/Tema

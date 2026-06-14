@@ -616,7 +616,7 @@ class ProspekController extends Controller
             $penanggungJawab = User::query()
                 ->where('id', $data['user_id'])
                 ->where('aktif', true)
-                ->whereIn('role', ['leader', 'staff'])
+                ->where('role', 'staff')
                 ->first();
 
             abort_unless($penanggungJawab, 422, 'Penanggung jawab tidak valid.');
@@ -925,19 +925,6 @@ class ProspekController extends Controller
             'admin' => [
                 'role' => 'admin',
                 'labelRole' => 'Admin',
-                'judul' => 'Dashboard Semua User',
-                'deskripsi' => 'Ringkasan data leads, follow up, dan closing dari seluruh user. Gunakan filter untuk melihat cabang atau staff tertentu.',
-                'panelJudul' => 'Performa Cabang',
-                'panelSubjudul' => 'Perbandingan semua cabang berdasarkan leads masuk.',
-                'cabangTerkunci' => null,
-                'bolehFilterCabang' => true,
-                'bolehFilterAdmin' => true,
-                'bolehFilterStaff' => true,
-                'tipePanel' => 'cabang',
-            ],
-            'leader' => [
-                'role' => 'leader',
-                'labelRole' => 'Leader',
                 'judul' => 'Dashboard Semua User',
                 'deskripsi' => 'Ringkasan data leads, follow up, dan closing dari seluruh user. Gunakan filter untuk melihat cabang atau staff tertentu.',
                 'panelJudul' => 'Performa Cabang',
@@ -1606,7 +1593,7 @@ class ProspekController extends Controller
 
         return User::query()
             ->where('aktif', true)
-            ->whereIn('role', ['leader', 'staff'])
+            ->where('role', 'staff')
             ->when($batasiAkses && ! $user->aksesSemuaCabang(), fn ($query) => $query->where('cabang', $user->cabang))
             ->when($cabang, fn ($query) => $query->where('cabang', $cabang))
             ->orderBy('name')

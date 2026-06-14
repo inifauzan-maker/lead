@@ -11,7 +11,6 @@
 
     <section class="grid-ringkasan">
         <article class="kartu-stat"><span>Admin</span><strong>{{ $jumlahRole->get('admin', 0) }}</strong></article>
-        <article class="kartu-stat"><span>Leader</span><strong>{{ $jumlahRole->get('leader', 0) }}</strong></article>
         <article class="kartu-stat"><span>Staff</span><strong>{{ $jumlahRole->get('staff', 0) }}</strong></article>
         <article class="kartu-stat"><span>Cabang Aktif</span><strong>{{ $jumlahCabang->count() }}</strong></article>
     </section>

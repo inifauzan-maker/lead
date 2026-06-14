@@ -10,7 +10,6 @@ Role user:
 
 - `superadmin`
 - `admin`
-- `leader`
 - `staff`
 - `direksi`
 
@@ -321,7 +320,7 @@ Menyimpan data akun, role, cabang, status aktif, dan media sosial user.
 Catatan:
 
 - Role `superadmin` dan `direksi` dapat mengakses semua cabang.
-- Role `admin` dan `leader` dibatasi cabang masing-masing.
+- Role `admin` dibatasi cabang masing-masing.
 - Role `staff` dibatasi data dengan `user_id` miliknya.
 
 ### 2. `prospek`
@@ -639,14 +638,14 @@ Arsitektur proses menjelaskan alur kerja bisnis utama dalam sistem.
 | Proses | Aktor | Input | Output | Modul |
 | --- | --- | --- | --- | --- |
 | Login dan autentikasi | Semua role | Email, password | Session user aktif | Login |
-| Input leads | Superadmin, admin, leader, staff | Nama, sekolah, WA, program, cabang, sumber, tanggal masuk | Data leads baru | Data Leads, Tambah Leads |
+| Input leads | Admin, staff | Nama, sekolah, WA, program, cabang, sumber, tanggal masuk | Data leads baru | Data Leads, Tambah Leads |
 | Validasi input ganda | Sistem | Nomor WhatsApp | Penolakan jika `no_wa` sudah ada | Data Leads |
-| Import leads | Superadmin, admin, leader, staff | File CSV contoh import | Banyak data leads masuk sekaligus | Data Leads |
+| Import leads | Admin, staff | File CSV contoh import | Banyak data leads masuk sekaligus | Data Leads |
 | Export leads | User sesuai akses | Filter/status/cabang/data terpilih | File export leads | Data Leads |
-| Distribusi leads ke cabang | Superadmin, admin, leader | Cabang tujuan, admin tujuan | Leads memiliki cabang dan tujuan penyerahan | Data Leads |
-| Follow up leads | Admin, leader, staff | Perubahan status dan catatan | Leads masuk daftar follow up | Follow Up |
-| Closing/data siswa | Admin, leader, staff | Status `Daftar` | Data siswa/closing | Data Siswa |
-| Monitoring performa | Superadmin, admin, leader, direksi | Filter bulan, tahun, cabang, admin, staff | Dashboard grafik dan ringkasan | Dashboard |
+| Distribusi leads ke cabang | Admin | Cabang tujuan, admin tujuan | Leads memiliki cabang dan tujuan penyerahan | Data Leads |
+| Follow up leads | Admin, staff | Perubahan status dan catatan | Leads masuk daftar follow up | Follow Up |
+| Closing/data siswa | Admin, staff | Status `Daftar` | Data siswa/closing | Data Siswa |
+| Monitoring performa | Superadmin, admin, staff, direksi | Filter bulan, tahun, cabang, admin, staff | Dashboard grafik dan ringkasan | Dashboard |
 | Manajemen master | Superadmin | Cabang, sumber leads, program leads | Data master aktif/nonaktif | Pengaturan |
 | Manajemen role user | Superadmin | Role, cabang, status aktif | Hak akses user diperbarui | Pengaturan |
 | Profil dan aktivitas user | Semua role | Data profil, media sosial | Profil user dan ringkasan personal | Profil User |

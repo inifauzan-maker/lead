@@ -1,6 +1,6 @@
 # Panduan Penggunaan CRM_SIVMI
 
-Panduan ini ditujukan untuk user operasional, leader, admin cabang, superadmin, dan direksi dalam menggunakan aplikasi CRM_SIVMI.
+Panduan ini ditujukan untuk user operasional, admin cabang, superadmin, dan direksi dalam menggunakan aplikasi CRM_SIVMI.
 
 ## 1. Login
 
@@ -19,14 +19,13 @@ Panduan ini ditujukan untuk user operasional, leader, admin cabang, superadmin, 
 | --- | --- | --- | --- |
 | `superadmin` | Semua data | Tidak input/edit leads | Pengaturan, backup, log aktivitas |
 | `admin` | Semua leads | Edit leads cabang sendiri | Dashboard performa cabang |
-| `leader` | Semua leads | Edit leads cabang sendiri | Dashboard performa tim |
 | `staff` | Semua leads | Edit leads miliknya sendiri | Dashboard target pribadi |
 | `direksi` | Semua data | Lihat saja | Ringkasan semua cabang, log aktivitas |
 
 Catatan:
 
 - Superadmin berfungsi sebagai pengatur sistem: kelola master data, user, target, backup, dan log aktivitas. Superadmin tidak melakukan input/edit leads, import leads, hapus leads, atau follow up.
-- Admin dan leader dapat melihat semua data, tetapi hanya dapat mengubah data pada cabangnya.
+- Admin dapat melihat semua data, tetapi hanya dapat mengubah data pada cabangnya.
 - Staff dapat melihat semua data, tetapi hanya dapat mengubah leads yang menjadi miliknya.
 - Direksi tidak dapat input, edit, hapus, import, atau mencatat follow up.
 
@@ -41,12 +40,6 @@ Menu **Dashboard** menampilkan ringkasan performa berdasarkan role.
 - Cocok untuk monitoring global sistem.
 
 ### Admin
-
-- Melihat ringkasan seluruh data input user.
-- Bisa memakai filter cabang, admin, dan staff.
-- Tetap hanya dapat mengubah data leads sesuai hak akses cabangnya.
-
-### Leader
 
 - Melihat ringkasan seluruh data input user.
 - Bisa memakai filter cabang, admin, dan staff.
@@ -380,7 +373,6 @@ Superadmin dapat mengatur:
 Cabang wajib diisi untuk role:
 
 - admin,
-- leader,
 - staff.
 
 Cabang dikosongkan untuk:

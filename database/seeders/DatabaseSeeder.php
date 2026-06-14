@@ -47,7 +47,6 @@ class DatabaseSeeder extends Seeder
             ['Admin Bandung', 'admin.bandung@leads.test', 'admin', 'Bandung'],
             ['Admin Jaksel', 'admin.jaksel@leads.test', 'admin', 'Jaksel'],
             ['Admin Jakpus', 'admin.jakpus@leads.test', 'admin', 'Jakpus'],
-            ['Leader Bandung', 'leader.bandung@leads.test', 'leader', 'Bandung'],
             ['Staff Bandung', 'staff.bandung@leads.test', 'staff', 'Bandung'],
             ['Direksi', 'direksi@leads.test', 'direksi', null],
         ];
@@ -65,7 +64,7 @@ class DatabaseSeeder extends Seeder
         foreach ([
             ['Dasar Pengelolaan Leads', 'Alur dasar input, validasi, distribusi, dan follow up leads.', 'Wajib', 45, 1, ['Mengenal Leads', 'Input Data Leads', 'Mencegah Input Ganda']],
             ['Strategi Follow Up Efektif', 'Teknik komunikasi, pencatatan hasil, dan penjadwalan ulang follow up.', 'Sales', 80, 2, ['Persiapan Follow Up', 'Script WhatsApp', 'Evaluasi Hasil']],
-            ['Membaca Laporan Cabang', 'Cara membaca dashboard, grafik harian, sumber leads, dan performa cabang.', 'Leader', 35, 3, ['Dashboard Cabang', 'Rasio Closing', 'Evaluasi Staff']],
+            ['Membaca Laporan Cabang', 'Cara membaca dashboard, grafik harian, sumber leads, dan performa cabang.', 'Admin', 35, 3, ['Dashboard Cabang', 'Rasio Closing', 'Evaluasi Staff']],
             ['Etika Komunikasi Orang Tua', 'Standar komunikasi dengan orang tua dan calon siswa.', 'Staff', 55, 4, ['Etika Dasar', 'Menjawab Keberatan', 'Follow Up Lanjutan']],
         ] as [$judul, $deskripsi, $level, $durasi, $urutan, $lessons]) {
             $course = Course::updateOrCreate(

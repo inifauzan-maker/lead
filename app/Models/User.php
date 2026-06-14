@@ -35,7 +35,6 @@ class User extends Authenticatable
         return match ($this->role) {
             'superadmin' => 'Superadmin',
             'admin' => 'Admin',
-            'leader' => 'Leader',
             'direksi' => 'Direksi',
             default => 'Staff',
         };
@@ -48,12 +47,12 @@ class User extends Authenticatable
 
     public function bisaLihatSemuaLeads(): bool
     {
-        return in_array($this->role, ['superadmin', 'admin', 'leader', 'staff', 'direksi'], true);
+        return in_array($this->role, ['superadmin', 'admin', 'staff', 'direksi'], true);
     }
 
     public function bisaInputLeads(): bool
     {
-        return in_array($this->role, ['admin', 'leader', 'staff'], true);
+        return in_array($this->role, ['admin', 'staff'], true);
     }
 
     public function bisaMengubahSemuaLeads(): bool
@@ -63,7 +62,7 @@ class User extends Authenticatable
 
     public function bisaMengubahLeadsCabang(): bool
     {
-        return in_array($this->role, ['admin', 'leader'], true);
+        return $this->role === 'admin';
     }
 
     public function bisaMengubahLeadsMilikSendiri(): bool

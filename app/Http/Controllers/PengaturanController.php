@@ -17,7 +17,7 @@ use Illuminate\View\View;
 
 class PengaturanController extends Controller
 {
-    private const ROLE = ['superadmin', 'admin', 'leader', 'staff', 'direksi'];
+    private const ROLE = ['superadmin', 'admin', 'staff', 'direksi'];
 
     private const TABEL_BACKUP = [
         'cabang',
@@ -54,7 +54,7 @@ class PengaturanController extends Controller
                 ->paginate(8, ['*'], 'target_page'),
             'staffTarget' => User::query()
                 ->where('aktif', true)
-                ->whereIn('role', ['leader', 'staff'])
+                ->where('role', 'staff')
                 ->orderBy('cabang')
                 ->orderBy('name')
                 ->get(),
@@ -219,9 +219,9 @@ class PengaturanController extends Controller
 
         $data = $request->validate($aturan);
 
-        if (in_array($data['role'], ['admin', 'leader', 'staff'], true) && blank($data['cabang'] ?? null)) {
+        if (in_array($data['role'], ['admin', 'staff'], true) && blank($data['cabang'] ?? null)) {
             throw ValidationException::withMessages([
-                'cabang' => 'Cabang wajib diisi untuk admin, leader, dan staff.',
+                'cabang' => 'Cabang wajib diisi untuk admin dan staff.',
             ]);
         }
 
@@ -266,7 +266,7 @@ class PengaturanController extends Controller
             $user = User::query()
                 ->where('id', $data['user_id'])
                 ->where('aktif', true)
-                ->whereIn('role', ['leader', 'staff'])
+                ->where('role', 'staff')
                 ->firstOrFail();
 
             $data['cabang'] = $user->cabang;

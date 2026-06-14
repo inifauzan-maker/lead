@@ -169,7 +169,6 @@ class ProspekTest extends TestCase
     {
         $superadmin = User::factory()->create(['role' => 'superadmin', 'aktif' => true]);
         $adminBandung = User::factory()->create(['role' => 'admin', 'cabang' => 'Bandung', 'aktif' => true]);
-        $leaderBandung = User::factory()->create(['role' => 'leader', 'cabang' => 'Bandung', 'aktif' => true]);
         $staffBandung = User::factory()->create(['role' => 'staff', 'cabang' => 'Bandung', 'aktif' => true]);
         $staffLain = User::factory()->create(['role' => 'staff', 'cabang' => 'Bandung', 'aktif' => true]);
         $direksi = User::factory()->create(['role' => 'direksi', 'aktif' => true]);
@@ -191,8 +190,6 @@ class ProspekTest extends TestCase
         $this->assertFalse($leadJaksel->bisaDiubahOleh($superadmin));
         $this->assertTrue($leadBandung->bisaDiubahOleh($adminBandung));
         $this->assertFalse($leadJaksel->bisaDiubahOleh($adminBandung));
-        $this->assertTrue($leadBandung->bisaDiubahOleh($leaderBandung));
-        $this->assertFalse($leadJaksel->bisaDiubahOleh($leaderBandung));
         $this->assertTrue($leadBandung->bisaDiubahOleh($staffBandung));
         $this->assertFalse($leadBandung->bisaDiubahOleh($staffLain));
         $this->assertFalse($leadBandung->bisaDiubahOleh($direksi));
@@ -206,7 +203,7 @@ class ProspekTest extends TestCase
             'cabang' => 'Jaksel',
         ]);
 
-        foreach (['superadmin', 'admin', 'leader', 'staff', 'direksi'] as $role) {
+        foreach (['superadmin', 'admin', 'staff', 'direksi'] as $role) {
             $user = User::factory()->create([
                 'role' => $role,
                 'cabang' => 'Bandung',
@@ -1080,7 +1077,7 @@ class ProspekTest extends TestCase
 
         $this->actingAs($superadmin)
             ->put(route('pengaturan.user-role.update', $staff), [
-                'role' => 'leader',
+                'role' => 'admin',
                 'cabang' => 'Bekasi',
                 'aktif' => '1',
             ])
@@ -1088,7 +1085,7 @@ class ProspekTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'id' => $staff->id,
-            'role' => 'leader',
+            'role' => 'admin',
             'cabang' => 'Bekasi',
             'aktif' => true,
         ]);

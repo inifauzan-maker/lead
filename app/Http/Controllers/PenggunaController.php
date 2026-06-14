@@ -12,7 +12,7 @@ use Illuminate\View\View;
 
 class PenggunaController extends Controller
 {
-    public const ROLE = ['superadmin', 'admin', 'leader', 'staff', 'direksi'];
+    public const ROLE = ['superadmin', 'admin', 'staff', 'direksi'];
 
     public function index(): View
     {
@@ -57,9 +57,9 @@ class PenggunaController extends Controller
             'aktif' => ['nullable', 'boolean'],
         ]);
 
-        if (in_array($data['role'], ['admin', 'leader', 'staff'], true) && blank($data['cabang'] ?? null)) {
+        if (in_array($data['role'], ['admin', 'staff'], true) && blank($data['cabang'] ?? null)) {
             throw ValidationException::withMessages([
-                'cabang' => 'Cabang wajib diisi untuk admin, leader, dan staff.',
+                'cabang' => 'Cabang wajib diisi untuk admin dan staff.',
             ]);
         }
 

@@ -4,7 +4,7 @@
     <section class="panel">
         <div class="judul-panel">
             <h2>Tambah Pengguna</h2>
-            <span>Role: superadmin, admin, leader, staff, direksi</span>
+            <span>Role: superadmin, admin, staff, direksi</span>
         </div>
         <form class="formulir" method="POST" action="{{ route('pengguna.store') }}">
             @csrf

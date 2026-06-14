@@ -92,7 +92,7 @@ class SistemNotification extends Model
             });
     }
 
-    public static function penerimaCabang(?string $cabang, array $roleCabang = ['admin', 'leader']): Collection
+    public static function penerimaCabang(?string $cabang, array $roleCabang = ['admin']): Collection
     {
         if (! Schema::hasTable('users')) {
             return collect();

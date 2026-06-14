@@ -22,7 +22,7 @@ class ModulController extends Controller
         $anggota = User::query()
             ->where('aktif', true)
             ->when(! $request->user()->aksesSemuaCabang(), fn ($query) => $query->where('cabang', $request->user()->cabang))
-            ->orderByRaw("CASE role WHEN 'superadmin' THEN 1 WHEN 'admin' THEN 2 WHEN 'leader' THEN 3 WHEN 'staff' THEN 4 ELSE 5 END")
+            ->orderByRaw("CASE role WHEN 'superadmin' THEN 1 WHEN 'admin' THEN 2 WHEN 'staff' THEN 3 ELSE 4 END")
             ->orderBy('name')
             ->get();
 
@@ -472,7 +472,7 @@ class ModulController extends Controller
     {
         return User::query()
             ->where('aktif', true)
-            ->whereIn('role', ['leader', 'staff'])
+            ->where('role', 'staff')
             ->when(! $request->user()->aksesSemuaCabang(), fn ($query) => $query->where('cabang', $request->user()->cabang))
             ->orderBy('name')
             ->get();
@@ -572,7 +572,7 @@ class ModulController extends Controller
         }
 
         $penerima = $penerima
-            ->merge(SistemNotification::penerimaCabang($task->cabang, ['admin', 'leader']))
+            ->merge(SistemNotification::penerimaCabang($task->cabang, ['admin']))
             ->filter(fn ($user) => $user && (int) $user->id !== (int) $kecualiUserId);
 
         SistemNotification::kirim($penerima, [
@@ -590,7 +590,7 @@ class ModulController extends Controller
             return;
         }
 
-        $penerima = SistemNotification::penerimaCabang($request->user()->cabang, ['admin', 'leader']);
+        $penerima = SistemNotification::penerimaCabang($request->user()->cabang, ['admin']);
 
         SistemNotification::kirim($penerima, [
             'tipe' => 'pembelajaran',
