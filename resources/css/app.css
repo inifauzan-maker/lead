@@ -1910,14 +1910,67 @@ td small {
     border: 1px solid var(--garis);
     border-radius: 8px;
     display: grid;
-    gap: 10px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     margin-bottom: 14px;
+    padding: 16px;
+}
+
+.panduan-target-kinerja {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 14px 0;
+}
+
+.panduan-target-kinerja div {
+    background: #f8fafc;
+    border: 1px solid var(--garis);
+    border-radius: 8px;
+    display: grid;
+    gap: 4px;
     padding: 12px;
 }
 
-.form-target-kinerja .tombol {
-    width: 100%;
+.panduan-target-kinerja strong,
+.field-target span {
+    color: var(--teks);
+    font-weight: 900;
+}
+
+.panduan-target-kinerja span,
+.field-target small {
+    color: var(--muted);
+    font-size: .86rem;
+    line-height: 1.4;
+}
+
+.field-target {
+    display: grid;
+    gap: 6px;
+}
+
+.field-target-kecil {
+    grid-column: span 2;
+}
+
+.field-target-sedang {
+    grid-column: span 3;
+}
+
+.field-target-lebar {
+    grid-column: span 4;
+}
+
+.field-target[hidden] {
+    display: none;
+}
+
+.form-target-kinerja .tombol-target {
+    grid-column: 1 / -1;
+    justify-self: end;
+    min-width: 220px;
+    width: auto;
 }
 
 .baris-target-kinerja {
@@ -2054,6 +2107,24 @@ body.sidebar-ciut .menu-item {
     .grid-kartu-dashboard-profil {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .panduan-target-kinerja,
+    .form-target-kinerja {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .field-target-kecil,
+    .field-target-sedang {
+        grid-column: span 3;
+    }
+
+    .field-target-lebar {
+        grid-column: span 6;
+    }
+
+    .form-target-kinerja .tombol-target {
+        grid-column: 1 / -1;
+    }
 }
 
 @media (max-width: 760px) {
@@ -2108,6 +2179,22 @@ body.sidebar-ciut .menu-item {
     .filter-dashboard,
     .grid-form {
         grid-template-columns: 1fr;
+    }
+
+    .panduan-target-kinerja {
+        grid-template-columns: 1fr;
+    }
+
+    .field-target-kecil,
+    .field-target-sedang,
+    .field-target-lebar,
+    .form-target-kinerja .tombol-target {
+        grid-column: 1 / -1;
+    }
+
+    .form-target-kinerja .tombol-target {
+        justify-self: stretch;
+        width: 100%;
     }
 
     .aksi-halaman {

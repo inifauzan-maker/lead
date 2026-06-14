@@ -107,43 +107,82 @@
         <div class="judul-panel">
             <div>
                 <h2>Target Kinerja Bulanan</h2>
-                <span>Atur target leads dan closing per cabang atau per staff.</span>
+                <span>Tentukan target leads aktif dan closing untuk dashboard performa bulanan.</span>
             </div>
             <strong>{{ $targetKinerja->total() }} target</strong>
         </div>
-        <form class="form-target-kinerja" method="POST" action="{{ route('pengaturan.target-kinerja.store') }}">
+        <div class="panduan-target-kinerja">
+            <div>
+                <strong>Target cabang</strong>
+                <span>Dipakai untuk mengukur capaian seluruh user dalam satu cabang.</span>
+            </div>
+            <div>
+                <strong>Target staff</strong>
+                <span>Dipakai untuk mengukur capaian personal staff tertentu.</span>
+            </div>
+            <div>
+                <strong>Periode unik</strong>
+                <span>Satu kombinasi bulan, tahun, tipe, dan cabang/staff akan diperbarui jika sudah ada.</span>
+            </div>
+        </div>
+        <form class="form-target-kinerja" method="POST" action="{{ route('pengaturan.target-kinerja.store') }}" data-form-target-kinerja>
             @csrf
-            <select name="bulan" required>
-                @foreach ($daftarBulan as $value => $label)
-                    <option value="{{ $value }}" @selected((int) old('bulan', now()->month) === (int) $value)>{{ $label }}</option>
-                @endforeach
-            </select>
-            <select name="tahun" required>
-                @foreach ($daftarTahun as $tahun)
-                    <option value="{{ $tahun }}" @selected((int) old('tahun', now()->year) === (int) $tahun)>{{ $tahun }}</option>
-                @endforeach
-            </select>
-            <select name="tipe" required>
-                <option value="cabang" @selected(old('tipe', 'cabang') === 'cabang')>Target cabang</option>
-                <option value="staff" @selected(old('tipe') === 'staff')>Target staff</option>
-            </select>
-            <select name="cabang">
-                <option value="">Pilih cabang</option>
-                @foreach ($daftarCabang as $item)
-                    <option value="{{ $item }}" @selected(old('cabang') === $item)>{{ $item }}</option>
-                @endforeach
-            </select>
-            <select name="user_id">
-                <option value="">Pilih staff</option>
-                @foreach ($staffTarget as $userItem)
-                    <option value="{{ $userItem->id }}" @selected((string) old('user_id') === (string) $userItem->id)>
-                        {{ $userItem->name }}{{ $userItem->cabang ? ' - '.$userItem->cabang : '' }}
-                    </option>
-                @endforeach
-            </select>
-            <input type="number" name="target_leads" value="{{ old('target_leads', 0) }}" min="0" placeholder="Target leads" required>
-            <input type="number" name="target_closing" value="{{ old('target_closing', 0) }}" min="0" placeholder="Target closing" required>
-            <button class="tombol utama" type="submit">Simpan Target</button>
+            <label class="field-target field-target-kecil">
+                <span>Bulan target</span>
+                <select name="bulan" required>
+                    @foreach ($daftarBulan as $value => $label)
+                        <option value="{{ $value }}" @selected((int) old('bulan', now()->month) === (int) $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <label class="field-target field-target-kecil">
+                <span>Tahun target</span>
+                <select name="tahun" required>
+                    @foreach ($daftarTahun as $tahun)
+                        <option value="{{ $tahun }}" @selected((int) old('tahun', now()->year) === (int) $tahun)>{{ $tahun }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <label class="field-target field-target-sedang">
+                <span>Jenis target</span>
+                <select name="tipe" required data-target-tipe>
+                    <option value="cabang" @selected(old('tipe', 'cabang') === 'cabang')>Target per cabang</option>
+                    <option value="staff" @selected(old('tipe') === 'staff')>Target per staff</option>
+                </select>
+            </label>
+            <label class="field-target field-target-lebar" data-field-target-cabang>
+                <span>Cabang yang ditargetkan</span>
+                <select name="cabang" data-target-cabang>
+                    <option value="">Pilih cabang</option>
+                    @foreach ($daftarCabang as $item)
+                        <option value="{{ $item }}" @selected(old('cabang') === $item)>{{ $item }}</option>
+                    @endforeach
+                </select>
+                <small>Wajib untuk target cabang.</small>
+            </label>
+            <label class="field-target field-target-lebar" data-field-target-staff>
+                <span>Staff yang ditargetkan</span>
+                <select name="user_id" data-target-staff>
+                    <option value="">Pilih staff aktif</option>
+                    @foreach ($staffTarget as $userItem)
+                        <option value="{{ $userItem->id }}" @selected((string) old('user_id') === (string) $userItem->id)>
+                            {{ $userItem->name }}{{ $userItem->cabang ? ' - '.$userItem->cabang : '' }}
+                        </option>
+                    @endforeach
+                </select>
+                <small>Wajib untuk target staff. Cabang mengikuti cabang staff.</small>
+            </label>
+            <label class="field-target field-target-sedang">
+                <span>Target leads aktif</span>
+                <input type="number" name="target_leads" value="{{ old('target_leads', 0) }}" min="0" placeholder="Contoh: 100" required>
+                <small>Jumlah leads aktif yang ingin dicapai pada periode ini.</small>
+            </label>
+            <label class="field-target field-target-sedang">
+                <span>Target closing</span>
+                <input type="number" name="target_closing" value="{{ old('target_closing', 0) }}" min="0" placeholder="Contoh: 20" required>
+                <small>Jumlah leads yang ditargetkan menjadi data siswa/closing.</small>
+            </label>
+            <button class="tombol utama tombol-target" type="submit">Simpan Target</button>
         </form>
         <div class="daftar-pengaturan">
             @forelse ($targetKinerja as $target)

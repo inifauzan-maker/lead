@@ -299,3 +299,30 @@ document.querySelectorAll('[data-toggle-password]').forEach((tombol) => {
         tombol.setAttribute('aria-label', tampil ? 'Sembunyikan password' : 'Tampilkan password');
     });
 });
+
+document.querySelectorAll('[data-form-target-kinerja]').forEach((form) => {
+    const tipe = form.querySelector('[data-target-tipe]');
+    const fieldCabang = form.querySelector('[data-field-target-cabang]');
+    const fieldStaff = form.querySelector('[data-field-target-staff]');
+    const cabang = form.querySelector('[data-target-cabang]');
+    const staff = form.querySelector('[data-target-staff]');
+
+    function perbaruiFieldTarget() {
+        const targetStaff = tipe?.value === 'staff';
+
+        if (fieldCabang && cabang) {
+            fieldCabang.hidden = targetStaff;
+            cabang.disabled = targetStaff;
+            cabang.required = !targetStaff;
+        }
+
+        if (fieldStaff && staff) {
+            fieldStaff.hidden = !targetStaff;
+            staff.disabled = !targetStaff;
+            staff.required = targetStaff;
+        }
+    }
+
+    perbaruiFieldTarget();
+    tipe?.addEventListener('change', perbaruiFieldTarget);
+});
