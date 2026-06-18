@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProspekController extends Controller
@@ -37,6 +38,8 @@ class ProspekController extends Controller
     private const PRIORITAS_FOLLOW_UP = ['Rendah', 'Normal', 'Tinggi'];
 
     private const STATUS_PEMBAYARAN = ['Belum Bayar', 'DP', 'Lunas', 'Cicilan'];
+
+    private const JENJANG = ['SD', 'SMP', 'SMA', 'Gapyear'];
 
     private const KOLOM_IMPORT = [
         'nama',
@@ -362,8 +365,8 @@ class ProspekController extends Controller
     {
         $contoh = [
             'Budi Santoso',
-            'SMAI Al Azhar 1',
-            '12',
+            'SMAS Al Azhar 1',
+            'SMA',
             'Jakarta Selatan',
             '081234567890',
             'SR GOLD',
@@ -467,6 +470,7 @@ class ProspekController extends Controller
             'program' => $this->daftarProgram(),
             'staff' => $this->staffTersedia(),
             'sekolah' => $this->sekolahTersedia(),
+            'jenjang' => self::JENJANG,
             'statusPembayaran' => self::STATUS_PEMBAYARAN,
         ]);
     }
@@ -495,6 +499,7 @@ class ProspekController extends Controller
             'program' => $this->daftarProgram(),
             'staff' => $this->staffTersedia($prospek->cabang),
             'sekolah' => $this->sekolahTersedia(),
+            'jenjang' => self::JENJANG,
             'statusPembayaran' => self::STATUS_PEMBAYARAN,
         ]);
     }
@@ -548,12 +553,13 @@ class ProspekController extends Controller
     {
         $request->merge([
             'no_wa' => $this->rapikanNomorWa($request->input('no_wa')),
+            'asal_sekolah' => $this->rapikanAsalSekolah($request->input('asal_sekolah')),
         ]);
 
         $data = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
             'asal_sekolah' => ['nullable', 'string', 'max:255'],
-            'kelas' => ['nullable', 'string', 'max:100'],
+            'kelas' => ['nullable', 'in:SD,SMP,SMA,Gapyear'],
             'kota_asal' => ['nullable', 'string', 'max:255'],
             'no_wa' => [
                 'nullable',
@@ -577,7 +583,10 @@ class ProspekController extends Controller
             'catatan_administrasi' => ['nullable', 'string'],
         ], [
             'no_wa.unique' => 'No WA ini sudah terdaftar, gunakan data leads yang sudah ada agar tidak input ganda.',
+            'kelas.in' => 'Tingkatan jenjang hanya boleh SD, SMP, SMA, atau Gapyear.',
         ]);
+
+        $this->validasiFormatAsalSekolah($data);
 
         $user = $request->user();
 
@@ -637,6 +646,53 @@ class ProspekController extends Controller
         return $nomor === '' ? null : $nomor;
     }
 
+    private function rapikanAsalSekolah(?string $sekolah): ?string
+    {
+        if ($sekolah === null) {
+            return null;
+        }
+
+        $sekolah = preg_replace('/\s+/', ' ', trim($sekolah));
+
+        if ($sekolah === '') {
+            return null;
+        }
+
+        $sekolah = preg_replace('/^SMA\s+NEGERI\b/i', 'SMAN', $sekolah);
+        $sekolah = preg_replace('/^SMA\s+N\b/i', 'SMAN', $sekolah);
+        $sekolah = preg_replace('/^SMA\s+SWASTA\b/i', 'SMAS', $sekolah);
+        $sekolah = preg_replace('/^SMA\s+S\b/i', 'SMAS', $sekolah);
+        $sekolah = preg_replace('/^SMAI(T)?\b/i', 'SMAS', $sekolah);
+
+        if (preg_match('/^(SMAN|SMAS)\b(.*)$/i', $sekolah, $cocok)) {
+            $nama = $this->judulSekolah($cocok[2]);
+
+            return strtoupper($cocok[1]).($nama ? ' '.$nama : '');
+        }
+
+        return $this->judulSekolah($sekolah);
+    }
+
+    private function judulSekolah(string $sekolah): string
+    {
+        $sekolah = preg_replace('/\s+/', ' ', trim($sekolah));
+
+        return $sekolah === '' ? '' : ucwords(strtolower($sekolah));
+    }
+
+    private function validasiFormatAsalSekolah(array $data): void
+    {
+        if (($data['kelas'] ?? null) !== 'SMA' || blank($data['asal_sekolah'] ?? null)) {
+            return;
+        }
+
+        if (! preg_match('/^SMA[NS]\b/', $data['asal_sekolah'])) {
+            throw ValidationException::withMessages([
+                'asal_sekolah' => 'Untuk jenjang SMA, isi asal sekolah dengan format SMAN untuk negeri atau SMAS untuk swasta. Contoh: SMAN 1 Bandung atau SMAS Al Azhar 1.',
+            ]);
+        }
+    }
+
     private function nilaiImport($nilai): ?string
     {
         if ($nilai === null) {
@@ -662,6 +718,8 @@ class ProspekController extends Controller
         $diserahkanKe = $this->nilaiImport($baris['diserahkan_ke'] ?? null);
         $tanggalMasukMentah = $this->nilaiImport($baris['tgl_masuk'] ?? null);
         $tanggalMasuk = $this->tanggalImport($tanggalMasukMentah);
+        $kelas = $this->nilaiImport($baris['kelas'] ?? null);
+        $asalSekolah = $this->rapikanAsalSekolah($baris['asal_sekolah'] ?? null);
 
         if (! $nama) {
             $error[] = 'Nama wajib diisi.';
@@ -677,6 +735,14 @@ class ProspekController extends Controller
 
         if ($status && ! in_array($status, self::STATUS, true)) {
             $error[] = "Status tidak valid: {$status}.";
+        }
+
+        if ($kelas && ! in_array($kelas, self::JENJANG, true)) {
+            $error[] = "Tingkatan jenjang tidak valid: {$kelas}. Gunakan SD, SMP, SMA, atau Gapyear.";
+        }
+
+        if ($kelas === 'SMA' && $asalSekolah && ! preg_match('/^SMA[NS]\b/', $asalSekolah)) {
+            $error[] = "Asal sekolah jenjang SMA harus memakai format SMAN untuk negeri atau SMAS untuk swasta: {$asalSekolah}.";
         }
 
         if ($request->user()->bisaMengubahSemuaLeads()) {
@@ -701,8 +767,8 @@ class ProspekController extends Controller
 
         $data = [
             'nama' => $nama,
-            'asal_sekolah' => $this->nilaiImport($baris['asal_sekolah'] ?? null),
-            'kelas' => $this->nilaiImport($baris['kelas'] ?? null),
+            'asal_sekolah' => $asalSekolah,
+            'kelas' => $kelas,
             'kota_asal' => $this->nilaiImport($baris['kota_asal'] ?? null),
             'no_wa' => $noWa,
             'program' => $this->nilaiImport($baris['program'] ?? null),

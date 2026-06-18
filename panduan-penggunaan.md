@@ -91,6 +91,7 @@ Menu **Data Leads** digunakan untuk melihat, menambah, mengedit, menghapus, impo
    - nama,
    - nomor WA,
    - asal sekolah,
+   - tingkatan jenjang,
    - kota asal,
    - program,
    - status,
@@ -103,6 +104,8 @@ Catatan:
 
 - Nomor WA yang sama akan ditolak untuk mencegah input ganda.
 - Field asal sekolah memiliki autosuggest dari `database/sekolahVM.json`, tetapi tetap bisa diisi manual.
+- Untuk jenjang `SMA`, asal sekolah wajib memakai format `SMAN` jika negeri dan `SMAS` jika swasta. Contoh: `SMAN 1 Bandung`, `SMAS Al Azhar 1`.
+- Tingkatan jenjang hanya boleh diisi dengan `SD`, `SMP`, `SMA`, atau `Gapyear`.
 - Cabang hanya dapat diubah oleh superadmin. Role lain otomatis memakai cabang akunnya.
 - Jika status diubah menjadi `Daftar`, leads akan masuk ke **Data Siswa** dan tidak tampil lagi di daftar leads aktif.
 - Saat status `Daftar`, lengkapi field closing: tanggal daftar, program final, nominal pembayaran, status pembayaran, kelas/angkatan, dan catatan administrasi.

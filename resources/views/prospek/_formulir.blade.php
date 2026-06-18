@@ -18,17 +18,27 @@
                 name="asal_sekolah"
                 value="{{ old('asal_sekolah', $prospek->asal_sekolah) }}"
                 autocomplete="off"
+                placeholder="Contoh: SMAN 1 Bandung atau SMAS Al Azhar 1"
                 data-input-sekolah
             >
             <span class="panel-saran-sekolah" data-panel-sekolah></span>
         </span>
         <script type="application/json" data-data-sekolah>@json($sekolah)</script>
-        <small class="petunjuk">Pilih dari saran sekolah, atau lanjut ketik manual jika data tidak ditemukan.</small>
+        <small class="petunjuk">Untuk SMA gunakan SMAN jika negeri dan SMAS jika swasta. Contoh: SMAN 1 Bandung, SMAS Al Azhar 1.</small>
         @error('asal_sekolah') <small class="error">{{ $message }}</small> @enderror
     </label>
     <label>
-        Kelas
-        <input type="text" name="kelas" value="{{ old('kelas', $prospek->kelas) }}">
+        Tingkatan Jenjang
+        <select name="kelas">
+            <option value="">Pilih jenjang</option>
+            @foreach ($jenjang as $item)
+                <option value="{{ $item }}" @selected(old('kelas', $prospek->kelas) === $item)>{{ $item }}</option>
+            @endforeach
+            @if ($prospek->kelas && ! in_array($prospek->kelas, $jenjang, true))
+                <option value="{{ $prospek->kelas }}" selected>{{ $prospek->kelas }}</option>
+            @endif
+        </select>
+        <small class="petunjuk">Pilih salah satu: SD, SMP, SMA, atau Gapyear.</small>
         @error('kelas') <small class="error">{{ $message }}</small> @enderror
     </label>
     <label>

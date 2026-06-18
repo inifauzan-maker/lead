@@ -69,7 +69,7 @@ class ProspekTest extends TestCase
         $path = tempnam(sys_get_temp_dir(), 'leads-import-');
         file_put_contents($path, implode("\n", [
             'nama,asal_sekolah,kelas,kota_asal,no_wa,program,status,cabang,diserahkan_ke,sumber,keterangan,tgl_masuk',
-            'Lead Superadmin,SMA 1,12,Bandung,089999999999,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Valid,2026-06-13',
+            'Lead Superadmin,SMAN 1 Bandung,SMA,Bandung,089999999999,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Valid,2026-06-13',
         ]));
 
         $this->actingAs($superadmin)
@@ -136,10 +136,10 @@ class ProspekTest extends TestCase
         $path = tempnam(sys_get_temp_dir(), 'leads-import-');
         file_put_contents($path, implode("\n", [
             'nama,asal_sekolah,kelas,kota_asal,no_wa,program,status,cabang,diserahkan_ke,sumber,keterangan,tgl_masuk',
-            'Lead Valid,SMA 1,12,Bandung,082222222222,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Valid,2026-06-13',
-            'Lead Duplikat,SMA 2,12,Bandung,081111111111,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Duplikat,2026-06-13',
-            'Lead Cabang,SMA 3,12,Bandung,083333333333,SR GOLD,Baru,Cabang Salah,Admin Bandung,Instagram,Cabang salah,2026-06-13',
-            'Lead Duplikat File,SMA 4,12,Bandung,082222222222,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Duplikat file,2026-06-13',
+            'Lead Valid,SMAN 1 Bandung,SMA,Bandung,082222222222,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Valid,2026-06-13',
+            'Lead Duplikat,SMAN 2 Bandung,SMA,Bandung,081111111111,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Duplikat,2026-06-13',
+            'Lead Cabang,SMAN 3 Bandung,SMA,Bandung,083333333333,SR GOLD,Baru,Cabang Salah,Admin Bandung,Instagram,Cabang salah,2026-06-13',
+            'Lead Duplikat File,SMAN 4 Bandung,SMA,Bandung,082222222222,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Duplikat file,2026-06-13',
         ]));
 
         $response = $this->actingAs($admin)
@@ -163,6 +163,57 @@ class ProspekTest extends TestCase
         $this->assertStringContainsString('Cabang tidak sesuai akses user', implode(' ', $errorImport[1]['alasan']));
         $this->assertSame(5, $errorImport[2]['baris']);
         $this->assertStringContainsString('Nomor WA duplikat di file import', implode(' ', $errorImport[2]['alasan']));
+    }
+
+    public function test_input_leads_menerapkan_format_asal_sekolah_dan_jenjang(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('prospek.store'), [
+                'nama' => 'Lead Format Salah',
+                'asal_sekolah' => 'SMA 1 Bandung',
+                'kelas' => 'SMA',
+                'kota_asal' => 'Bandung',
+                'no_wa' => '087700000001',
+                'program' => 'SR GOLD',
+                'status' => 'Baru',
+                'cabang' => 'Bandung',
+                'user_id' => null,
+                'diserahkan_ke' => null,
+                'sumber' => 'Instagram',
+                'keterangan' => null,
+                'tgl_masuk' => '2026-06-13',
+            ])
+            ->assertSessionHasErrors('asal_sekolah');
+
+        $this->actingAs($admin)
+            ->post(route('prospek.store'), [
+                'nama' => 'Lead Format Benar',
+                'asal_sekolah' => 'sma swasta al azhar 1',
+                'kelas' => 'SMA',
+                'kota_asal' => 'Bandung',
+                'no_wa' => '087700000002',
+                'program' => 'SR GOLD',
+                'status' => 'Baru',
+                'cabang' => 'Bandung',
+                'user_id' => null,
+                'diserahkan_ke' => null,
+                'sumber' => 'Instagram',
+                'keterangan' => null,
+                'tgl_masuk' => '2026-06-13',
+            ])
+            ->assertRedirect(route('prospek.index'));
+
+        $this->assertDatabaseHas('prospek', [
+            'nama' => 'Lead Format Benar',
+            'asal_sekolah' => 'SMAS Al Azhar 1',
+            'kelas' => 'SMA',
+        ]);
     }
 
     public function test_matriks_hak_akses_edit_leads_sesuai_role(): void
@@ -440,7 +491,7 @@ class ProspekTest extends TestCase
             ->put(route('prospek.update', $prospek), [
                 'nama' => 'Lead Jadi Siswa',
                 'asal_sekolah' => 'SMAN 1 Bandung',
-                'kelas' => '12',
+                'kelas' => 'SMA',
                 'kota_asal' => 'Bandung',
                 'no_wa' => '081234567890',
                 'program' => 'SR GOLD',
@@ -597,7 +648,7 @@ class ProspekTest extends TestCase
         Prospek::create([
             'nama' => 'Siswa Export',
             'asal_sekolah' => 'SMAN 1 Bandung',
-            'kelas' => '12',
+            'kelas' => 'SMA',
             'kelas_angkatan' => 'Angkatan 2026',
             'kota_asal' => 'Bandung',
             'no_wa' => '081234567890',
