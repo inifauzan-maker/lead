@@ -6,6 +6,7 @@ use App\Models\Prospek;
 use App\Models\Cabang;
 use App\Models\FollowUp;
 use App\Models\ProgramLead;
+use App\Models\Sekolah;
 use App\Models\SumberLead;
 use App\Models\SistemNotification;
 use App\Models\ProspekStatusHistory;
@@ -14,6 +15,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -442,6 +444,7 @@ class ProspekController extends Controller
             }
 
             $prospek = Prospek::create($data);
+            $this->simpanSekolahBaru($prospek->asal_sekolah, 'import', $request->user()?->id);
             $this->catatRiwayatStatus($prospek, null, $prospek->status, $request->user(), 'import', 'Status awal dari import CSV.');
             $berhasil++;
         }
@@ -479,6 +482,7 @@ class ProspekController extends Controller
     {
         $this->pastikanBolehUbah();
         $prospek = Prospek::create($this->validasi($request));
+        $this->simpanSekolahBaru($prospek->asal_sekolah, 'manual', $request->user()?->id);
         $this->catatRiwayatStatus($prospek, null, $prospek->status, $request->user(), 'manual', 'Status awal saat leads dibuat.');
         $this->kirimNotifikasiLeads($prospek, 'Leads baru ditambahkan', "Leads {$prospek->nama} masuk ke cabang ".($prospek->cabang ?: '-').'.', 'Normal');
 
@@ -511,6 +515,7 @@ class ProspekController extends Controller
         $statusLama = $prospek->status;
         $userLama = $prospek->user_id;
         $prospek->update($this->validasi($request, $prospek));
+        $this->simpanSekolahBaru($prospek->asal_sekolah, 'manual', $request->user()?->id);
 
         if ($statusLama !== $prospek->status) {
             $this->catatRiwayatStatus($prospek, $statusLama, $prospek->status, $request->user(), 'manual', 'Status diperbarui dari form leads.');
@@ -691,6 +696,41 @@ class ProspekController extends Controller
                 'asal_sekolah' => 'Untuk jenjang SMA, isi asal sekolah dengan format SMAN untuk negeri atau SMAS untuk swasta. Contoh: SMAN 1 Bandung atau SMAS Al Azhar 1.',
             ]);
         }
+    }
+
+    private function simpanSekolahBaru(?string $namaSekolah, string $sumber, ?int $userId = null): void
+    {
+        if (blank($namaSekolah) || ! Schema::hasTable('sekolah')) {
+            return;
+        }
+
+        $namaSekolah = $this->rapikanAsalSekolah($namaSekolah);
+
+        if (blank($namaSekolah) || $this->adaDiReferensiSekolahJson($namaSekolah)) {
+            return;
+        }
+
+        Sekolah::query()->firstOrCreate(
+            ['nama_normalized' => $this->normalisasiNamaSekolah($namaSekolah)],
+            [
+                'nama_sekolah' => $namaSekolah,
+                'sumber' => $sumber,
+                'created_by' => $userId,
+            ]
+        );
+    }
+
+    private function adaDiReferensiSekolahJson(string $namaSekolah): bool
+    {
+        $namaNormalized = $this->normalisasiNamaSekolah($namaSekolah);
+
+        return collect($this->sekolahJson())
+            ->contains(fn ($nama) => $this->normalisasiNamaSekolah($nama) === $namaNormalized);
+    }
+
+    private function normalisasiNamaSekolah(string $namaSekolah): string
+    {
+        return mb_strtolower(preg_replace('/\s+/', ' ', trim($namaSekolah)));
     }
 
     private function nilaiImport($nilai): ?string
@@ -1744,6 +1784,23 @@ class ProspekController extends Controller
     }
 
     private function sekolahTersedia(): array
+    {
+        $sekolahDatabase = Schema::hasTable('sekolah')
+            ? Sekolah::query()->pluck('nama_sekolah')->all()
+            : [];
+
+        return collect($this->sekolahJson())
+            ->merge($sekolahDatabase)
+            ->filter()
+            ->map(fn ($nama) => trim((string) $nama))
+            ->filter()
+            ->unique(fn ($nama) => $this->normalisasiNamaSekolah($nama))
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    private function sekolahJson(): array
     {
         $path = database_path('sekolahVM.json');
 

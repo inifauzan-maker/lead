@@ -104,6 +104,7 @@ Catatan:
 
 - Nomor WA yang sama akan ditolak untuk mencegah input ganda.
 - Field asal sekolah memiliki autosuggest dari `database/sekolahVM.json`, tetapi tetap bisa diisi manual.
+- Jika asal sekolah manual belum ada di referensi JSON, sistem akan menyimpannya ke master sekolah baru setelah leads berhasil disimpan.
 - Untuk jenjang `SMA`, asal sekolah wajib memakai format `SMAN` jika negeri dan `SMAS` jika swasta. Contoh: `SMAN 1 Bandung`, `SMAS Al Azhar 1`.
 - Tingkatan jenjang hanya boleh diisi dengan `SD`, `SMP`, `SMA`, atau `Gapyear`.
 - Cabang hanya dapat diubah oleh superadmin. Role lain otomatis memakai cabang akunnya.

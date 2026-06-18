@@ -6,6 +6,7 @@ use App\Models\Cabang;
 use App\Models\Course;
 use App\Models\FollowUp;
 use App\Models\Prospek;
+use App\Models\Sekolah;
 use App\Models\SistemNotification;
 use App\Models\TargetKinerja;
 use App\Models\User;
@@ -214,6 +215,74 @@ class ProspekTest extends TestCase
             'asal_sekolah' => 'SMAS Al Azhar 1',
             'kelas' => 'SMA',
         ]);
+    }
+
+    public function test_asal_sekolah_manual_yang_tidak_ada_di_json_masuk_master_sekolah(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('prospek.store'), [
+                'nama' => 'Lead Sekolah Baru',
+                'asal_sekolah' => 'sma swasta citra baru nusantara',
+                'kelas' => 'SMA',
+                'kota_asal' => 'Bandung',
+                'no_wa' => '087700000003',
+                'program' => 'SR GOLD',
+                'status' => 'Baru',
+                'cabang' => 'Bandung',
+                'user_id' => null,
+                'diserahkan_ke' => null,
+                'sumber' => 'Instagram',
+                'keterangan' => null,
+                'tgl_masuk' => '2026-06-13',
+            ])
+            ->assertRedirect(route('prospek.index'));
+
+        $this->assertDatabaseHas('sekolah', [
+            'nama_sekolah' => 'SMAS Citra Baru Nusantara',
+            'nama_normalized' => 'smas citra baru nusantara',
+            'sumber' => 'manual',
+            'created_by' => $admin->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('prospek.create'))
+            ->assertOk()
+            ->assertSee('SMAS Citra Baru Nusantara');
+    }
+
+    public function test_asal_sekolah_dari_json_tidak_diduplikasi_ke_master_sekolah(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('prospek.store'), [
+                'nama' => 'Lead Sekolah Json',
+                'asal_sekolah' => 'SMAN 1 Bandung',
+                'kelas' => 'SMA',
+                'kota_asal' => 'Bandung',
+                'no_wa' => '087700000004',
+                'program' => 'SR GOLD',
+                'status' => 'Baru',
+                'cabang' => 'Bandung',
+                'user_id' => null,
+                'diserahkan_ke' => null,
+                'sumber' => 'Instagram',
+                'keterangan' => null,
+                'tgl_masuk' => '2026-06-13',
+            ])
+            ->assertRedirect(route('prospek.index'));
+
+        $this->assertSame(0, Sekolah::query()->where('nama_normalized', 'sman 1 bandung')->count());
     }
 
     public function test_matriks_hak_akses_edit_leads_sesuai_role(): void
