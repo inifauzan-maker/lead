@@ -27,18 +27,30 @@
         <small class="petunjuk">Untuk SMA gunakan SMAN jika negeri dan SMAS jika swasta. Contoh: SMAN 1 Bandung, SMAS Al Azhar 1.</small>
         @error('asal_sekolah') <small class="error">{{ $message }}</small> @enderror
     </label>
+    @php($nilaiJenjang = old('jenjang', $prospek->jenjang ?: (in_array($prospek->kelas, $jenjang, true) ? $prospek->kelas : null)))
+    @php($nilaiKelas = old('kelas', in_array($prospek->kelas, $jenjang, true) ? null : $prospek->kelas))
     <label>
-        Tingkatan Jenjang
-        <select name="kelas">
+        Jenjang
+        <select name="jenjang" data-jenjang-leads>
             <option value="">Pilih jenjang</option>
             @foreach ($jenjang as $item)
-                <option value="{{ $item }}" @selected(old('kelas', $prospek->kelas) === $item)>{{ $item }}</option>
+                <option value="{{ $item }}" @selected($nilaiJenjang === $item)>{{ $item }}</option>
             @endforeach
-            @if ($prospek->kelas && ! in_array($prospek->kelas, $jenjang, true))
-                <option value="{{ $prospek->kelas }}" selected>{{ $prospek->kelas }}</option>
-            @endif
         </select>
         <small class="petunjuk">Pilih salah satu: SD, SMP, SMA, atau Gapyear.</small>
+        @error('jenjang') <small class="error">{{ $message }}</small> @enderror
+    </label>
+    <label>
+        Kelas
+        <select name="kelas" data-kelas-leads data-kelas-per-jenjang='@json($kelasPerJenjang)'>
+            <option value="">Pilih kelas</option>
+            @foreach ($kelasPerJenjang as $jenjangItem => $kelasItems)
+                @foreach ($kelasItems as $kelasItem)
+                    <option value="{{ $kelasItem }}" data-jenjang="{{ $jenjangItem }}" @selected($nilaiKelas === $kelasItem)>{{ $kelasItem }}</option>
+                @endforeach
+            @endforeach
+        </select>
+        <small class="petunjuk">SD: 1-6, SMP: 7-9, SMA: X-XII. Gapyear dikosongkan.</small>
         @error('kelas') <small class="error">{{ $message }}</small> @enderror
     </label>
     <label>

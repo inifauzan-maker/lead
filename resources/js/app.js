@@ -210,6 +210,34 @@ if (inputSekolah && panelSekolah && dataSekolah) {
     });
 }
 
+const inputJenjangLeads = document.querySelector('[data-jenjang-leads]');
+const inputKelasLeads = document.querySelector('[data-kelas-leads]');
+
+if (inputJenjangLeads && inputKelasLeads) {
+    const opsiKelas = [...inputKelasLeads.querySelectorAll('option[data-jenjang]')];
+
+    function perbaruiKelasLeads() {
+        const jenjang = inputJenjangLeads.value;
+
+        opsiKelas.forEach((opsi) => {
+            opsi.hidden = opsi.dataset.jenjang !== jenjang;
+            opsi.disabled = opsi.dataset.jenjang !== jenjang;
+        });
+
+        const kelasAktif = inputKelasLeads.selectedOptions[0];
+        const kelasTidakSesuai = kelasAktif?.dataset.jenjang && kelasAktif.dataset.jenjang !== jenjang;
+
+        if (!jenjang || jenjang === 'Gapyear' || kelasTidakSesuai) {
+            inputKelasLeads.value = '';
+        }
+
+        inputKelasLeads.disabled = !jenjang || jenjang === 'Gapyear';
+    }
+
+    perbaruiKelasLeads();
+    inputJenjangLeads.addEventListener('change', perbaruiKelasLeads);
+}
+
 const pilihSemua = document.querySelector('[data-pilih-semua]');
 const checkboxLeads = [...document.querySelectorAll('[data-pilih-leads]')];
 const formMassal = document.querySelector('[data-form-massal]');

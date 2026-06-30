@@ -12,6 +12,7 @@ use App\Models\SistemNotification;
 use App\Models\ProspekStatusHistory;
 use App\Models\TargetKinerja;
 use App\Models\User;
+use App\Models\WhatsappTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -43,9 +44,17 @@ class ProspekController extends Controller
 
     private const JENJANG = ['SD', 'SMP', 'SMA', 'Gapyear'];
 
+    private const KELAS_PER_JENJANG = [
+        'SD' => ['1', '2', '3', '4', '5', '6'],
+        'SMP' => ['7', '8', '9'],
+        'SMA' => ['X', 'XI', 'XII'],
+        'Gapyear' => [],
+    ];
+
     private const KOLOM_IMPORT = [
         'nama',
         'asal_sekolah',
+        'jenjang',
         'kelas',
         'kota_asal',
         'no_wa',
@@ -126,7 +135,7 @@ class ProspekController extends Controller
     public function index(Request $request): View
     {
         $prospek = $this->queryDaftar($request)
-            ->with(['penanggungJawab'])
+            ->with(['penanggungJawab', 'pembuat'])
             ->paginate(10)
             ->withQueryString();
 
@@ -135,6 +144,7 @@ class ProspekController extends Controller
             'sumber' => $this->daftarSumber(),
             'status' => $this->statusDataLeads(),
             'cabang' => $this->daftarCabang(),
+            'templateWhatsapp' => WhatsappTemplate::aktifDefault(),
         ]);
     }
 
@@ -144,6 +154,7 @@ class ProspekController extends Controller
 
         $prospek->load([
             'penanggungJawab',
+            'pembuat',
             'followUps' => fn ($query) => $query->with('user')->latest('tanggal_follow_up'),
             'followUpTerakhir.user',
             'followUpBerikutnya',
@@ -154,6 +165,7 @@ class ProspekController extends Controller
         return view('prospek.detail', [
             'prospek' => $prospek,
             'bisaUbah' => $prospek->bisaDiubahOleh($request->user()),
+            'templateWhatsapp' => WhatsappTemplate::aktifDefault(),
         ]);
     }
 
@@ -214,12 +226,13 @@ class ProspekController extends Controller
             'tahunFilter' => $periode['tahun'],
             'daftarBulan' => $this->daftarBulan(),
             'daftarTahun' => range((int) now()->year, (int) now()->year - 5),
+            'templateWhatsapp' => WhatsappTemplate::aktifDefault(),
         ]);
     }
 
     public function storeFollowUp(Request $request): RedirectResponse
     {
-        $this->pastikanBolehUbah();
+        $this->pastikanBolehFollowUp();
 
         $data = $request->validate([
             'prospek_id' => ['required', 'exists:prospek,id'],
@@ -285,6 +298,7 @@ class ProspekController extends Controller
             'adminCabang' => $this->daftarAdminCabang(),
             'staffFilter' => $this->staffTersedia($request->string('cabang')->toString() ?: null, batasiAkses: false),
             'statusPembayaran' => self::STATUS_PEMBAYARAN,
+            'templateWhatsapp' => WhatsappTemplate::aktifDefault(),
         ]);
     }
 
@@ -295,6 +309,7 @@ class ProspekController extends Controller
 
         $prospek->load([
             'penanggungJawab',
+            'pembuat',
             'followUps' => fn ($query) => $query->with('user')->latest('tanggal_follow_up'),
             'followUpTerakhir.user',
             'tasks' => fn ($query) => $query->with(['penanggungJawab', 'komentar.user'])->latest(),
@@ -304,6 +319,7 @@ class ProspekController extends Controller
         return view('data-siswa.detail', [
             'prospek' => $prospek,
             'bisaUbah' => $prospek->bisaDiubahOleh($request->user()),
+            'templateWhatsapp' => WhatsappTemplate::aktifDefault(),
         ]);
     }
 
@@ -355,7 +371,7 @@ class ProspekController extends Controller
             return $this->unduhCsv($query->orderBy('id'), 'export-leads-terpilih-'.now()->format('Ymd-His').'.csv');
         }
 
-        $this->pastikanBolehUbah();
+        $this->pastikanBolehHapus();
         $query = $this->queryAksesUbah()
             ->whereIn('id', $data['ids']);
         $jumlah = (clone $query)->delete();
@@ -369,6 +385,7 @@ class ProspekController extends Controller
             'Budi Santoso',
             'SMAS Al Azhar 1',
             'SMA',
+            'XII',
             'Jakarta Selatan',
             '081234567890',
             'SR GOLD',
@@ -443,6 +460,8 @@ class ProspekController extends Controller
                 continue;
             }
 
+            $data['created_by'] = $request->user()?->id;
+
             $prospek = Prospek::create($data);
             $this->simpanSekolahBaru($prospek->asal_sekolah, 'import', $request->user()?->id);
             $this->catatRiwayatStatus($prospek, null, $prospek->status, $request->user(), 'import', 'Status awal dari import CSV.');
@@ -474,6 +493,7 @@ class ProspekController extends Controller
             'staff' => $this->staffTersedia(),
             'sekolah' => $this->sekolahTersedia(),
             'jenjang' => self::JENJANG,
+            'kelasPerJenjang' => self::KELAS_PER_JENJANG,
             'statusPembayaran' => self::STATUS_PEMBAYARAN,
         ]);
     }
@@ -481,7 +501,10 @@ class ProspekController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $this->pastikanBolehUbah();
-        $prospek = Prospek::create($this->validasi($request));
+        $data = $this->validasi($request);
+        $data['created_by'] = $request->user()?->id;
+
+        $prospek = Prospek::create($data);
         $this->simpanSekolahBaru($prospek->asal_sekolah, 'manual', $request->user()?->id);
         $this->catatRiwayatStatus($prospek, null, $prospek->status, $request->user(), 'manual', 'Status awal saat leads dibuat.');
         $this->kirimNotifikasiLeads($prospek, 'Leads baru ditambahkan', "Leads {$prospek->nama} masuk ke cabang ".($prospek->cabang ?: '-').'.', 'Normal');
@@ -504,6 +527,7 @@ class ProspekController extends Controller
             'staff' => $this->staffTersedia($prospek->cabang),
             'sekolah' => $this->sekolahTersedia(),
             'jenjang' => self::JENJANG,
+            'kelasPerJenjang' => self::KELAS_PER_JENJANG,
             'statusPembayaran' => self::STATUS_PEMBAYARAN,
         ]);
     }
@@ -538,7 +562,7 @@ class ProspekController extends Controller
 
     public function destroy(Prospek $prospek): RedirectResponse
     {
-        $this->pastikanBolehUbah();
+        $this->pastikanBolehHapus();
         $this->pastikanBolehAkses($prospek);
         $nama = $prospek->nama;
         $cabang = $prospek->cabang;
@@ -559,12 +583,14 @@ class ProspekController extends Controller
         $request->merge([
             'no_wa' => $this->rapikanNomorWa($request->input('no_wa')),
             'asal_sekolah' => $this->rapikanAsalSekolah($request->input('asal_sekolah')),
+            'kelas' => $this->rapikanKelas($request->input('kelas')),
         ]);
 
         $data = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
             'asal_sekolah' => ['nullable', 'string', 'max:255'],
-            'kelas' => ['nullable', 'in:SD,SMP,SMA,Gapyear'],
+            'jenjang' => ['nullable', Rule::in(self::JENJANG)],
+            'kelas' => ['nullable', Rule::in($this->semuaKelas())],
             'kota_asal' => ['nullable', 'string', 'max:255'],
             'no_wa' => [
                 'nullable',
@@ -588,9 +614,11 @@ class ProspekController extends Controller
             'catatan_administrasi' => ['nullable', 'string'],
         ], [
             'no_wa.unique' => 'No WA ini sudah terdaftar, gunakan data leads yang sudah ada agar tidak input ganda.',
-            'kelas.in' => 'Tingkatan jenjang hanya boleh SD, SMP, SMA, atau Gapyear.',
+            'jenjang.in' => 'Jenjang hanya boleh SD, SMP, SMA, atau Gapyear.',
+            'kelas.in' => 'Kelas tidak valid untuk jenjang yang dipilih.',
         ]);
 
+        $this->validasiKelasUntukJenjang($data);
         $this->validasiFormatAsalSekolah($data);
 
         $user = $request->user();
@@ -640,6 +668,50 @@ class ProspekController extends Controller
         return $data;
     }
 
+    private function semuaKelas(): array
+    {
+        return collect(self::KELAS_PER_JENJANG)->flatten()->unique()->values()->all();
+    }
+
+    private function rapikanKelas($kelas): ?string
+    {
+        $kelas = $this->nilaiImport($kelas);
+
+        return $kelas ? strtoupper($kelas) : null;
+    }
+
+    private function validasiKelasUntukJenjang(array &$data): void
+    {
+        $jenjang = $data['jenjang'] ?? null;
+        $kelas = $data['kelas'] ?? null;
+
+        if ($jenjang === 'Gapyear') {
+            $data['kelas'] = null;
+
+            return;
+        }
+
+        if (! $jenjang) {
+            if ($kelas) {
+                throw ValidationException::withMessages([
+                    'jenjang' => 'Pilih jenjang sebelum memilih kelas.',
+                ]);
+            }
+
+            return;
+        }
+
+        if (! $kelas) {
+            return;
+        }
+
+        if (! in_array($kelas, self::KELAS_PER_JENJANG[$jenjang] ?? [], true)) {
+            throw ValidationException::withMessages([
+                'kelas' => "Kelas {$kelas} tidak sesuai dengan jenjang {$jenjang}.",
+            ]);
+        }
+    }
+
     private function rapikanNomorWa(?string $nomor): ?string
     {
         if ($nomor === null) {
@@ -687,7 +759,7 @@ class ProspekController extends Controller
 
     private function validasiFormatAsalSekolah(array $data): void
     {
-        if (($data['kelas'] ?? null) !== 'SMA' || blank($data['asal_sekolah'] ?? null)) {
+        if (($data['jenjang'] ?? null) !== 'SMA' || blank($data['asal_sekolah'] ?? null)) {
             return;
         }
 
@@ -758,7 +830,8 @@ class ProspekController extends Controller
         $diserahkanKe = $this->nilaiImport($baris['diserahkan_ke'] ?? null);
         $tanggalMasukMentah = $this->nilaiImport($baris['tgl_masuk'] ?? null);
         $tanggalMasuk = $this->tanggalImport($tanggalMasukMentah);
-        $kelas = $this->nilaiImport($baris['kelas'] ?? null);
+        $jenjang = $this->nilaiImport($baris['jenjang'] ?? null);
+        $kelas = $this->rapikanKelas($baris['kelas'] ?? null);
         $asalSekolah = $this->rapikanAsalSekolah($baris['asal_sekolah'] ?? null);
 
         if (! $nama) {
@@ -777,11 +850,23 @@ class ProspekController extends Controller
             $error[] = "Status tidak valid: {$status}.";
         }
 
-        if ($kelas && ! in_array($kelas, self::JENJANG, true)) {
-            $error[] = "Tingkatan jenjang tidak valid: {$kelas}. Gunakan SD, SMP, SMA, atau Gapyear.";
+        if ($jenjang && ! in_array($jenjang, self::JENJANG, true)) {
+            $error[] = "Jenjang tidak valid: {$jenjang}. Gunakan SD, SMP, SMA, atau Gapyear.";
         }
 
-        if ($kelas === 'SMA' && $asalSekolah && ! preg_match('/^SMA[NS]\b/', $asalSekolah)) {
+        if ($kelas && ! in_array($kelas, $this->semuaKelas(), true)) {
+            $error[] = "Kelas tidak valid: {$kelas}.";
+        }
+
+        if ($jenjang && $kelas && ! in_array($kelas, self::KELAS_PER_JENJANG[$jenjang] ?? [], true)) {
+            $error[] = "Kelas {$kelas} tidak sesuai dengan jenjang {$jenjang}.";
+        }
+
+        if ($jenjang === 'Gapyear') {
+            $kelas = null;
+        }
+
+        if ($jenjang === 'SMA' && $asalSekolah && ! preg_match('/^SMA[NS]\b/', $asalSekolah)) {
             $error[] = "Asal sekolah jenjang SMA harus memakai format SMAN untuk negeri atau SMAS untuk swasta: {$asalSekolah}.";
         }
 
@@ -808,6 +893,7 @@ class ProspekController extends Controller
         $data = [
             'nama' => $nama,
             'asal_sekolah' => $asalSekolah,
+            'jenjang' => $jenjang,
             'kelas' => $kelas,
             'kota_asal' => $this->nilaiImport($baris['kota_asal'] ?? null),
             'no_wa' => $noWa,
@@ -876,7 +962,8 @@ class ProspekController extends Controller
         $kolom = [
             'nama',
             'asal_sekolah',
-            'kelas_awal',
+            'jenjang',
+            'kelas',
             'kelas_angkatan',
             'kota_asal',
             'no_wa',
@@ -902,6 +989,7 @@ class ProspekController extends Controller
                     fputcsv($handle, [
                         $item->nama,
                         $item->asal_sekolah,
+                        $item->jenjang,
                         $item->kelas,
                         $item->kelas_angkatan,
                         $item->kota_asal,
@@ -1691,6 +1779,16 @@ class ProspekController extends Controller
     private function pastikanBolehUbah(): void
     {
         abort_unless(request()->user()?->bisaInputLeads(), 403);
+    }
+
+    private function pastikanBolehFollowUp(): void
+    {
+        abort_unless(request()->user()?->bisaFollowUpLeads(), 403);
+    }
+
+    private function pastikanBolehHapus(): void
+    {
+        abort_unless(request()->user()?->bisaHapusLeads(), 403);
     }
 
     private function staffTersedia(?string $cabang = null, bool $batasiAkses = true)

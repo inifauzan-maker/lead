@@ -7,6 +7,7 @@ use App\Models\ProgramLead;
 use App\Models\SumberLead;
 use App\Models\TargetKinerja;
 use App\Models\User;
+use App\Models\WhatsappTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,7 @@ class PengaturanController extends Controller
         'notifications',
         'activity_logs',
         'target_kinerja',
+        'whatsapp_templates',
     ];
 
     public function index(): View
@@ -60,6 +62,10 @@ class PengaturanController extends Controller
                 ->get(),
             'daftarBulan' => $this->daftarBulan(),
             'daftarTahun' => range((int) now()->year + 1, (int) now()->year - 5),
+            'templateWhatsapp' => WhatsappTemplate::query()
+                ->orderBy('urutan')
+                ->orderBy('nama')
+                ->get(),
         ]);
     }
 
@@ -126,6 +132,27 @@ class PengaturanController extends Controller
         return back()->with('berhasil', 'Program berhasil dihapus.');
     }
 
+    public function storeWhatsappTemplate(Request $request): RedirectResponse
+    {
+        WhatsappTemplate::create($this->validasiWhatsappTemplate($request));
+
+        return back()->with('berhasil', 'Template WhatsApp berhasil ditambahkan.');
+    }
+
+    public function updateWhatsappTemplate(Request $request, WhatsappTemplate $template): RedirectResponse
+    {
+        $template->update($this->validasiWhatsappTemplate($request));
+
+        return back()->with('berhasil', 'Template WhatsApp berhasil diperbarui.');
+    }
+
+    public function destroyWhatsappTemplate(WhatsappTemplate $template): RedirectResponse
+    {
+        $template->delete();
+
+        return back()->with('berhasil', 'Template WhatsApp berhasil dihapus.');
+    }
+
     public function updateRoleUser(Request $request, User $user): RedirectResponse
     {
         $user->update($this->validasiUser($request, $user, hanyaRole: true));
@@ -190,6 +217,21 @@ class PengaturanController extends Controller
         ]) + [
             'aktif' => $request->boolean('aktif'),
         ];
+    }
+
+    private function validasiWhatsappTemplate(Request $request): array
+    {
+        $data = $request->validate([
+            'nama' => ['required', 'string', 'max:100'],
+            'isi_pesan' => ['required', 'string', 'max:2000'],
+            'urutan' => ['nullable', 'integer', 'min:0'],
+            'aktif' => ['nullable', 'boolean'],
+        ]);
+
+        $data['urutan'] = (int) ($data['urutan'] ?? 0);
+        $data['aktif'] = $request->boolean('aktif');
+
+        return $data;
     }
 
     private function daftarCabang(): array

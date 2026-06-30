@@ -64,6 +64,9 @@ Route::middleware('auth')->group(function () {
         Route::post('program', [PengaturanController::class, 'storeProgram'])->name('program.store');
         Route::put('program/{program}', [PengaturanController::class, 'updateProgram'])->name('program.update');
         Route::delete('program/{program}', [PengaturanController::class, 'destroyProgram'])->name('program.destroy');
+        Route::post('whatsapp-template', [PengaturanController::class, 'storeWhatsappTemplate'])->name('whatsapp-template.store');
+        Route::put('whatsapp-template/{template}', [PengaturanController::class, 'updateWhatsappTemplate'])->name('whatsapp-template.update');
+        Route::delete('whatsapp-template/{template}', [PengaturanController::class, 'destroyWhatsappTemplate'])->name('whatsapp-template.destroy');
         Route::post('user', [PengaturanController::class, 'storeUser'])->name('user.store');
         Route::put('user/{user}/role', [PengaturanController::class, 'updateRoleUser'])->name('user-role.update');
         Route::post('target-kinerja', [PengaturanController::class, 'storeTargetKinerja'])->name('target-kinerja.store');

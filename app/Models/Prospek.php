@@ -16,6 +16,7 @@ class Prospek extends Model
     protected $fillable = [
         'nama',
         'asal_sekolah',
+        'jenjang',
         'kelas',
         'kota_asal',
         'no_wa',
@@ -23,6 +24,7 @@ class Prospek extends Model
         'status',
         'cabang',
         'user_id',
+        'created_by',
         'diserahkan_ke',
         'sumber',
         'keterangan',
@@ -47,6 +49,11 @@ class Prospek extends Model
     public function penanggungJawab(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function pembuat(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function followUps(): HasMany
@@ -100,6 +107,39 @@ class Prospek extends Model
         }
 
         return $this->samarkanDuaDigitTerakhir($this->no_wa);
+    }
+
+    public function whatsappWebUrlUntuk(?User $user, ?WhatsappTemplate $template = null): ?string
+    {
+        $nomor = $this->noWaUntuk($user);
+
+        if ($nomor === '-' || str_contains($nomor, 'x')) {
+            return null;
+        }
+
+        $nomor = preg_replace('/\D+/', '', $nomor);
+
+        if ($nomor === '') {
+            return null;
+        }
+
+        if (str_starts_with($nomor, '0')) {
+            $nomor = '62'.substr($nomor, 1);
+        } elseif (str_starts_with($nomor, '8')) {
+            $nomor = '62'.$nomor;
+        }
+
+        $parameter = ['phone' => $nomor];
+
+        if ($template) {
+            $pesan = trim($template->isiUntuk($this, $user));
+
+            if ($pesan !== '') {
+                $parameter['text'] = $pesan;
+            }
+        }
+
+        return 'https://web.whatsapp.com/send?'.http_build_query($parameter, '', '&', PHP_QUERY_RFC3986);
     }
 
     public function bisaDiubahOleh(?User $user): bool

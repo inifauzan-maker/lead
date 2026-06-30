@@ -1,6 +1,8 @@
 @extends('tata-letak', ['judul' => 'Detail Leads'])
 
 @section('konten')
+    @php($whatsappWebUrl = $prospek->whatsappWebUrlUntuk(auth()->user(), $templateWhatsapp))
+
     <section class="hero-modul">
         <div>
             <span>{{ $prospek->status }}</span>
@@ -38,10 +40,20 @@
                 @endif
             </div>
             <div class="daftar-ringkas">
-                <div class="baris-ringkas"><strong>No WA</strong><span>{{ $prospek->noWaUntuk(auth()->user()) }}</span></div>
+                <div class="baris-ringkas">
+                    <strong>No WA</strong>
+                    <span>
+                        {{ $prospek->noWaUntuk(auth()->user()) }}
+                        @if ($whatsappWebUrl)
+                            <a href="{{ $whatsappWebUrl }}" target="_blank" rel="noopener noreferrer">WA Web</a>
+                        @endif
+                    </span>
+                </div>
+                <div class="baris-ringkas"><strong>Jenjang</strong><span>{{ $prospek->jenjang ?: '-' }}</span></div>
                 <div class="baris-ringkas"><strong>Kelas</strong><span>{{ $prospek->kelas ?: '-' }}</span></div>
                 <div class="baris-ringkas"><strong>Kota Asal</strong><span>{{ $prospek->kota_asal ?: '-' }}</span></div>
                 <div class="baris-ringkas"><strong>Sumber</strong><span>{{ $prospek->sumber ?: '-' }}</span></div>
+                <div class="baris-ringkas"><strong>Input Oleh</strong><span>{{ $prospek->pembuat?->name ?: '-' }}</span></div>
                 <div class="baris-ringkas"><strong>Diserahkan ke</strong><span>{{ $prospek->diserahkan_ke ?: '-' }}</span></div>
                 <div class="baris-ringkas"><strong>Tgl Masuk</strong><span>{{ $prospek->tgl_masuk?->format('d M Y') ?: '-' }}</span></div>
             </div>

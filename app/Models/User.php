@@ -55,6 +55,16 @@ class User extends Authenticatable
         return in_array($this->role, ['admin', 'staff'], true);
     }
 
+    public function bisaFollowUpLeads(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function bisaHapusLeads(): bool
+    {
+        return $this->role === 'admin';
+    }
+
     public function bisaMengubahSemuaLeads(): bool
     {
         return false;

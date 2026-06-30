@@ -10,6 +10,7 @@ use App\Models\Sekolah;
 use App\Models\SistemNotification;
 use App\Models\TargetKinerja;
 use App\Models\User;
+use App\Models\WhatsappTemplate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -42,6 +43,7 @@ class ProspekTest extends TestCase
             ->put(route('prospek.update', $prospek), [
                 'nama' => 'Johan',
                 'asal_sekolah' => 'SMAI Al Azhar 1',
+                'jenjang' => null,
                 'kelas' => null,
                 'kota_asal' => 'Jakarta Selatan',
                 'no_wa' => null,
@@ -69,8 +71,8 @@ class ProspekTest extends TestCase
 
         $path = tempnam(sys_get_temp_dir(), 'leads-import-');
         file_put_contents($path, implode("\n", [
-            'nama,asal_sekolah,kelas,kota_asal,no_wa,program,status,cabang,diserahkan_ke,sumber,keterangan,tgl_masuk',
-            'Lead Superadmin,SMAN 1 Bandung,SMA,Bandung,089999999999,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Valid,2026-06-13',
+            'nama,asal_sekolah,jenjang,kelas,kota_asal,no_wa,program,status,cabang,diserahkan_ke,sumber,keterangan,tgl_masuk',
+            'Lead Superadmin,SMAN 1 Bandung,SMA,XII,Bandung,089999999999,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Valid,2026-06-13',
         ]));
 
         $this->actingAs($superadmin)
@@ -136,11 +138,11 @@ class ProspekTest extends TestCase
 
         $path = tempnam(sys_get_temp_dir(), 'leads-import-');
         file_put_contents($path, implode("\n", [
-            'nama,asal_sekolah,kelas,kota_asal,no_wa,program,status,cabang,diserahkan_ke,sumber,keterangan,tgl_masuk',
-            'Lead Valid,SMAN 1 Bandung,SMA,Bandung,082222222222,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Valid,2026-06-13',
-            'Lead Duplikat,SMAN 2 Bandung,SMA,Bandung,081111111111,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Duplikat,2026-06-13',
-            'Lead Cabang,SMAN 3 Bandung,SMA,Bandung,083333333333,SR GOLD,Baru,Cabang Salah,Admin Bandung,Instagram,Cabang salah,2026-06-13',
-            'Lead Duplikat File,SMAN 4 Bandung,SMA,Bandung,082222222222,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Duplikat file,2026-06-13',
+            'nama,asal_sekolah,jenjang,kelas,kota_asal,no_wa,program,status,cabang,diserahkan_ke,sumber,keterangan,tgl_masuk',
+            'Lead Valid,SMAN 1 Bandung,SMA,XII,Bandung,082222222222,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Valid,2026-06-13',
+            'Lead Duplikat,SMAN 2 Bandung,SMA,XII,Bandung,081111111111,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Duplikat,2026-06-13',
+            'Lead Cabang,SMAN 3 Bandung,SMA,XII,Bandung,083333333333,SR GOLD,Baru,Cabang Salah,Admin Bandung,Instagram,Cabang salah,2026-06-13',
+            'Lead Duplikat File,SMAN 4 Bandung,SMA,XII,Bandung,082222222222,SR GOLD,Baru,Bandung,Admin Bandung,Instagram,Duplikat file,2026-06-13',
         ]));
 
         $response = $this->actingAs($admin)
@@ -178,7 +180,8 @@ class ProspekTest extends TestCase
             ->post(route('prospek.store'), [
                 'nama' => 'Lead Format Salah',
                 'asal_sekolah' => 'SMA 1 Bandung',
-                'kelas' => 'SMA',
+                'jenjang' => 'SMA',
+                'kelas' => 'XII',
                 'kota_asal' => 'Bandung',
                 'no_wa' => '087700000001',
                 'program' => 'SR GOLD',
@@ -196,7 +199,8 @@ class ProspekTest extends TestCase
             ->post(route('prospek.store'), [
                 'nama' => 'Lead Format Benar',
                 'asal_sekolah' => 'sma swasta al azhar 1',
-                'kelas' => 'SMA',
+                'jenjang' => 'SMA',
+                'kelas' => 'XII',
                 'kota_asal' => 'Bandung',
                 'no_wa' => '087700000002',
                 'program' => 'SR GOLD',
@@ -213,7 +217,8 @@ class ProspekTest extends TestCase
         $this->assertDatabaseHas('prospek', [
             'nama' => 'Lead Format Benar',
             'asal_sekolah' => 'SMAS Al Azhar 1',
-            'kelas' => 'SMA',
+            'jenjang' => 'SMA',
+            'kelas' => 'XII',
         ]);
     }
 
@@ -229,7 +234,8 @@ class ProspekTest extends TestCase
             ->post(route('prospek.store'), [
                 'nama' => 'Lead Sekolah Baru',
                 'asal_sekolah' => 'sma swasta citra baru nusantara',
-                'kelas' => 'SMA',
+                'jenjang' => 'SMA',
+                'kelas' => 'XII',
                 'kota_asal' => 'Bandung',
                 'no_wa' => '087700000003',
                 'program' => 'SR GOLD',
@@ -268,7 +274,8 @@ class ProspekTest extends TestCase
             ->post(route('prospek.store'), [
                 'nama' => 'Lead Sekolah Json',
                 'asal_sekolah' => 'SMAN 1 Bandung',
-                'kelas' => 'SMA',
+                'jenjang' => 'SMA',
+                'kelas' => 'XII',
                 'kota_asal' => 'Bandung',
                 'no_wa' => '087700000004',
                 'program' => 'SR GOLD',
@@ -335,6 +342,70 @@ class ProspekTest extends TestCase
                 ->assertOk()
                 ->assertSee('Lead Bisa Dilihat');
         }
+    }
+
+    public function test_link_whatsapp_web_hanya_muncul_untuk_user_yang_boleh_melihat_nomor_asli(): void
+    {
+        $staffPemilik = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $adminCabang = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $lead = Prospek::create([
+            'nama' => 'Lead WhatsApp',
+            'status' => 'Baru',
+            'cabang' => 'Bandung',
+            'user_id' => $staffPemilik->id,
+            'no_wa' => '081234567890',
+        ]);
+
+        $this->actingAs($staffPemilik)
+            ->get(route('prospek.show', $lead))
+            ->assertOk()
+            ->assertSee('WA Web')
+            ->assertSee('https://web.whatsapp.com/send?phone=6281234567890');
+
+        $this->actingAs($adminCabang)
+            ->get(route('prospek.show', $lead))
+            ->assertOk()
+            ->assertSee('0812345678xx')
+            ->assertDontSee('WA Web')
+            ->assertDontSee('web.whatsapp.com/send');
+    }
+
+    public function test_link_whatsapp_web_memakai_template_aktif(): void
+    {
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+            'name' => 'Staff Follow Up',
+        ]);
+        $lead = Prospek::create([
+            'nama' => 'Lead Template',
+            'status' => 'Baru',
+            'cabang' => 'Bandung',
+            'user_id' => $staff->id,
+            'no_wa' => '081234567890',
+            'program' => 'SR GOLD',
+        ]);
+        WhatsappTemplate::create([
+            'nama' => 'Template Test',
+            'isi_pesan' => 'Halo {nama}, info {program} kelas {kelas} dari {user}.',
+            'aktif' => true,
+            'urutan' => 1,
+        ]);
+
+        $this->actingAs($staff)
+            ->get(route('prospek.show', $lead))
+            ->assertOk()
+            ->assertSee('WA Web')
+            ->assertSee('Halo%20Lead%20Template%2C%20info%20SR%20GOLD%20kelas%20-%20dari%20Staff%20Follow%20Up.', false);
     }
 
     public function test_superadmin_bisa_export_backup_sql(): void
@@ -408,10 +479,10 @@ class ProspekTest extends TestCase
             ->assertSee('Lead Baru');
     }
 
-    public function test_user_bisa_mencatat_aktivitas_follow_up(): void
+    public function test_admin_bisa_mencatat_aktivitas_follow_up(): void
     {
-        $staff = User::factory()->create([
-            'role' => 'staff',
+        $admin = User::factory()->create([
+            'role' => 'admin',
             'cabang' => 'Bandung',
             'aktif' => true,
         ]);
@@ -419,10 +490,9 @@ class ProspekTest extends TestCase
             'nama' => 'Lead Baru Follow Up',
             'status' => 'Baru',
             'cabang' => 'Bandung',
-            'user_id' => $staff->id,
         ]);
 
-        $this->actingAs($staff)
+        $this->actingAs($admin)
             ->post(route('follow-up.store'), [
                 'prospek_id' => $prospek->id,
                 'tanggal_follow_up' => '2026-06-07 10:00:00',
@@ -437,13 +507,68 @@ class ProspekTest extends TestCase
 
         $this->assertDatabaseHas('follow_ups', [
             'prospek_id' => $prospek->id,
-            'user_id' => $staff->id,
+            'user_id' => $admin->id,
             'hasil' => 'Berminat',
             'prioritas' => 'Tinggi',
         ]);
         $this->assertDatabaseHas('prospek', [
             'id' => $prospek->id,
             'status' => 'Follow Up',
+        ]);
+    }
+
+    public function test_staff_tidak_bisa_follow_up_atau_hapus_leads(): void
+    {
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $prospek = Prospek::create([
+            'nama' => 'Lead Staff Terbatas',
+            'status' => 'Baru',
+            'cabang' => 'Bandung',
+            'user_id' => $staff->id,
+        ]);
+
+        $this->actingAs($staff)
+            ->post(route('follow-up.store'), [
+                'prospek_id' => $prospek->id,
+                'tanggal_follow_up' => '2026-06-07 10:00:00',
+                'metode' => 'WhatsApp',
+                'hasil' => 'Berminat',
+                'tanggal_follow_up_berikutnya' => null,
+                'prioritas' => 'Normal',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($staff)
+            ->delete(route('prospek.destroy', $prospek))
+            ->assertForbidden();
+
+        $this->actingAs($staff)
+            ->post(route('prospek.aksi-massal'), [
+                'aksi' => 'hapus',
+                'ids' => [$prospek->id],
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($staff)
+            ->get(route('follow-up.index'))
+            ->assertOk()
+            ->assertDontSee('Catat Aktivitas Follow Up');
+
+        $this->actingAs($staff)
+            ->get(route('prospek.index'))
+            ->assertOk()
+            ->assertDontSee('Hapus leads?')
+            ->assertDontSee('Hapus terpilih');
+
+        $this->assertDatabaseHas('prospek', [
+            'id' => $prospek->id,
+        ]);
+        $this->assertDatabaseMissing('follow_ups', [
+            'prospek_id' => $prospek->id,
         ]);
     }
 
@@ -560,7 +685,8 @@ class ProspekTest extends TestCase
             ->put(route('prospek.update', $prospek), [
                 'nama' => 'Lead Jadi Siswa',
                 'asal_sekolah' => 'SMAN 1 Bandung',
-                'kelas' => 'SMA',
+                'jenjang' => 'SMA',
+                'kelas' => 'XII',
                 'kota_asal' => 'Bandung',
                 'no_wa' => '081234567890',
                 'program' => 'SR GOLD',
@@ -643,19 +769,21 @@ class ProspekTest extends TestCase
             'nama' => 'Lead Masih Aktif',
             'status' => 'Follow Up',
             'cabang' => 'Bandung',
+            'created_by' => $admin->id,
         ]);
 
         $this->actingAs($admin)
             ->get(route('prospek.index'))
             ->assertOk()
             ->assertSee('Lead Masih Aktif')
+            ->assertSee($admin->name)
             ->assertDontSee('Siswa Sudah Closing');
     }
 
     public function test_follow_up_closing_mencatat_riwayat_status_data_siswa(): void
     {
-        $staff = User::factory()->create([
-            'role' => 'staff',
+        $admin = User::factory()->create([
+            'role' => 'admin',
             'cabang' => 'Bandung',
             'aktif' => true,
         ]);
@@ -664,10 +792,9 @@ class ProspekTest extends TestCase
             'status' => 'Follow Up',
             'program' => 'AR ONLINE',
             'cabang' => 'Bandung',
-            'user_id' => $staff->id,
         ]);
 
-        $this->actingAs($staff)
+        $this->actingAs($admin)
             ->post(route('follow-up.store'), [
                 'prospek_id' => $prospek->id,
                 'tanggal_follow_up' => '2026-06-13 10:00:00',
@@ -687,13 +814,13 @@ class ProspekTest extends TestCase
         $this->assertSame('Belum Bayar', $prospek->status_pembayaran);
         $this->assertDatabaseHas('prospek_status_histories', [
             'prospek_id' => $prospek->id,
-            'user_id' => $staff->id,
+            'user_id' => $admin->id,
             'status_lama' => 'Follow Up',
             'status_baru' => 'Daftar',
             'sumber' => 'follow_up',
         ]);
 
-        $this->actingAs($staff)
+        $this->actingAs($admin)
             ->get(route('data-siswa.show', $prospek))
             ->assertOk()
             ->assertSee('Lead Closing Follow Up')
@@ -717,7 +844,8 @@ class ProspekTest extends TestCase
         Prospek::create([
             'nama' => 'Siswa Export',
             'asal_sekolah' => 'SMAN 1 Bandung',
-            'kelas' => 'SMA',
+            'jenjang' => 'SMA',
+            'kelas' => 'XII',
             'kelas_angkatan' => 'Angkatan 2026',
             'kota_asal' => 'Bandung',
             'no_wa' => '081234567890',
@@ -1176,6 +1304,55 @@ class ProspekTest extends TestCase
             'role' => 'staff',
             'cabang' => 'Bekasi',
             'aktif' => true,
+        ]);
+    }
+
+    public function test_superadmin_bisa_mengelola_template_whatsapp(): void
+    {
+        $superadmin = User::factory()->create([
+            'role' => 'superadmin',
+            'aktif' => true,
+        ]);
+
+        $this->actingAs($superadmin)
+            ->post(route('pengaturan.whatsapp-template.store'), [
+                'nama' => 'Follow up awal',
+                'isi_pesan' => 'Halo {nama}, kami follow up program {program}.',
+                'urutan' => 1,
+                'aktif' => '1',
+            ])
+            ->assertRedirect();
+
+        $template = WhatsappTemplate::firstOrFail();
+
+        $this->assertDatabaseHas('whatsapp_templates', [
+            'nama' => 'Follow up awal',
+            'aktif' => true,
+            'urutan' => 1,
+        ]);
+
+        $this->actingAs($superadmin)
+            ->put(route('pengaturan.whatsapp-template.update', ['template' => $template]), [
+                'nama' => 'Reminder daftar',
+                'isi_pesan' => 'Halo {nama}, apakah sudah siap daftar?',
+                'urutan' => 2,
+                'aktif' => '1',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('whatsapp_templates', [
+            'id' => $template->id,
+            'nama' => 'Reminder daftar',
+            'isi_pesan' => 'Halo {nama}, apakah sudah siap daftar?',
+            'urutan' => 2,
+        ]);
+
+        $this->actingAs($superadmin)
+            ->delete(route('pengaturan.whatsapp-template.destroy', ['template' => $template]))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('whatsapp_templates', [
+            'id' => $template->id,
         ]);
     }
 

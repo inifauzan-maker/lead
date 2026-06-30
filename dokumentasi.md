@@ -643,7 +643,7 @@ Arsitektur proses menjelaskan alur kerja bisnis utama dalam sistem.
 | Import leads | Admin, staff | File CSV contoh import | Banyak data leads masuk sekaligus | Data Leads |
 | Export leads | User sesuai akses | Filter/status/cabang/data terpilih | File export leads | Data Leads |
 | Distribusi leads ke cabang | Admin | Cabang tujuan, admin tujuan | Leads memiliki cabang dan tujuan penyerahan | Data Leads |
-| Follow up leads | Admin, staff | Perubahan status dan catatan | Leads masuk daftar follow up | Follow Up |
+| Follow up leads | Admin | Perubahan status dan catatan | Leads masuk daftar follow up | Follow Up |
 | Closing/data siswa | Admin, staff | Status `Daftar` | Data siswa/closing | Data Siswa |
 | Monitoring performa | Superadmin, admin, staff, direksi | Filter bulan, tahun, cabang, admin, staff | Dashboard grafik dan ringkasan | Dashboard |
 | Manajemen master | Superadmin | Cabang, sumber leads, program leads | Data master aktif/nonaktif | Pengaturan |

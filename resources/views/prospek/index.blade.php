@@ -84,7 +84,7 @@
             <span><strong data-jumlah-terpilih>0</strong> leads dipilih</span>
             <select name="aksi" aria-label="Aksi massal">
                 <option value="export">Export terpilih</option>
-                @if (auth()->user()->bisaInputLeads())
+                @if (auth()->user()->bisaHapusLeads())
                     <option value="hapus">Hapus terpilih</option>
                 @endif
             </select>
@@ -105,6 +105,7 @@
                         <th>Status</th>
                         <th>Cabang</th>
                         <th>Sumber</th>
+                        <th>Input Oleh</th>
                         <th>Tgl Masuk</th>
                         <th>Aksi</th>
                     </tr>
@@ -112,6 +113,7 @@
                 <tbody>
                     @forelse ($prospek as $item)
                         @php($bisaUbah = $item->bisaDiubahOleh(auth()->user()))
+                        @php($whatsappWebUrl = $item->whatsappWebUrlUntuk(auth()->user(), $templateWhatsapp))
                         <tr>
                             <td class="kolom-pilih">
                                 <input
@@ -125,29 +127,38 @@
                                 <strong>{{ $item->nama }}</strong>
                                 <small>{{ $item->kota_asal ?: 'Kota belum diisi' }}</small>
                             </td>
-                            <td>{{ $item->asal_sekolah ?: '-' }}</td>
+                            <td>
+                                {{ $item->asal_sekolah ?: '-' }}
+                                <small>{{ trim(($item->jenjang ?: '').' '.($item->kelas ?: '')) ?: 'Jenjang belum diisi' }}</small>
+                            </td>
                             <td>{{ $item->noWaUntuk(auth()->user()) }}</td>
                             <td>{{ $item->program ?: '-' }}</td>
                             <td><span class="badge">{{ $item->status }}</span></td>
                             <td>{{ $item->cabang ?: '-' }}</td>
                             <td>{{ $item->sumber ?: '-' }}</td>
+                            <td>{{ $item->pembuat?->name ?: '-' }}</td>
                             <td>{{ $item->tgl_masuk?->format('d M Y') ?: '-' }}</td>
                             <td class="aksi-tabel">
                                 <a href="{{ route('prospek.show', $item) }}">Detail</a>
+                                @if ($whatsappWebUrl)
+                                    <a href="{{ $whatsappWebUrl }}" target="_blank" rel="noopener noreferrer">WA Web</a>
+                                @endif
                                 @if ($bisaUbah)
                                     <a href="{{ route('prospek.edit', $item) }}">Edit</a>
-                                    <form
-                                        method="POST"
-                                        action="{{ route('prospek.destroy', $item) }}"
-                                        data-konfirmasi
-                                        data-judul-konfirmasi="Hapus leads?"
-                                        data-pesan-konfirmasi="Hapus leads {{ $item->nama }}? Data yang dihapus tidak bisa dikembalikan."
-                                        data-label-setuju="Hapus"
-                                    >
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit">Hapus</button>
-                                    </form>
+                                    @if (auth()->user()->bisaHapusLeads())
+                                        <form
+                                            method="POST"
+                                            action="{{ route('prospek.destroy', $item) }}"
+                                            data-konfirmasi
+                                            data-judul-konfirmasi="Hapus leads?"
+                                            data-pesan-konfirmasi="Hapus leads {{ $item->nama }}? Data yang dihapus tidak bisa dikembalikan."
+                                            data-label-setuju="Hapus"
+                                        >
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit">Hapus</button>
+                                        </form>
+                                    @endif
                                 @else
                                     <span class="petunjuk">Lihat saja</span>
                                 @endif
@@ -155,7 +166,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="kosong">Belum ada data leads.</td>
+                            <td colspan="11" class="kosong">Belum ada data leads.</td>
                         </tr>
                     @endforelse
                 </tbody>

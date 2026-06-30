@@ -106,6 +106,86 @@
     <section class="panel jarak-atas">
         <div class="judul-panel">
             <div>
+                <h2>Template WhatsApp</h2>
+                <span>Template aktif dengan urutan terkecil dipakai untuk tombol WA Web.</span>
+            </div>
+            <strong>{{ $templateWhatsapp->count() }} template</strong>
+        </div>
+        <div class="daftar-ringkas">
+            <div class="baris-ringkas">
+                <strong>Placeholder</strong>
+                <small>{nama}, {asal_sekolah}, {jenjang}, {kelas}, {kota_asal}, {program}, {status}, {cabang}, {user}</small>
+            </div>
+        </div>
+        <form class="grid-form form-template-whatsapp jarak-atas" method="POST" action="{{ route('pengaturan.whatsapp-template.store') }}">
+            @csrf
+            <label>
+                Nama template
+                <input type="text" name="nama" value="{{ old('nama') }}" placeholder="Contoh: Follow up awal" required>
+            </label>
+            <label>
+                Urutan
+                <input type="number" name="urutan" value="{{ old('urutan', 0) }}" min="0">
+            </label>
+            <label class="penuh">
+                Isi pesan
+                <textarea name="isi_pesan" rows="4" required placeholder="Halo {nama}, kami dari cabang {cabang} ingin follow up program {program}.">{{ old('isi_pesan') }}</textarea>
+            </label>
+            <label class="cek">
+                <input type="checkbox" name="aktif" value="1" checked>
+                Aktif
+            </label>
+            <div class="aksi-form penuh">
+                <button class="tombol utama" type="submit">Tambah Template</button>
+            </div>
+        </form>
+        <div class="daftar-pengaturan jarak-atas">
+            @forelse ($templateWhatsapp as $template)
+                <div class="baris-pengaturan baris-template-whatsapp">
+                    <form class="form-edit-template-whatsapp" method="POST" action="{{ route('pengaturan.whatsapp-template.update', ['template' => $template]) }}">
+                        @csrf
+                        @method('PUT')
+                        <div class="identitas-user">
+                            <strong>{{ $template->nama }}</strong>
+                            <small>{{ $template->aktif ? 'Aktif' : 'Nonaktif' }} | Urutan {{ $template->urutan }}</small>
+                        </div>
+                        <div class="grid-form grid-template-whatsapp">
+                            <label>
+                                Nama
+                                <input type="text" name="nama" value="{{ old('nama', $template->nama) }}" required>
+                            </label>
+                            <label>
+                                Urutan
+                                <input type="number" name="urutan" value="{{ old('urutan', $template->urutan) }}" min="0">
+                            </label>
+                            <label class="penuh">
+                                Isi pesan
+                                <textarea name="isi_pesan" rows="4" required>{{ old('isi_pesan', $template->isi_pesan) }}</textarea>
+                            </label>
+                            <label class="cek">
+                                <input type="checkbox" name="aktif" value="1" @checked(old('aktif', $template->aktif))>
+                                Aktif
+                            </label>
+                            <div class="aksi-form penuh">
+                                <button class="tombol sekunder" type="submit">Update</button>
+                            </div>
+                        </div>
+                    </form>
+                    <form class="form-hapus-template-whatsapp" method="POST" action="{{ route('pengaturan.whatsapp-template.destroy', ['template' => $template]) }}" data-konfirmasi data-judul-konfirmasi="Hapus template?" data-pesan-konfirmasi="Template {{ $template->nama }} akan dihapus." data-label-setuju="Hapus">
+                        @csrf
+                        @method('DELETE')
+                        <button class="tombol bahaya" type="submit">Hapus</button>
+                    </form>
+                </div>
+            @empty
+                <p class="kosong">Belum ada template WhatsApp.</p>
+            @endforelse
+        </div>
+    </section>
+
+    <section class="panel jarak-atas">
+        <div class="judul-panel">
+            <div>
                 <h2>Target Kinerja Bulanan</h2>
                 <span>Tentukan target leads aktif dan closing untuk dashboard performa bulanan.</span>
             </div>

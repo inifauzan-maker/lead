@@ -10,6 +10,7 @@ use App\Models\SumberLead;
 use App\Models\SistemNotification;
 use App\Models\Task;
 use App\Models\User;
+use App\Models\WhatsappTemplate;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -35,6 +36,15 @@ class DatabaseSeeder extends Seeder
         foreach (['SR GOLD', 'SR ONLINE', 'AR GOLD', 'AR ONLINE', 'MINAT SENI', 'MINAT ARSI'] as $nama) {
             ProgramLead::updateOrCreate(['nama' => $nama], ['aktif' => true]);
         }
+
+        WhatsappTemplate::updateOrCreate(
+            ['nama' => 'Follow up awal'],
+            [
+                'isi_pesan' => "Halo {nama}, kami dari CRM_SIVMI cabang {cabang} ingin follow up minat program {program}.\n\nApakah masih berkenan kami bantu informasinya?",
+                'aktif' => true,
+                'urutan' => 1,
+            ],
+        );
 
         User::where('email', 'admin.jaktim@leads.test')->update([
             'name' => 'Admin Jaksel',

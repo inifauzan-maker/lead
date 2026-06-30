@@ -1,6 +1,8 @@
 @extends('tata-letak', ['judul' => 'Detail Data Siswa'])
 
 @section('konten')
+    @php($whatsappWebUrl = $prospek->whatsappWebUrlUntuk(auth()->user(), $templateWhatsapp))
+
     <section class="hero-modul">
         <div>
             <span>Data Siswa Closing</span>
@@ -41,12 +43,22 @@
                 @endif
             </div>
             <div class="daftar-ringkas">
-                <div class="baris-ringkas"><strong>No WA</strong><span>{{ $prospek->noWaUntuk(auth()->user()) }}</span></div>
+                <div class="baris-ringkas">
+                    <strong>No WA</strong>
+                    <span>
+                        {{ $prospek->noWaUntuk(auth()->user()) }}
+                        @if ($whatsappWebUrl)
+                            <a href="{{ $whatsappWebUrl }}" target="_blank" rel="noopener noreferrer">WA Web</a>
+                        @endif
+                    </span>
+                </div>
                 <div class="baris-ringkas"><strong>Asal Sekolah</strong><span>{{ $prospek->asal_sekolah ?: '-' }}</span></div>
+                <div class="baris-ringkas"><strong>Jenjang</strong><span>{{ $prospek->jenjang ?: '-' }}</span></div>
                 <div class="baris-ringkas"><strong>Kelas Awal</strong><span>{{ $prospek->kelas ?: '-' }}</span></div>
                 <div class="baris-ringkas"><strong>Kelas / Angkatan</strong><span>{{ $prospek->kelas_angkatan ?: '-' }}</span></div>
                 <div class="baris-ringkas"><strong>Kota Asal</strong><span>{{ $prospek->kota_asal ?: '-' }}</span></div>
                 <div class="baris-ringkas"><strong>Sumber Leads</strong><span>{{ $prospek->sumber ?: '-' }}</span></div>
+                <div class="baris-ringkas"><strong>Input Oleh</strong><span>{{ $prospek->pembuat?->name ?: '-' }}</span></div>
                 <div class="baris-ringkas"><strong>PIC</strong><span>{{ $prospek->penanggungJawab?->name ?: 'Belum ditugaskan' }}</span></div>
                 <div class="baris-ringkas"><strong>Tgl Masuk Leads</strong><span>{{ $prospek->tgl_masuk?->format('d M Y') ?: '-' }}</span></div>
             </div>

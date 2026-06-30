@@ -52,7 +52,7 @@
         </div>
     </section>
 
-    @if (auth()->user()->bisaInputLeads())
+    @if (auth()->user()->bisaFollowUpLeads())
         <section class="panel">
             <div class="judul-panel">
                 <div>
@@ -210,6 +210,7 @@
                         @php($terakhir = $item->followUpTerakhir)
                         @php($berikutnya = $item->followUpBerikutnya)
                         @php($bisaUbah = $item->bisaDiubahOleh(auth()->user()))
+                        @php($whatsappWebUrl = $item->whatsappWebUrlUntuk(auth()->user(), $templateWhatsapp))
                         <tr>
                             <td>
                                 <strong>{{ $item->nama }}</strong>
@@ -239,6 +240,9 @@
                             <td>{{ $terakhir?->user?->name ?: ($item->penanggungJawab?->name ?: '-') }}</td>
                             <td class="aksi-tabel">
                                 <a href="{{ route('prospek.show', $item) }}">Detail</a>
+                                @if ($whatsappWebUrl)
+                                    <a href="{{ $whatsappWebUrl }}" target="_blank" rel="noopener noreferrer">WA Web</a>
+                                @endif
                                 @if ($bisaUbah)
                                     <a href="{{ route('prospek.edit', $item) }}">Edit</a>
                                 @else

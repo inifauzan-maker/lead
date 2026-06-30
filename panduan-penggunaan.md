@@ -25,8 +25,8 @@ Panduan ini ditujukan untuk user operasional, admin cabang, superadmin, dan dire
 Catatan:
 
 - Superadmin berfungsi sebagai pengatur sistem: kelola master data, user, target, backup, dan log aktivitas. Superadmin tidak melakukan input/edit leads, import leads, hapus leads, atau follow up.
-- Admin dapat melihat semua data, tetapi hanya dapat mengubah data pada cabangnya.
-- Staff dapat melihat semua data, tetapi hanya dapat mengubah leads yang menjadi miliknya.
+- Admin dapat melihat semua data, mengubah data pada cabangnya, mencatat follow up, dan menghapus leads cabangnya.
+- Staff dapat melihat semua data dan mengubah leads yang menjadi miliknya, tetapi tidak dapat mencatat follow up atau menghapus leads.
 - Direksi tidak dapat input, edit, hapus, import, atau mencatat follow up.
 
 ## 3. Dashboard
@@ -50,6 +50,7 @@ Menu **Dashboard** menampilkan ringkasan performa berdasarkan role.
 - Melihat ringkasan seluruh data input user.
 - Bisa memakai filter untuk melihat data pribadi atau staff tertentu.
 - Tetap hanya dapat mengubah leads miliknya sendiri.
+- Tidak dapat mencatat follow up atau menghapus leads.
 
 ### Direksi
 
@@ -91,7 +92,8 @@ Menu **Data Leads** digunakan untuk melihat, menambah, mengedit, menghapus, impo
    - nama,
    - nomor WA,
    - asal sekolah,
-   - tingkatan jenjang,
+   - jenjang,
+   - kelas,
    - kota asal,
    - program,
    - status,
@@ -106,10 +108,13 @@ Catatan:
 - Field asal sekolah memiliki autosuggest dari `database/sekolahVM.json`, tetapi tetap bisa diisi manual.
 - Jika asal sekolah manual belum ada di referensi JSON, sistem akan menyimpannya ke master sekolah baru setelah leads berhasil disimpan.
 - Untuk jenjang `SMA`, asal sekolah wajib memakai format `SMAN` jika negeri dan `SMAS` jika swasta. Contoh: `SMAN 1 Bandung`, `SMAS Al Azhar 1`.
-- Tingkatan jenjang hanya boleh diisi dengan `SD`, `SMP`, `SMA`, atau `Gapyear`.
+- Jenjang hanya boleh diisi dengan `SD`, `SMP`, `SMA`, atau `Gapyear`.
+- Kelas mengikuti jenjang: SD memakai `1` sampai `6`, SMP memakai `7` sampai `9`, SMA memakai `X`, `XI`, atau `XII`, dan Gapyear dikosongkan.
 - Cabang hanya dapat diubah oleh superadmin. Role lain otomatis memakai cabang akunnya.
 - Jika status diubah menjadi `Daftar`, leads akan masuk ke **Data Siswa** dan tidak tampil lagi di daftar leads aktif.
 - Saat status `Daftar`, lengkapi field closing: tanggal daftar, program final, nominal pembayaran, status pembayaran, kelas/angkatan, dan catatan administrasi.
+- Tombol **WA Web** tersedia pada data yang nomor WA-nya boleh dilihat utuh oleh user. Tombol ini membuka WhatsApp Web di tab baru.
+- Isi pesan WA Web memakai template aktif di menu **Pengaturan > Template WhatsApp**. Template dapat diedit oleh superadmin dan mendukung placeholder: `{nama}`, `{asal_sekolah}`, `{jenjang}`, `{kelas}`, `{kota_asal}`, `{program}`, `{status}`, `{cabang}`, dan `{user}`.
 
 ### Mengedit Leads
 
@@ -138,7 +143,7 @@ Klik **Detail** untuk melihat:
 1. Centang leads yang akan diproses.
 2. Pilih aksi:
    - **Export terpilih**,
-   - **Hapus terpilih** jika punya hak akses.
+   - **Hapus terpilih** untuk admin yang punya hak akses.
 3. Klik **Jalankan**.
 
 ## 5. Import Leads CSV

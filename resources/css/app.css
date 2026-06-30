@@ -1872,6 +1872,55 @@ td small {
     color: var(--muted);
 }
 
+.form-template-whatsapp {
+    background: #f8fafc;
+    border: 1px solid var(--garis);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.form-template-whatsapp .aksi-form {
+    margin-top: 0;
+}
+
+.baris-template-whatsapp {
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 14px;
+}
+
+.baris-template-whatsapp > form {
+    min-width: 0;
+}
+
+.baris-template-whatsapp .form-edit-template-whatsapp {
+    align-items: stretch;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: minmax(170px, 0.26fr) minmax(0, 1fr);
+    width: 100%;
+}
+
+.grid-template-whatsapp {
+    gap: 12px;
+}
+
+.grid-template-whatsapp textarea {
+    min-height: 120px;
+}
+
+.grid-template-whatsapp .aksi-form {
+    margin-top: 0;
+}
+
+.form-hapus-template-whatsapp {
+    display: block;
+}
+
+.form-hapus-template-whatsapp .tombol {
+    min-width: 140px;
+}
+
 .identitas-user {
     min-width: 0;
 }
@@ -2275,8 +2324,14 @@ body.sidebar-ciut .menu-item {
     .baris-pengaturan,
     .baris-pengaturan form,
     .baris-role-user,
+    .baris-template-whatsapp,
+    .baris-template-whatsapp .form-edit-template-whatsapp,
     .baris-target-kinerja,
     .baris-target-kinerja > form:first-child {
         grid-template-columns: 1fr;
+    }
+
+    .form-hapus-template-whatsapp .tombol {
+        width: 100%;
     }
 }

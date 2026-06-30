@@ -59,6 +59,7 @@
                 <tbody>
                     @forelse ($prospek as $item)
                         @php($bisaUbah = $item->bisaDiubahOleh(auth()->user()))
+                        @php($whatsappWebUrl = $item->whatsappWebUrlUntuk(auth()->user(), $templateWhatsapp))
                         <tr>
                             <td>
                                 <strong>{{ $item->nama }}</strong>
@@ -73,9 +74,15 @@
                             </td>
                             <td>{{ $item->cabang ?: '-' }}</td>
                             <td>{{ $item->tanggal_daftar?->format('d M Y') ?: $item->updated_at?->format('d M Y') }}</td>
-                            <td>{{ $item->kelas_angkatan ?: ($item->kelas ?: '-') }}</td>
+                            <td>
+                                {{ $item->kelas_angkatan ?: ($item->kelas ?: '-') }}
+                                <small>{{ $item->jenjang ?: '-' }}</small>
+                            </td>
                             <td class="aksi-tabel">
                                 <a href="{{ route('data-siswa.show', $item) }}">Detail</a>
+                                @if ($whatsappWebUrl)
+                                    <a href="{{ $whatsappWebUrl }}" target="_blank" rel="noopener noreferrer">WA Web</a>
+                                @endif
                                 @if ($bisaUbah)
                                     <a href="{{ route('prospek.edit', $item) }}">Edit</a>
                                 @else
