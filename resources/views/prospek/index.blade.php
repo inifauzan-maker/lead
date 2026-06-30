@@ -23,6 +23,14 @@
                         <option value="{{ $item }}" @selected(request('cabang') === $item)>{{ $item }}</option>
                     @endforeach
                 </select>
+                <select name="created_by">
+                    <option value="">Semua input</option>
+                    @foreach ($inputUsers as $userInput)
+                        <option value="{{ $userInput->id }}" @selected((string) request('created_by') === (string) $userInput->id)>
+                            {{ $userInput->name }}
+                        </option>
+                    @endforeach
+                </select>
                 <button class="tombol sekunder" type="submit">Filter</button>
             </form>
             <div class="aksi-data-leads">

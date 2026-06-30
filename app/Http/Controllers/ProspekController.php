@@ -144,6 +144,7 @@ class ProspekController extends Controller
             'sumber' => $this->daftarSumber(),
             'status' => $this->statusDataLeads(),
             'cabang' => $this->daftarCabang(),
+            'inputUsers' => $this->userInputTersedia(),
             'templateWhatsapp' => WhatsappTemplate::aktifDefault(),
         ]);
     }
@@ -1029,7 +1030,17 @@ class ProspekController extends Controller
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->status))
             ->when($request->filled('sumber'), fn ($query) => $query->where('sumber', $request->sumber))
             ->when($request->filled('cabang'), fn ($query) => $query->where('cabang', $request->cabang))
+            ->when($request->filled('created_by'), fn ($query) => $query->where('created_by', $request->integer('created_by')))
             ->latest();
+    }
+
+    private function userInputTersedia()
+    {
+        return User::query()
+            ->where('aktif', true)
+            ->whereIn('role', ['admin', 'staff'])
+            ->orderBy('name')
+            ->get();
     }
 
     private function statusDataLeads(): array

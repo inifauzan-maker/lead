@@ -780,6 +780,47 @@ class ProspekTest extends TestCase
             ->assertDontSee('Siswa Sudah Closing');
     }
 
+    public function test_data_leads_bisa_difilter_berdasarkan_user_input(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $inputBandung = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+            'name' => 'Admin Input Bandung',
+        ]);
+        $inputJakpus = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Jakpus',
+            'aktif' => true,
+            'name' => 'Staff Input Jakpus',
+        ]);
+
+        Prospek::create([
+            'nama' => 'Lead Input Bandung',
+            'status' => 'Baru',
+            'cabang' => 'Bandung',
+            'created_by' => $inputBandung->id,
+        ]);
+        Prospek::create([
+            'nama' => 'Lead Input Jakpus',
+            'status' => 'Baru',
+            'cabang' => 'Jakpus',
+            'created_by' => $inputJakpus->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('prospek.index', ['created_by' => $inputBandung->id]))
+            ->assertOk()
+            ->assertSee('Lead Input Bandung')
+            ->assertSee('Admin Input Bandung')
+            ->assertDontSee('Lead Input Jakpus');
+    }
+
     public function test_follow_up_closing_mencatat_riwayat_status_data_siswa(): void
     {
         $admin = User::factory()->create([

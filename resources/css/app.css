@@ -1295,7 +1295,7 @@ td strong {
 }
 
 .filter-leads {
-    grid-template-columns: minmax(260px, 1fr) 150px 150px 150px auto;
+    grid-template-columns: minmax(260px, 1fr) repeat(4, 150px) auto;
 }
 
 .filter-log {
