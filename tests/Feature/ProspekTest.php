@@ -8,6 +8,7 @@ use App\Models\FollowUp;
 use App\Models\Prospek;
 use App\Models\Sekolah;
 use App\Models\SistemNotification;
+use App\Models\Task;
 use App\Models\TargetKinerja;
 use App\Models\User;
 use App\Models\WhatsappTemplate;
@@ -1277,6 +1278,87 @@ class ProspekTest extends TestCase
             'status' => 'Selesai',
             'progress_persen' => 100,
         ]);
+    }
+
+    public function test_tugas_hanya_bisa_dikelola_antar_admin(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+            'name' => 'Admin Tugas',
+        ]);
+        $adminLain = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+            'name' => 'Admin Penerima',
+        ]);
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+            'name' => 'Staff Bukan Tugas',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('profil.tugas.store'), [
+                'judul' => 'Tugas Antar Admin',
+                'deskripsi' => 'Koordinasi cabang.',
+                'status' => 'Baru',
+                'prioritas' => 'Normal',
+                'assigned_to' => $adminLain->id,
+                'cabang' => 'Bandung',
+            ])
+            ->assertRedirect();
+
+        $task = Task::query()->where('judul', 'Tugas Antar Admin')->firstOrFail();
+
+        $this->assertSame($adminLain->id, $task->assigned_to);
+        $this->assertSame($admin->id, $task->created_by);
+
+        $this->actingAs($admin)
+            ->post(route('profil.tugas.store'), [
+                'judul' => 'Tugas Untuk Staff',
+                'status' => 'Baru',
+                'prioritas' => 'Normal',
+                'assigned_to' => $staff->id,
+                'cabang' => 'Bandung',
+            ])
+            ->assertInvalid(['assigned_to']);
+
+        $this->actingAs($staff)
+            ->get(route('profil.tugas'))
+            ->assertOk()
+            ->assertDontSee('Tambah Tugas')
+            ->assertDontSee('Tugas Antar Admin');
+
+        $this->actingAs($staff)
+            ->post(route('profil.tugas.store'), [
+                'judul' => 'Staff Buat Tugas',
+                'status' => 'Baru',
+                'prioritas' => 'Normal',
+                'assigned_to' => $admin->id,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($staff)
+            ->put(route('profil.tugas.update', $task), [
+                'status' => 'Proses',
+                'prioritas' => 'Normal',
+                'assigned_to' => $adminLain->id,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($staff)
+            ->post(route('profil.tugas.komentar.store', $task), [
+                'komentar' => 'Coba komentar.',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($staff)
+            ->delete(route('profil.tugas.destroy', $task))
+            ->assertForbidden();
     }
 
     public function test_user_bisa_menandai_notifikasi_dibaca(): void

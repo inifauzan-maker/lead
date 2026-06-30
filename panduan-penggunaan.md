@@ -297,6 +297,8 @@ Menu **TIM** digunakan untuk melihat anggota aktif, role, cabang, dan ringkasan 
 
 Menu **Tugas** digunakan untuk task management.
 
+Tugas hanya digunakan antar admin. Staff tidak menjadi penerima tugas dan tidak dapat membuat, mengubah, mengomentari, atau menghapus tugas.
+
 Fitur utama:
 
 - membuat tugas,
@@ -306,7 +308,7 @@ Fitur utama:
 - mengubah status,
 - memberi komentar.
 
-Direksi hanya melihat data tanpa mengubah.
+Superadmin dan direksi hanya melihat data tanpa mengubah.
 
 ## 12. Laporan
 

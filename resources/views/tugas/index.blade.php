@@ -6,12 +6,12 @@
             <span>Task Management</span>
             <h2>Prioritaskan pekerjaan berdasarkan status leads terbaru.</h2>
         </div>
-        @if (auth()->user()->role !== 'direksi')
+        @if (auth()->user()->bisaKelolaTugas())
             <a class="tombol utama" href="#tambah-tugas">Tambah Tugas</a>
         @endif
     </section>
 
-    @if (auth()->user()->role !== 'direksi')
+    @if (auth()->user()->bisaKelolaTugas())
         <section class="panel" id="tambah-tugas">
             <div class="judul-panel">
                 <div>
@@ -29,7 +29,7 @@
                     Penanggung Jawab
                     <select name="assigned_to">
                         <option value="">Belum ditugaskan</option>
-                        @foreach ($staff as $user)
+                        @foreach ($adminTugas as $user)
                             <option value="{{ $user->id }}" @selected(old('assigned_to') == $user->id)>
                                 {{ $user->name }}{{ $user->cabang ? ' - '.$user->cabang : '' }}
                             </option>
@@ -100,11 +100,11 @@
                             <p>{{ $item->deskripsi ?: ($item->prospek?->nama ?: 'Tidak terhubung ke leads') }}</p>
                             <div>
                                 <small>{{ $item->cabang ?: '-' }}{{ $item->penanggungJawab ? ' - '.$item->penanggungJawab->name : '' }}</small>
-                                @if (auth()->user()->role !== 'direksi' && $item->prospek)
+                                @if (auth()->user()->bisaKelolaTugas() && $item->prospek)
                                     <a href="{{ route('prospek.edit', $item->prospek) }}">Buka</a>
                                 @endif
                             </div>
-                            @if (auth()->user()->role !== 'direksi')
+                            @if (auth()->user()->bisaKelolaTugas())
                                 <form class="form-ringkas" method="POST" action="{{ route('profil.tugas.update', $item) }}">
                                     @csrf
                                     @method('PUT')

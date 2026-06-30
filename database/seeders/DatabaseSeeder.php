@@ -68,7 +68,6 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        $staffBandung = User::query()->where('email', 'staff.bandung@leads.test')->first();
         $adminBandung = User::query()->where('email', 'admin.bandung@leads.test')->first();
 
         foreach ([
@@ -99,13 +98,13 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        if ($staffBandung && $adminBandung) {
+        if ($adminBandung) {
             foreach ([
                 ['Follow up leads prioritas Bandung', 'Hubungi leads baru yang belum mendapatkan respons.', 'Baru', 'Tinggi', now()->toDateString()],
                 ['Review hasil follow up minggu ini', 'Rekap hasil follow up dan tandai peluang closing.', 'Proses', 'Normal', now()->addDays(3)->toDateString()],
             ] as [$judul, $deskripsi, $status, $prioritas, $tenggat]) {
                 Task::updateOrCreate(
-                    ['judul' => $judul, 'assigned_to' => $staffBandung->id],
+                    ['judul' => $judul, 'assigned_to' => $adminBandung->id],
                     [
                         'deskripsi' => $deskripsi,
                         'status' => $status,

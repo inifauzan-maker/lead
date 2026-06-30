@@ -73,7 +73,7 @@ class ModulController extends Controller
 
         return view('tugas.index', [
             'tugas' => $tugas,
-            'staff' => $this->staffTersedia($request),
+            'adminTugas' => $this->adminTugasTersedia($request),
             'prospek' => $this->queryAkses($request)->orderBy('nama')->limit(80)->get(),
             'statusTugas' => array_keys($kolom),
             'prioritasTugas' => ['Rendah', 'Normal', 'Tinggi'],
@@ -91,7 +91,7 @@ class ModulController extends Controller
             'prioritas' => ['required', Rule::in(['Rendah', 'Normal', 'Tinggi'])],
             'tenggat' => ['nullable', 'date'],
             'prospek_id' => ['nullable', 'exists:prospek,id'],
-            'assigned_to' => ['nullable', 'exists:users,id'],
+            'assigned_to' => ['nullable', Rule::exists('users', 'id')->where('role', 'admin')->where('aktif', true)],
             'cabang' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -100,15 +100,13 @@ class ModulController extends Controller
             $data['cabang'] = $user->cabang;
         }
 
-        if ($user->role === 'staff') {
-            $data['assigned_to'] = $user->id;
-        }
-
         if (filled($data['prospek_id'] ?? null)) {
             $prospek = Prospek::findOrFail($data['prospek_id']);
             $this->pastikanBolehAksesProspek($request, $prospek);
             $data['cabang'] = $data['cabang'] ?: $prospek->cabang;
         }
+
+        $this->pastikanAdminTugasValid($request, $data['assigned_to'] ?? null, $data['cabang'] ?? null);
 
         $data['created_by'] = $user->id;
         $task = Task::create($data);
@@ -126,12 +124,10 @@ class ModulController extends Controller
             'status' => ['required', Rule::in(['Baru', 'Proses', 'Selesai', 'Arsip'])],
             'prioritas' => ['required', Rule::in(['Rendah', 'Normal', 'Tinggi'])],
             'tenggat' => ['nullable', 'date'],
-            'assigned_to' => ['nullable', 'exists:users,id'],
+            'assigned_to' => ['nullable', Rule::exists('users', 'id')->where('role', 'admin')->where('aktif', true)],
         ]);
 
-        if ($request->user()->role === 'staff') {
-            unset($data['assigned_to']);
-        }
+        $this->pastikanAdminTugasValid($request, $data['assigned_to'] ?? null, $task->cabang);
 
         $statusLama = $task->status;
         $assignedLama = $task->assigned_to;
@@ -462,17 +458,17 @@ class ModulController extends Controller
         }
 
         if ($user->role === 'staff') {
-            return $query->where('assigned_to', $user->id);
+            return $query->whereRaw('1 = 0');
         }
 
         return $query->where('cabang', $user->cabang);
     }
 
-    private function staffTersedia(Request $request)
+    private function adminTugasTersedia(Request $request)
     {
         return User::query()
             ->where('aktif', true)
-            ->where('role', 'staff')
+            ->where('role', 'admin')
             ->when(! $request->user()->aksesSemuaCabang(), fn ($query) => $query->where('cabang', $request->user()->cabang))
             ->orderBy('name')
             ->get();
@@ -480,7 +476,30 @@ class ModulController extends Controller
 
     private function pastikanBolehUbah(Request $request): void
     {
-        abort_if($request->user()->role === 'direksi', 403);
+        abort_unless($request->user()->bisaKelolaTugas(), 403);
+    }
+
+    private function pastikanAdminTugasValid(Request $request, ?int $adminId, ?string $cabang): void
+    {
+        if (! $adminId) {
+            return;
+        }
+
+        $admin = User::query()
+            ->where('id', $adminId)
+            ->where('aktif', true)
+            ->where('role', 'admin')
+            ->first();
+
+        abort_unless($admin, 422, 'Penanggung jawab tugas harus admin aktif.');
+
+        if (! $request->user()->aksesSemuaCabang()) {
+            abort_unless($admin->cabang === $request->user()->cabang, 422, 'Penanggung jawab tugas harus admin di cabang yang sama.');
+        }
+
+        if ($cabang) {
+            abort_unless($admin->cabang === $cabang, 422, 'Penanggung jawab tugas harus admin di cabang tugas.');
+        }
     }
 
     private function pastikanBolehKelolaPembelajaran(Request $request): void
@@ -534,9 +553,7 @@ class ModulController extends Controller
         }
 
         if ($user->role === 'staff') {
-            abort_unless((int) $task->assigned_to === (int) $user->id, 403);
-
-            return;
+            abort(403);
         }
 
         abort_unless($task->cabang === $user->cabang, 403);

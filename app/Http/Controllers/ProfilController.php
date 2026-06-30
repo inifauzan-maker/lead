@@ -173,7 +173,7 @@ class ProfilController extends Controller
         }
 
         if ($user->role === 'staff') {
-            return $query->where('assigned_to', $user->id);
+            return $query->whereRaw('1 = 0');
         }
 
         return $query->where('cabang', $user->cabang);

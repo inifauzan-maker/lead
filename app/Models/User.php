@@ -65,6 +65,11 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    public function bisaKelolaTugas(): bool
+    {
+        return $this->role === 'admin';
+    }
+
     public function bisaMengubahSemuaLeads(): bool
     {
         return false;

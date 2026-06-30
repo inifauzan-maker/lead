@@ -404,8 +404,8 @@ Menyimpan task management internal yang dapat dihubungkan ke leads.
 | `prioritas` | varchar | default `Normal`, index gabungan | Prioritas tugas |
 | `tenggat` | date | nullable, index | Batas waktu tugas |
 | `prospek_id` | bigint unsigned | nullable, FK ke `prospek.id`, null on delete | Leads terkait |
-| `assigned_to` | bigint unsigned | nullable, FK ke `users.id`, null on delete | User penerima tugas |
-| `created_by` | bigint unsigned | nullable, FK ke `users.id`, null on delete | User pembuat tugas |
+| `assigned_to` | bigint unsigned | nullable, FK ke `users.id`, null on delete | Admin penerima tugas |
+| `created_by` | bigint unsigned | nullable, FK ke `users.id`, null on delete | Admin pembuat tugas |
 | `cabang` | varchar | nullable | Cabang tugas |
 | `created_at` | timestamp | nullable | Waktu dibuat |
 | `updated_at` | timestamp | nullable | Waktu diperbarui |
@@ -620,7 +620,7 @@ Catatan:
 | Follow Up | `prospek`, `follow_ups` | Riwayat aktivitas follow up, jumlah follow up per leads, kalender, hasil follow up |
 | Data Siswa | `prospek` | Leads status `Daftar` |
 | TIM | `users`, `prospek` | Ringkasan anggota aktif dan performa |
-| Tugas | `tasks`, `task_comments`, `prospek`, `users` | Kanban task management, tugas terkait leads, komentar tugas |
+| Tugas | `tasks`, `task_comments`, `prospek`, `users` | Kanban task management antar admin, tugas terkait leads, komentar tugas |
 | Laporan | `prospek` | Ringkasan report status dan cabang |
 | Pembelajaran | `courses`, `course_lessons`, `course_progress` | Modul online course dan progres pembelajaran user |
 | Profil User | `users`, `prospek` | Data akun, media sosial, ringkasan personal |
