@@ -1023,6 +1023,76 @@ class ProspekTest extends TestCase
             ->assertSee('Bandung');
     }
 
+    public function test_dashboard_menampilkan_kpi_operasional_aging_user_input_dan_konversi_sumber(): void
+    {
+        Carbon::setTestNow('2026-06-30 09:00:00');
+
+        $admin = User::factory()->create([
+            'name' => 'Admin KPI',
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $inputUser = User::factory()->create([
+            'name' => 'Input Bandung',
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        $leadBaru = Prospek::create([
+            'nama' => 'Lead Belum FU',
+            'status' => 'Baru',
+            'cabang' => 'Bandung',
+            'sumber' => 'Instagram',
+            'created_by' => $inputUser->id,
+            'tgl_masuk' => '2026-06-30',
+        ]);
+        $leadTerlambat = Prospek::create([
+            'nama' => 'Lead FU Terlambat',
+            'status' => 'Follow Up',
+            'cabang' => 'Bandung',
+            'sumber' => 'Instagram',
+            'created_by' => $inputUser->id,
+            'tgl_masuk' => '2026-06-25',
+        ]);
+        Prospek::create([
+            'nama' => 'Closing KPI',
+            'status' => 'Daftar',
+            'cabang' => 'Bandung',
+            'sumber' => 'Instagram',
+            'created_by' => $inputUser->id,
+            'tgl_masuk' => '2026-06-10',
+            'tanggal_daftar' => '2026-06-20',
+        ]);
+        FollowUp::create([
+            'prospek_id' => $leadTerlambat->id,
+            'user_id' => $admin->id,
+            'tanggal_follow_up' => '2026-06-26 10:00:00',
+            'metode' => 'WhatsApp',
+            'hasil' => 'Berminat',
+            'tanggal_follow_up_berikutnya' => '2026-06-28',
+            'prioritas' => 'Normal',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
+            ->assertOk()
+            ->assertSee('Follow Up Rate')
+            ->assertSee('50%')
+            ->assertSeeInOrder(['Belum Follow Up', '1'])
+            ->assertSeeInOrder(['Follow Up Terlambat', '1'])
+            ->assertSee('Aging Leads Aktif')
+            ->assertSee('0-1 hari')
+            ->assertSee('4-7 hari')
+            ->assertSee('Performa User Input')
+            ->assertSee('Input Bandung')
+            ->assertSee('Konversi per Sumber')
+            ->assertSee('Instagram');
+
+        Carbon::setTestNow();
+    }
+
     public function test_dashboard_admin_melihat_data_seluruh_user_dan_cabang(): void
     {
         $adminJaksel = User::factory()->create([

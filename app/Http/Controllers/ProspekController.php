@@ -102,6 +102,10 @@ class ProspekController extends Controller
         $dashboardClosing = $this->dashboardClosing((clone $queryClosing));
         $targetKinerja = $this->targetKinerjaDashboard($request, $periode, $dashboardRole, $total, $daftar);
         $rankingKinerja = $this->rankingKinerjaDashboard($request, $periode, $dashboardRole);
+        $kpiOperasional = $this->kpiOperasionalDashboard($request, (clone $query), $periode);
+        $agingLeads = $this->agingLeadsDashboard((clone $query));
+        $performaInputUser = $this->performaInputUserDashboard($request, $periode);
+        $konversiSumber = $this->konversiSumberDashboard($request, $periode);
         $cabangStaffFilter = $dashboardRole['cabangTerkunci'] ?? ($request->string('cabang')->toString() ?: null);
         $staffFilter = $dashboardRole['bolehFilterStaff']
             ? $this->staffTersedia($cabangStaffFilter, batasiAkses: false)
@@ -121,6 +125,10 @@ class ProspekController extends Controller
             'dashboardClosing' => $dashboardClosing,
             'targetKinerja' => $targetKinerja,
             'rankingKinerja' => $rankingKinerja,
+            'kpiOperasional' => $kpiOperasional,
+            'agingLeads' => $agingLeads,
+            'performaInputUser' => $performaInputUser,
+            'konversiSumber' => $konversiSumber,
             'grafikHarian' => $grafikHarian,
             'cabang' => $this->daftarCabang(),
             'adminCabang' => $this->daftarAdminCabang($dashboardRole['cabangTerkunci']),
@@ -1217,6 +1225,147 @@ class ProspekController extends Controller
             ->get();
 
         return compact('total', 'nominal', 'perProgram', 'perCabang', 'perPembayaran');
+    }
+
+    private function kpiOperasionalDashboard(Request $request, $query, array $periode): array
+    {
+        $queryAktif = $this->queryLeadsAktif(clone $query);
+        $totalAktif = (clone $queryAktif)->count();
+        $sudahFollowUp = (clone $queryAktif)->whereHas('followUps')->count();
+        $belumFollowUp = max(0, $totalAktif - $sudahFollowUp);
+        $followUpTerlambat = FollowUp::query()
+            ->whereNotNull('tanggal_follow_up_berikutnya')
+            ->whereDate('tanggal_follow_up_berikutnya', '<', now()->toDateString())
+            ->whereNotIn('hasil', ['Closing', 'Tidak tertarik'])
+            ->whereHas('prospek', function ($query) use ($request, $periode) {
+                $this->filterPeriodeDashboard($this->filterAksesDashboard($query, $request), $periode)
+                    ->whereNotIn('status', ['Daftar', 'Tidak Tertarik']);
+            })
+            ->distinct('prospek_id')
+            ->count('prospek_id');
+
+        return [
+            'totalAktif' => $totalAktif,
+            'sudahFollowUp' => $sudahFollowUp,
+            'belumFollowUp' => $belumFollowUp,
+            'followUpTerlambat' => $followUpTerlambat,
+            'followUpRate' => $totalAktif > 0 ? round(($sudahFollowUp / $totalAktif) * 100, 1) : 0,
+        ];
+    }
+
+    private function agingLeadsDashboard($query)
+    {
+        $batas = [
+            '0-1 hari' => [0, 1],
+            '2-3 hari' => [2, 3],
+            '4-7 hari' => [4, 7],
+            '> 7 hari' => [8, null],
+        ];
+        $items = array_fill_keys(array_keys($batas), 0);
+
+        $this->queryLeadsAktif(clone $query)
+            ->get(['tgl_masuk', 'created_at'])
+            ->each(function (Prospek $prospek) use ($batas, &$items) {
+                $tanggal = $prospek->tgl_masuk ?: $prospek->created_at;
+                $umurHari = $tanggal ? $tanggal->startOfDay()->diffInDays(now()->startOfDay()) : 0;
+
+                foreach ($batas as $label => [$minimal, $maksimal]) {
+                    if ($umurHari >= $minimal && ($maksimal === null || $umurHari <= $maksimal)) {
+                        $items[$label]++;
+                        break;
+                    }
+                }
+            });
+
+        $maks = max(1, max($items));
+
+        return collect($items)->map(fn ($total, $label) => [
+            'label' => $label,
+            'total' => $total,
+            'persen' => round(($total / $maks) * 100),
+        ])->values();
+    }
+
+    private function performaInputUserDashboard(Request $request, array $periode)
+    {
+        $queryLeads = $this->filterPeriodeDashboard($this->queryDashboardPerRole($request), $periode);
+        $queryClosing = $this->filterPeriodeClosingDashboard($this->queryDashboardPerRole($request), $periode)
+            ->where('status', 'Daftar');
+        $leads = (clone $queryLeads)
+            ->selectRaw('COALESCE(created_by, 0) as user_id, COUNT(*) as total')
+            ->groupByRaw('COALESCE(created_by, 0)')
+            ->pluck('total', 'user_id');
+        $closing = (clone $queryClosing)
+            ->selectRaw('COALESCE(created_by, 0) as user_id, COUNT(*) as total')
+            ->groupByRaw('COALESCE(created_by, 0)')
+            ->pluck('total', 'user_id');
+        $userIds = $leads->keys()
+            ->merge($closing->keys())
+            ->filter(fn ($id) => (int) $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+        $users = User::query()->whereIn('id', $userIds)->get()->keyBy('id');
+
+        return $leads->keys()
+            ->merge($closing->keys())
+            ->unique()
+            ->values()
+            ->map(function ($userId) use ($leads, $closing, $users) {
+                $userId = (int) $userId;
+                $totalLeads = (int) ($leads[$userId] ?? 0);
+                $totalClosing = (int) ($closing[$userId] ?? 0);
+                $basis = max(1, $totalLeads);
+
+                return [
+                    'label' => $userId > 0 ? ($users->get($userId)?->name ?: 'User tidak aktif') : 'Tanpa user input',
+                    'leads' => $totalLeads,
+                    'closing' => $totalClosing,
+                    'rasio' => round(($totalClosing / $basis) * 100, 1),
+                    'persen' => min(100, round(($totalClosing / $basis) * 100, 1)),
+                ];
+            })
+            ->sortByDesc('closing')
+            ->sortByDesc('rasio')
+            ->values()
+            ->take(8);
+    }
+
+    private function konversiSumberDashboard(Request $request, array $periode)
+    {
+        $queryLeads = $this->filterPeriodeDashboard($this->queryDashboardPerRole($request), $periode);
+        $queryClosing = $this->filterPeriodeClosingDashboard($this->queryDashboardPerRole($request), $periode)
+            ->where('status', 'Daftar');
+        $leads = (clone $queryLeads)
+            ->selectRaw("COALESCE(sumber, 'Tanpa Sumber') as label, COUNT(*) as total")
+            ->groupByRaw("COALESCE(sumber, 'Tanpa Sumber')")
+            ->pluck('total', 'label');
+        $closing = (clone $queryClosing)
+            ->selectRaw("COALESCE(sumber, 'Tanpa Sumber') as label, COUNT(*) as total")
+            ->groupByRaw("COALESCE(sumber, 'Tanpa Sumber')")
+            ->pluck('total', 'label');
+
+        return $leads->keys()
+            ->merge($closing->keys())
+            ->unique()
+            ->values()
+            ->map(function ($label) use ($leads, $closing) {
+                $totalLeads = (int) ($leads[$label] ?? 0);
+                $totalClosing = (int) ($closing[$label] ?? 0);
+                $basis = max(1, $totalLeads);
+
+                return [
+                    'label' => $label,
+                    'leads' => $totalLeads,
+                    'closing' => $totalClosing,
+                    'rasio' => round(($totalClosing / $basis) * 100, 1),
+                    'persen' => min(100, round(($totalClosing / $basis) * 100, 1)),
+                ];
+            })
+            ->sortByDesc('closing')
+            ->sortByDesc('rasio')
+            ->values()
+            ->take(8);
     }
 
     private function targetKinerjaDashboard(Request $request, array $periode, array $konteks, int $leadsAktif, int $closing): array

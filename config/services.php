@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+
+    'integration' => [
+        'token' => env('LEADS_API_TOKEN'),
+    ],
+
 ];
+

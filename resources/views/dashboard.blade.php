@@ -125,6 +125,86 @@
             <span>Closing</span>
             <strong>{{ $daftar }}</strong>
         </article>
+        <article class="kartu-stat">
+            <span>Follow Up Rate</span>
+            <strong>{{ $kpiOperasional['followUpRate'] }}%</strong>
+        </article>
+        <article class="kartu-stat">
+            <span>Belum Follow Up</span>
+            <strong>{{ $kpiOperasional['belumFollowUp'] }}</strong>
+        </article>
+        <article class="kartu-stat">
+            <span>Follow Up Terlambat</span>
+            <strong>{{ $kpiOperasional['followUpTerlambat'] }}</strong>
+        </article>
+    </section>
+
+    <section class="grid-dua jarak-atas">
+        <div class="panel">
+            <div class="judul-panel">
+                <div>
+                    <h2>Aging Leads Aktif</h2>
+                    <span>Umur leads aktif sejak tanggal masuk.</span>
+                </div>
+            </div>
+            <div class="daftar-progress">
+                @forelse ($agingLeads as $item)
+                    <div class="bar-progress">
+                        <div>
+                            <strong>{{ $item['label'] }}</strong>
+                            <span>{{ $item['total'] }} leads</span>
+                        </div>
+                        <span class="progress-kelas"><i style="width: {{ $item['persen'] }}%"></i></span>
+                    </div>
+                @empty
+                    <p class="kosong">Belum ada aging leads aktif pada periode ini.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="judul-panel">
+                <div>
+                    <h2>Performa User Input</h2>
+                    <span>Konversi leads berdasarkan user yang input data.</span>
+                </div>
+            </div>
+            <div class="daftar-progress">
+                @forelse ($performaInputUser as $item)
+                    <div class="bar-progress">
+                        <div>
+                            <strong>{{ $item['label'] }}</strong>
+                            <span>{{ $item['leads'] }} leads | {{ $item['closing'] }} closing | konversi {{ $item['rasio'] }}%</span>
+                        </div>
+                        <span class="progress-kelas"><i style="width: {{ $item['persen'] }}%"></i></span>
+                    </div>
+                @empty
+                    <p class="kosong">Belum ada performa user input pada periode ini.</p>
+                @endforelse
+            </div>
+        </div>
+    </section>
+
+    <section class="panel jarak-atas">
+        <div class="judul-panel">
+            <div>
+                <h2>Konversi per Sumber</h2>
+                <span>Kualitas sumber leads berdasarkan rasio closing.</span>
+            </div>
+        </div>
+        <div class="daftar-progress">
+            @forelse ($konversiSumber as $item)
+                <div class="bar-progress">
+                    <div>
+                        <strong>{{ $item['label'] }}</strong>
+                        <span>{{ $item['leads'] }} leads | {{ $item['closing'] }} closing | konversi {{ $item['rasio'] }}%</span>
+                    </div>
+                    <span class="progress-kelas"><i style="width: {{ $item['persen'] }}%"></i></span>
+                </div>
+            @empty
+                <p class="kosong">Belum ada data konversi sumber pada periode ini.</p>
+            @endforelse
+        </div>
     </section>
 
     <section class="grid-dua jarak-atas">
