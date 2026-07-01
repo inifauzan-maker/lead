@@ -98,6 +98,19 @@ class ProspekController extends Controller
             ->groupBy('cabang')
             ->orderByDesc('total')
             ->get();
+        $totalLeadKeseluruhan = $total + $daftar;
+        $conversionRate = $totalLeadKeseluruhan > 0 ? round(($daftar / $totalLeadKeseluruhan) * 100, 2) : 0;
+        $cabangStaffFilter = $dashboardRole['cabangTerkunci'] ?? ($request->string('cabang')->toString() ?: null);
+        $csoAktif = User::query()
+            ->where('aktif', true)
+            ->where('role', 'staff')
+            ->when($cabangStaffFilter, fn ($query) => $query->where('cabang', $cabangStaffFilter))
+            ->count();
+        $totalAsalSekolah = (clone $queryLeadsAktif)
+            ->whereNotNull('asal_sekolah')
+            ->where('asal_sekolah', '!=', '')
+            ->distinct()
+            ->count('asal_sekolah');
         $grafikHarian = $this->grafikLeadsHarian((clone $query), $periode);
         $dashboardClosing = $this->dashboardClosing((clone $queryClosing));
         $targetKinerja = $this->targetKinerjaDashboard($request, $periode, $dashboardRole, $total, $daftar);
@@ -106,7 +119,6 @@ class ProspekController extends Controller
         $agingLeads = $this->agingLeadsDashboard((clone $query));
         $performaInputUser = $this->performaInputUserDashboard($request, $periode);
         $konversiSumber = $this->konversiSumberDashboard($request, $periode);
-        $cabangStaffFilter = $dashboardRole['cabangTerkunci'] ?? ($request->string('cabang')->toString() ?: null);
         $staffFilter = $dashboardRole['bolehFilterStaff']
             ? $this->staffTersedia($cabangStaffFilter, batasiAkses: false)
             : collect();
@@ -114,6 +126,10 @@ class ProspekController extends Controller
         return view('dashboard', [
             'dashboardRole' => $dashboardRole,
             'total' => $total,
+            'totalLeadKeseluruhan' => $totalLeadKeseluruhan,
+            'conversionRate' => $conversionRate,
+            'csoAktif' => $csoAktif,
+            'totalAsalSekolah' => $totalAsalSekolah,
             'baru' => $baru,
             'followUp' => $followUp,
             'daftar' => $daftar,
@@ -135,6 +151,7 @@ class ProspekController extends Controller
             'staffFilter' => $staffFilter,
             'bulanFilter' => $periode['bulan'],
             'tahunFilter' => $periode['tahun'],
+            'semuaPeriode' => $periode['semua'],
             'daftarBulan' => $this->daftarBulan(),
             'daftarTahun' => range((int) now()->year, (int) now()->year - 5),
         ]);
@@ -1110,6 +1127,10 @@ class ProspekController extends Controller
 
     private function filterPeriodeDashboard($query, array $periode)
     {
+        if ($periode['semua']) {
+            return $query;
+        }
+
         $mulai = Carbon::create($periode['tahun'], $periode['bulan'], 1)->startOfMonth();
         $akhir = $mulai->copy()->endOfMonth();
 
@@ -1121,6 +1142,10 @@ class ProspekController extends Controller
 
     private function filterPeriodeClosingDashboard($query, array $periode)
     {
+        if ($periode['semua']) {
+            return $query;
+        }
+
         $mulai = Carbon::create($periode['tahun'], $periode['bulan'], 1)->startOfMonth();
         $akhir = $mulai->copy()->endOfMonth();
 
@@ -1388,6 +1413,14 @@ class ProspekController extends Controller
 
     private function targetUntukKonteks(Request $request, array $periode, array $konteks): array
     {
+        if ($periode['semua']) {
+            return [
+                'target_leads' => 0,
+                'target_closing' => 0,
+                'label' => 'Target bulanan tidak diterapkan untuk semua data',
+            ];
+        }
+
         $query = TargetKinerja::query()
             ->where('bulan', $periode['bulan'])
             ->where('tahun', $periode['tahun']);
@@ -1439,12 +1472,14 @@ class ProspekController extends Controller
             ->selectRaw("COALESCE(cabang, 'Tanpa Cabang') as label, COUNT(*) as total")
             ->groupBy('label')
             ->pluck('total', 'label');
-        $targets = TargetKinerja::query()
-            ->where('bulan', $periode['bulan'])
-            ->where('tahun', $periode['tahun'])
-            ->where('tipe', 'cabang')
-            ->get()
-            ->keyBy('cabang');
+        $targets = $periode['semua']
+            ? collect()
+            : TargetKinerja::query()
+                ->where('bulan', $periode['bulan'])
+                ->where('tahun', $periode['tahun'])
+                ->where('tipe', 'cabang')
+                ->get()
+                ->keyBy('cabang');
         $leads = (clone $queryLeads)
             ->selectRaw("COALESCE(cabang, 'Tanpa Cabang') as label, COUNT(*) as total")
             ->groupBy('label')
@@ -1497,23 +1532,27 @@ class ProspekController extends Controller
             ->selectRaw('COALESCE(user_id, 0) as user_id, COUNT(*) as total')
             ->groupBy('user_id')
             ->pluck('total', 'user_id');
-        $targetQuery = TargetKinerja::query()
-            ->where('bulan', $periode['bulan'])
-            ->where('tahun', $periode['tahun'])
-            ->where('tipe', 'staff');
+        $targets = collect();
 
-        if ($request->user()->role === 'staff') {
-            $targetQuery->where('user_id', $request->user()->id);
-        } elseif ($request->filled('staff')) {
-            $targetQuery->where('user_id', $request->staff);
-        } elseif ($konteks['cabangTerkunci']) {
-            $targetQuery->where('cabang', $konteks['cabangTerkunci']);
-        } elseif ($request->filled('cabang')) {
-            $targetQuery->where('cabang', $request->cabang);
+        if (! $periode['semua']) {
+            $targetQuery = TargetKinerja::query()
+                ->where('bulan', $periode['bulan'])
+                ->where('tahun', $periode['tahun'])
+                ->where('tipe', 'staff');
+
+            if ($request->user()->role === 'staff') {
+                $targetQuery->where('user_id', $request->user()->id);
+            } elseif ($request->filled('staff')) {
+                $targetQuery->where('user_id', $request->staff);
+            } elseif ($konteks['cabangTerkunci']) {
+                $targetQuery->where('cabang', $konteks['cabangTerkunci']);
+            } elseif ($request->filled('cabang')) {
+                $targetQuery->where('cabang', $request->cabang);
+            }
+
+            $targets = $targetQuery->get()
+                ->keyBy('user_id');
         }
-
-        $targets = $targetQuery->get()
-            ->keyBy('user_id');
         $userIds = $leads->keys()
             ->merge($closing->keys())
             ->merge($targets->keys())
@@ -1766,6 +1805,10 @@ class ProspekController extends Controller
 
     private function grafikLeadsHarian($query, array $periode): array
     {
+        if ($periode['semua']) {
+            return $this->grafikLeadsSemuaPeriode($query);
+        }
+
         $mulai = Carbon::create($periode['tahun'], $periode['bulan'], 1)->startOfMonth();
         $akhir = $mulai->copy()->endOfMonth();
         $jumlahLead = $this->queryLeadsAktif(clone $query)
@@ -1832,6 +1875,73 @@ class ProspekController extends Controller
         ];
     }
 
+    private function grafikLeadsSemuaPeriode($query): array
+    {
+        $jumlahLead = $this->queryLeadsAktif(clone $query)
+            ->selectRaw('DATE(COALESCE(tgl_masuk, created_at)) as tanggal, COUNT(*) as total')
+            ->groupBy('tanggal')
+            ->pluck('total', 'tanggal');
+        $jumlahClosing = (clone $query)
+            ->where('status', 'Daftar')
+            ->selectRaw('DATE(COALESCE(tanggal_daftar, updated_at)) as tanggal, COUNT(*) as total')
+            ->groupBy('tanggal')
+            ->pluck('total', 'tanggal');
+        $tanggalItems = $jumlahLead->keys()
+            ->merge($jumlahClosing->keys())
+            ->filter()
+            ->sort()
+            ->values();
+
+        if ($tanggalItems->isEmpty()) {
+            $hari = collect([now()->toDateString()])
+                ->map(fn ($tanggal) => [
+                    'tanggal' => $tanggal,
+                    'nomor' => Carbon::parse($tanggal)->translatedFormat('d M'),
+                    'lead' => 0,
+                    'closing' => 0,
+                ])
+                ->all();
+        } else {
+            $hari = $tanggalItems
+                ->map(fn ($tanggal) => [
+                    'tanggal' => $tanggal,
+                    'nomor' => Carbon::parse($tanggal)->translatedFormat('d M'),
+                    'lead' => (int) ($jumlahLead[$tanggal] ?? 0),
+                    'closing' => (int) ($jumlahClosing[$tanggal] ?? 0),
+                ])
+                ->all();
+        }
+
+        $maksData = (int) collect($hari)->max(fn ($item) => max($item['lead'], $item['closing']));
+        $skalaGrafik = $this->skalaGrafikHarian($maksData);
+        $maks = $skalaGrafik['maks'];
+        $tinggi = 170;
+        $lebar = max(1000, count($hari) * 40);
+        $lebarLangkah = count($hari) > 1 ? $lebar / (count($hari) - 1) : 0;
+        $buatTitik = function (string $key) use ($hari, $maks, $tinggi, $lebarLangkah): string {
+            return collect($hari)
+                ->map(function ($item, $index) use ($key, $maks, $tinggi, $lebarLangkah) {
+                    $x = $index * $lebarLangkah;
+                    $y = $tinggi - (($item[$key] / $maks) * $tinggi);
+
+                    return round($x, 2).','.round($y, 2);
+                })
+                ->implode(' ');
+        };
+
+        return [
+            'hari' => $hari,
+            'maks' => $maks,
+            'bulan' => 'Semua data',
+            'lebar' => $lebar,
+            'tinggi' => $tinggi,
+            'leadPoints' => $buatTitik('lead'),
+            'closingPoints' => $buatTitik('closing'),
+            'areaLeadPoints' => '0,'.$tinggi.' '.$buatTitik('lead').' '.$lebar.','.$tinggi,
+            'skala' => $skalaGrafik['label'],
+        ];
+    }
+
     private function skalaGrafikHarian(int $maksData): array
     {
         if ($maksData <= 0) {
@@ -1857,7 +1967,8 @@ class ProspekController extends Controller
 
     private function periodeDashboard(Request $request): array
     {
-        $bulan = (int) $request->input('bulan', now()->month);
+        $semua = ! $request->filled('bulan') || $request->input('bulan') === 'semua';
+        $bulan = $semua ? now()->month : (int) $request->input('bulan');
         $tahun = (int) $request->input('tahun', now()->year);
 
         if ($bulan < 1 || $bulan > 12) {
@@ -1868,7 +1979,7 @@ class ProspekController extends Controller
             $tahun = now()->year;
         }
 
-        return compact('bulan', 'tahun');
+        return compact('bulan', 'tahun', 'semua');
     }
 
     private function statusDariHasilFollowUp(string $hasil): string

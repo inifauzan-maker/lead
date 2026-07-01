@@ -12,131 +12,105 @@
         $maksSekolah = max(1, (int) $perSekolah->max('total'));
     @endphp
 
-    <section class="hero-modul">
-        <div>
-            <span>{{ $dashboardRole['labelRole'] }}</span>
-            <h2>{{ $dashboardRole['judul'] }}</h2>
-            <p>{{ $dashboardRole['deskripsi'] }}</p>
-        </div>
-        <strong>{{ $dashboardRole['cabangTerkunci'] ?: 'Semua Cabang' }}</strong>
-    </section>
+    @php
+        $warnaPieSumber = ['#145f5b', '#f4a43b', '#3f7faf', '#e96c43', '#8bb438', '#8a5f3f', '#8d9aae', '#6f8f9f'];
+        $totalPieSumber = max(0, (int) $perSumber->sum('total'));
+        $posisiPie = 0;
+        $irisanPie = [];
 
-    <section class="panel panel-heatmap">
-        <div class="judul-panel judul-heatmap">
+        foreach ($perSumber as $index => $item) {
+            $persen = $totalPieSumber > 0 ? (((int) $item->total / $totalPieSumber) * 100) : 0;
+            $akhir = $posisiPie + $persen;
+            $warna = $warnaPieSumber[$index % count($warnaPieSumber)];
+            $irisanPie[] = "{$warna} {$posisiPie}% {$akhir}%";
+            $posisiPie = $akhir;
+        }
+
+        $gradientPie = $irisanPie ? 'conic-gradient('.implode(', ', $irisanPie).')' : 'conic-gradient(#e5e7eb 0 100%)';
+    @endphp
+
+    <section class="dashboard-kpi">
+        <div class="kpi-hero">
             <div>
-                <h2>Peraihan Leads Harian</h2>
-                <span>Bulan {{ $grafikHarian['bulan'] }} berdasarkan tanggal masuk.</span>
+                <h2>Dashboard KPI CRM Leads</h2>
+                <p>Monitoring lead, follow up, dan performa CSO</p>
             </div>
-            <form class="filter-dashboard" method="GET" action="{{ route('dashboard') }}">
-                <select name="bulan">
-                    @foreach ($daftarBulan as $value => $label)
-                        <option value="{{ $value }}" @selected((int) $bulanFilter === (int) $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-                <select name="tahun">
-                    @foreach ($daftarTahun as $tahun)
-                        <option value="{{ $tahun }}" @selected((int) $tahunFilter === (int) $tahun)>{{ $tahun }}</option>
-                    @endforeach
-                </select>
-                @if ($dashboardRole['bolehFilterCabang'])
-                    <select name="cabang">
-                        <option value="">Semua cabang</option>
-                        @foreach ($cabang as $item)
-                            <option value="{{ $item }}" @selected(request('cabang') === $item)>{{ $item }}</option>
-                        @endforeach
-                    </select>
-                @endif
-                @if ($dashboardRole['bolehFilterAdmin'])
-                    <select name="admin">
-                        <option value="">Semua admin</option>
-                        @foreach ($adminCabang as $item)
-                            <option value="{{ $item }}" @selected(request('admin') === $item)>{{ $item }}</option>
-                        @endforeach
-                    </select>
-                @endif
-                @if ($dashboardRole['bolehFilterStaff'])
-                    <select name="staff">
-                        <option value="">Semua staff</option>
-                        @foreach ($staffFilter as $item)
-                            <option value="{{ $item->id }}" @selected((string) request('staff') === (string) $item->id)>
-                                {{ $item->name }}{{ $item->cabang ? ' - '.$item->cabang : '' }}
-                            </option>
-                        @endforeach
-                    </select>
-                @endif
-                @if (! $dashboardRole['bolehFilterCabang'] && $dashboardRole['cabangTerkunci'])
-                    <input type="hidden" name="cabang" value="{{ $dashboardRole['cabangTerkunci'] }}">
-                @endif
-                @if (! $dashboardRole['bolehFilterStaff'])
-                    @foreach (['admin', 'staff'] as $field)
-                        <input type="hidden" name="{{ $field }}" value="">
-                    @endforeach
-                @endif
-                <button class="tombol sekunder" type="submit">Filter</button>
-            </form>
         </div>
 
-        <div class="grafik-wrap">
-            <div class="legenda-grafik">
-                <span><i class="biru"></i> CLOSING</span>
-                <span><i class="merah"></i> LEAD</span>
-            </div>
-            <div class="grafik-scroll">
-                <div class="grafik-kanvas">
-                    <div class="sumbu-y">
-                        @foreach ($grafikHarian['skala'] as $nilai)
-                            <span>{{ $nilai }}</span>
-                        @endforeach
+        <div class="kpi-metrics">
+            <article class="kpi-card">
+                <span>Total Lead</span>
+                <strong>{{ $totalLeadKeseluruhan }}</strong>
+            </article>
+            <article class="kpi-card">
+                <span>Conversion Rate</span>
+                <strong>{{ number_format($conversionRate, 2) }}%</strong>
+            </article>
+            <article class="kpi-card">
+                <span>CSO Aktif</span>
+                <strong>{{ $csoAktif }}</strong>
+            </article>
+            <article class="kpi-card">
+                <span>Asal Sekolah</span>
+                <strong>{{ $totalAsalSekolah }}</strong>
+            </article>
+        </div>
+
+        <div class="kpi-analytics">
+            <section class="panel kpi-growth-panel">
+                <div class="judul-panel kpi-panel-title">
+                    <div>
+                        <h2>Pertumbuhan Lead</h2>
+                        <span>{{ $semuaPeriode ? 'Semua data' : $grafikHarian['bulan'] }}</span>
                     </div>
-                    <svg
-                        class="grafik-svg"
-                        viewBox="0 0 {{ $grafikHarian['lebar'] }} {{ $grafikHarian['tinggi'] }}"
-                        preserveAspectRatio="none"
-                        aria-label="Grafik leads harian"
-                    >
-                        <polyline class="area-lead" points="{{ $grafikHarian['areaLeadPoints'] }}"></polyline>
-                        <polyline class="garis-lead" points="{{ $grafikHarian['leadPoints'] }}"></polyline>
-                        <polyline class="garis-closing" points="{{ $grafikHarian['closingPoints'] }}"></polyline>
-                    </svg>
-                    <div class="sumbu-x" style="grid-template-columns: repeat({{ count($grafikHarian['hari']) }}, minmax(0, 1fr))">
-                        @foreach ($grafikHarian['hari'] as $hari)
-                            <span title="Lead: {{ $hari['lead'] }}, Closing: {{ $hari['closing'] }}">{{ $hari['nomor'] }}</span>
-                        @endforeach
+                    <div class="kpi-tabs" aria-label="Mode grafik">
+                        <span class="aktif">Harian</span>
+                        <span>Bulanan</span>
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
+                <div class="grafik-wrap kpi-chart-wrap">
+                    <div class="grafik-scroll">
+                        <div class="grafik-kanvas kpi-line-canvas">
+                            <div class="sumbu-y">
+                                @foreach ($grafikHarian['skala'] as $nilai)
+                                    <span>{{ $nilai }}</span>
+                                @endforeach
+                            </div>
+                            <svg
+                                class="grafik-svg kpi-line-svg"
+                                viewBox="0 0 {{ $grafikHarian['lebar'] }} {{ $grafikHarian['tinggi'] }}"
+                                preserveAspectRatio="none"
+                                aria-label="Grafik pertumbuhan lead"
+                            >
+                                <polyline class="garis-lead kpi-line" points="{{ $grafikHarian['leadPoints'] }}"></polyline>
+                            </svg>
+                            <div class="sumbu-x" style="grid-template-columns: repeat({{ count($grafikHarian['hari']) }}, minmax(0, 1fr))">
+                                @foreach ($grafikHarian['hari'] as $hari)
+                                    <span title="Lead: {{ $hari['lead'] }}, Closing: {{ $hari['closing'] }}">{{ $hari['nomor'] }}</span>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-    <section class="grid-ringkasan">
-        <article class="kartu-stat">
-            <span>Total Leads Aktif</span>
-            <strong>{{ $total }}</strong>
-        </article>
-        <article class="kartu-stat">
-            <span>Leads Baru</span>
-            <strong>{{ $baru }}</strong>
-        </article>
-        <article class="kartu-stat">
-            <span>Butuh Follow Up</span>
-            <strong>{{ $followUp }}</strong>
-        </article>
-        <article class="kartu-stat">
-            <span>Closing</span>
-            <strong>{{ $daftar }}</strong>
-        </article>
-        <article class="kartu-stat">
-            <span>Follow Up Rate</span>
-            <strong>{{ $kpiOperasional['followUpRate'] }}%</strong>
-        </article>
-        <article class="kartu-stat">
-            <span>Belum Follow Up</span>
-            <strong>{{ $kpiOperasional['belumFollowUp'] }}</strong>
-        </article>
-        <article class="kartu-stat">
-            <span>Follow Up Terlambat</span>
-            <strong>{{ $kpiOperasional['followUpTerlambat'] }}</strong>
-        </article>
+            <section class="panel kpi-source-panel">
+                <div class="judul-panel">
+                    <h2>Sumber Lead</h2>
+                </div>
+                <div class="kpi-pie" style="--pie: {{ $gradientPie }}"></div>
+                <div class="kpi-pie-legend">
+                    @forelse ($perSumber as $item)
+                        <span>
+                            <i style="background: {{ $warnaPieSumber[$loop->index % count($warnaPieSumber)] }}"></i>
+                            {{ $item->sumber }}
+                        </span>
+                    @empty
+                        <span><i></i>Belum ada data</span>
+                    @endforelse
+                </div>
+            </section>
+        </div>
     </section>
 
     <section class="grid-dua jarak-atas">
@@ -157,7 +131,7 @@
                         <span class="progress-kelas"><i style="width: {{ $item['persen'] }}%"></i></span>
                     </div>
                 @empty
-                    <p class="kosong">Belum ada aging leads aktif pada periode ini.</p>
+                    <p class="kosong">Belum ada aging leads aktif pada filter ini.</p>
                 @endforelse
             </div>
         </div>
@@ -179,7 +153,7 @@
                         <span class="progress-kelas"><i style="width: {{ $item['persen'] }}%"></i></span>
                     </div>
                 @empty
-                    <p class="kosong">Belum ada performa user input pada periode ini.</p>
+                    <p class="kosong">Belum ada performa user input pada filter ini.</p>
                 @endforelse
             </div>
         </div>
@@ -202,7 +176,7 @@
                     <span class="progress-kelas"><i style="width: {{ $item['persen'] }}%"></i></span>
                 </div>
             @empty
-                <p class="kosong">Belum ada data konversi sumber pada periode ini.</p>
+                <p class="kosong">Belum ada data konversi sumber pada filter ini.</p>
             @endforelse
         </div>
     </section>
@@ -234,7 +208,7 @@
                 <div class="bar-progress">
                     <div>
                         <strong>Rasio Konversi</strong>
-                        <span>{{ $targetKinerja['closing'] }} closing dari {{ $targetKinerja['leadsAktif'] + $targetKinerja['closing'] }} total leads periode ini</span>
+                        <span>{{ $targetKinerja['closing'] }} closing dari {{ $targetKinerja['leadsAktif'] + $targetKinerja['closing'] }} total leads filter ini</span>
                     </div>
                     <span class="progress-kelas"><i style="width: {{ min(100, $targetKinerja['rasioKonversi']) }}%"></i></span>
                 </div>
@@ -267,7 +241,7 @@
                         <span class="progress-kelas"><i style="width: {{ $persenRanking }}%"></i></span>
                     </div>
                 @empty
-                    <p class="kosong">Belum ada data ranking pada periode ini.</p>
+                    <p class="kosong">Belum ada data ranking pada filter ini.</p>
                 @endforelse
             </div>
         </div>
@@ -297,7 +271,7 @@
                     </span>
                 </div>
             @empty
-                <p class="kosong">Belum ada data performa pada periode ini.</p>
+                <p class="kosong">Belum ada data performa pada filter ini.</p>
             @endforelse
         </div>
     </section>
@@ -307,7 +281,7 @@
             <div class="judul-panel">
                 <div>
                     <h2>Dashboard Closing</h2>
-                    <span>{{ $dashboardClosing['total'] }} siswa closing pada periode ini.</span>
+                    <span>{{ $dashboardClosing['total'] }} siswa closing pada filter ini.</span>
                 </div>
                 <strong>Rp {{ number_format((float) $dashboardClosing['nominal'], 0, ',', '.') }}</strong>
             </div>
@@ -324,7 +298,7 @@
                         <span class="progress-kelas"><i style="width: {{ round(($item->total / $maksClosingProgram) * 100) }}%"></i></span>
                     </div>
                 @empty
-                    <p class="kosong">Belum ada closing pada periode ini.</p>
+                    <p class="kosong">Belum ada closing pada filter ini.</p>
                 @endforelse
             </div>
         </div>
@@ -359,7 +333,7 @@
         <div class="judul-panel">
             <div>
                 <h2>Closing per Cabang</h2>
-                <span>Jumlah siswa closing per cabang pada periode filter.</span>
+                <span>Jumlah siswa closing per cabang pada filter aktif.</span>
             </div>
         </div>
         @php
@@ -375,7 +349,7 @@
                     <span class="progress-kelas"><i style="width: {{ round(($item->total / $maksClosingCabang) * 100) }}%"></i></span>
                 </div>
             @empty
-                <p class="kosong">Belum ada closing per cabang pada periode ini.</p>
+                <p class="kosong">Belum ada closing per cabang pada filter ini.</p>
             @endforelse
         </div>
     </section>

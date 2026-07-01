@@ -942,19 +942,21 @@ class ProspekTest extends TestCase
             'status' => 'Daftar',
             'cabang' => 'Bandung',
             'tgl_masuk' => '2026-06-13',
+            'tanggal_daftar' => '2026-06-13',
         ]);
         Prospek::create([
             'nama' => 'Siswa Closing Dua',
             'status' => 'Daftar',
             'cabang' => 'Bandung',
             'tgl_masuk' => '2026-06-13',
+            'tanggal_daftar' => '2026-06-13',
         ]);
 
         $this->actingAs($admin)
             ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
             ->assertOk()
-            ->assertSee('Total Leads Aktif')
-            ->assertSeeInOrder(['Total Leads Aktif', '1', 'Leads Baru', '0', 'Butuh Follow Up', '1', 'Closing', '2']);
+            ->assertSee('Dashboard KPI CRM Leads')
+            ->assertSeeInOrder(['Total Lead', '3', 'Conversion Rate', '66.67%']);
 
         $this->actingAs($admin)
             ->get(route('data-siswa.index'))
@@ -962,6 +964,46 @@ class ProspekTest extends TestCase
             ->assertSee('Siswa Closing Satu')
             ->assertSee('Siswa Closing Dua')
             ->assertDontSee('Lead Aktif');
+    }
+
+    public function test_dashboard_default_menampilkan_semua_data_lintas_bulan(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        Prospek::create([
+            'nama' => 'Lead Mei',
+            'status' => 'Baru',
+            'cabang' => 'Bandung',
+            'tgl_masuk' => '2026-05-10',
+        ]);
+        Prospek::create([
+            'nama' => 'Lead Juni',
+            'status' => 'Follow Up',
+            'cabang' => 'Bandung',
+            'tgl_masuk' => '2026-06-11',
+        ]);
+        Prospek::create([
+            'nama' => 'Closing Juli',
+            'status' => 'Daftar',
+            'cabang' => 'Bandung',
+            'tgl_masuk' => '2026-07-01',
+            'tanggal_daftar' => '2026-07-02',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Semua data')
+            ->assertSeeInOrder(['Total Lead', '3', 'Conversion Rate', '33.33%']);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
+            ->assertOk()
+            ->assertSeeInOrder(['Total Lead', '1', 'Conversion Rate', '0.00%']);
     }
 
     public function test_dashboard_menampilkan_target_konversi_dan_ranking(): void
@@ -1078,10 +1120,9 @@ class ProspekTest extends TestCase
         $this->actingAs($admin)
             ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
             ->assertOk()
-            ->assertSee('Follow Up Rate')
-            ->assertSee('50%')
-            ->assertSeeInOrder(['Belum Follow Up', '1'])
-            ->assertSeeInOrder(['Follow Up Terlambat', '1'])
+            ->assertSee('Dashboard KPI CRM Leads')
+            ->assertSee('Conversion Rate')
+            ->assertSee('33.33%')
             ->assertSee('Aging Leads Aktif')
             ->assertSee('0-1 hari')
             ->assertSee('4-7 hari')
@@ -1124,8 +1165,8 @@ class ProspekTest extends TestCase
         $this->actingAs($adminJaksel)
             ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
             ->assertOk()
-            ->assertSee('Dashboard Semua User')
-            ->assertSeeInOrder(['Total Leads Aktif', '1', 'Leads Baru', '0', 'Butuh Follow Up', '1', 'Closing', '1'])
+            ->assertSee('Dashboard KPI CRM Leads')
+            ->assertSeeInOrder(['Total Lead', '2', 'Conversion Rate', '50.00%'])
             ->assertSee('Bandung')
             ->assertSee('Jakpus');
     }
