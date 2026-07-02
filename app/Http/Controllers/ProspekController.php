@@ -16,6 +16,7 @@ use App\Models\WhatsappTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
@@ -111,7 +112,14 @@ class ProspekController extends Controller
             ->where('asal_sekolah', '!=', '')
             ->distinct()
             ->count('asal_sekolah');
-        $grafikHarian = $this->grafikLeadsHarian((clone $query), $periode);
+        $modeGrafikPertumbuhan = in_array($request->input('grafik'), ['bulanan', 'tahunan'], true)
+            ? $request->input('grafik')
+            : 'harian';
+        $grafikHarian = match ($modeGrafikPertumbuhan) {
+            'bulanan' => $this->grafikLeadsBulanan((clone $query), $periode),
+            'tahunan' => $this->grafikLeadsTahunan((clone $query), $periode),
+            default => $this->grafikLeadsHarian((clone $query), $periode),
+        };
         $dashboardClosing = $this->dashboardClosing((clone $queryClosing));
         $targetKinerja = $this->targetKinerjaDashboard($request, $periode, $dashboardRole, $total, $daftar);
         $rankingKinerja = $this->rankingKinerjaDashboard($request, $periode, $dashboardRole);
@@ -146,6 +154,7 @@ class ProspekController extends Controller
             'performaInputUser' => $performaInputUser,
             'konversiSumber' => $konversiSumber,
             'grafikHarian' => $grafikHarian,
+            'modeGrafikPertumbuhan' => $modeGrafikPertumbuhan,
             'cabang' => $this->daftarCabang(),
             'adminCabang' => $this->daftarAdminCabang($dashboardRole['cabangTerkunci']),
             'staffFilter' => $staffFilter,
@@ -1811,7 +1820,7 @@ class ProspekController extends Controller
 
         $mulai = Carbon::create($periode['tahun'], $periode['bulan'], 1)->startOfMonth();
         $akhir = $mulai->copy()->endOfMonth();
-        $jumlahLead = $this->queryLeadsAktif(clone $query)
+        $jumlahLead = (clone $query)
             ->selectRaw('DATE(COALESCE(tgl_masuk, created_at)) as tanggal, COUNT(*) as total')
             ->whereRaw('DATE(COALESCE(tgl_masuk, created_at)) between ? and ?', [
                 $mulai->toDateString(),
@@ -1877,46 +1886,57 @@ class ProspekController extends Controller
 
     private function grafikLeadsSemuaPeriode($query): array
     {
-        $jumlahLead = $this->queryLeadsAktif(clone $query)
+        $tanggalLeadTerakhir = (clone $query)->max(DB::raw('DATE(COALESCE(tgl_masuk, created_at))'));
+        $tanggalClosingTerakhir = (clone $query)
+            ->where('status', 'Daftar')
+            ->max(DB::raw('DATE(COALESCE(tanggal_daftar, updated_at))'));
+        $tanggalAkhir = collect([$tanggalLeadTerakhir, $tanggalClosingTerakhir])
+            ->filter()
+            ->sort()
+            ->last();
+        $akhir = $tanggalAkhir ? Carbon::parse($tanggalAkhir)->startOfDay() : now()->startOfDay();
+        $mulai = $akhir->copy()->subDays(29);
+        $jumlahLead = (clone $query)
             ->selectRaw('DATE(COALESCE(tgl_masuk, created_at)) as tanggal, COUNT(*) as total')
+            ->whereRaw('DATE(COALESCE(tgl_masuk, created_at)) between ? and ?', [
+                $mulai->toDateString(),
+                $akhir->toDateString(),
+            ])
             ->groupBy('tanggal')
             ->pluck('total', 'tanggal');
         $jumlahClosing = (clone $query)
             ->where('status', 'Daftar')
             ->selectRaw('DATE(COALESCE(tanggal_daftar, updated_at)) as tanggal, COUNT(*) as total')
+            ->whereRaw('DATE(COALESCE(tanggal_daftar, updated_at)) between ? and ?', [
+                $mulai->toDateString(),
+                $akhir->toDateString(),
+            ])
             ->groupBy('tanggal')
             ->pluck('total', 'tanggal');
-        $tanggalItems = $jumlahLead->keys()
-            ->merge($jumlahClosing->keys())
-            ->filter()
-            ->sort()
-            ->values();
+        $hari = [];
+        $tanggal = $mulai->copy();
+        $index = 0;
 
-        if ($tanggalItems->isEmpty()) {
-            $hari = collect([now()->toDateString()])
-                ->map(fn ($tanggal) => [
-                    'tanggal' => $tanggal,
-                    'nomor' => Carbon::parse($tanggal)->translatedFormat('d M'),
-                    'lead' => 0,
-                    'closing' => 0,
-                ])
-                ->all();
-        } else {
-            $hari = $tanggalItems
-                ->map(fn ($tanggal) => [
-                    'tanggal' => $tanggal,
-                    'nomor' => Carbon::parse($tanggal)->translatedFormat('d M'),
-                    'lead' => (int) ($jumlahLead[$tanggal] ?? 0),
-                    'closing' => (int) ($jumlahClosing[$tanggal] ?? 0),
-                ])
-                ->all();
+        while ($tanggal <= $akhir) {
+            $tanggalKey = $tanggal->toDateString();
+            $tampilkanLabel = $index === 0 || $index % 5 === 0 || $tanggal->equalTo($akhir);
+
+            $hari[] = [
+                'tanggal' => $tanggalKey,
+                'nomor' => $tampilkanLabel ? $tanggal->translatedFormat('d M') : '',
+                'lead' => (int) ($jumlahLead[$tanggalKey] ?? 0),
+                'closing' => (int) ($jumlahClosing[$tanggalKey] ?? 0),
+            ];
+
+            $tanggal->addDay();
+            $index++;
         }
 
         $maksData = (int) collect($hari)->max(fn ($item) => max($item['lead'], $item['closing']));
         $skalaGrafik = $this->skalaGrafikHarian($maksData);
         $maks = $skalaGrafik['maks'];
         $tinggi = 170;
-        $lebar = max(1000, count($hari) * 40);
+        $lebar = 1000;
         $lebarLangkah = count($hari) > 1 ? $lebar / (count($hari) - 1) : 0;
         $buatTitik = function (string $key) use ($hari, $maks, $tinggi, $lebarLangkah): string {
             return collect($hari)
@@ -1932,7 +1952,7 @@ class ProspekController extends Controller
         return [
             'hari' => $hari,
             'maks' => $maks,
-            'bulan' => 'Semua data',
+            'bulan' => '30 hari data terbaru',
             'lebar' => $lebar,
             'tinggi' => $tinggi,
             'leadPoints' => $buatTitik('lead'),
@@ -1940,6 +1960,161 @@ class ProspekController extends Controller
             'areaLeadPoints' => '0,'.$tinggi.' '.$buatTitik('lead').' '.$lebar.','.$tinggi,
             'skala' => $skalaGrafik['label'],
         ];
+    }
+
+    private function grafikLeadsBulanan($query, array $periode): array
+    {
+        $bulanMasuk = $this->ekspresiBulanDashboard('COALESCE(tgl_masuk, created_at)');
+        $bulanDaftar = $this->ekspresiBulanDashboard('COALESCE(tanggal_daftar, updated_at)');
+        $jumlahLead = (clone $query)
+            ->selectRaw("{$bulanMasuk} as bulan, COUNT(*) as total")
+            ->groupBy('bulan')
+            ->pluck('total', 'bulan');
+        $jumlahClosing = (clone $query)
+            ->where('status', 'Daftar')
+            ->selectRaw("{$bulanDaftar} as bulan, COUNT(*) as total")
+            ->groupBy('bulan')
+            ->pluck('total', 'bulan');
+        if ($periode['semua']) {
+            $jumlahLead = $jumlahLead
+                ->groupBy(fn ($total, $bulanKey) => Carbon::createFromFormat('Y-m', $bulanKey)->format('m'))
+                ->map(fn ($items) => (int) $items->sum());
+            $jumlahClosing = $jumlahClosing
+                ->groupBy(fn ($total, $bulanKey) => Carbon::createFromFormat('Y-m', $bulanKey)->format('m'))
+                ->map(fn ($items) => (int) $items->sum());
+        }
+
+        $bulanItems = collect(range(1, 12))->map(fn ($bulan) => $periode['semua']
+            ? sprintf('%02d', $bulan)
+            : sprintf('%04d-%02d', $periode['tahun'], $bulan));
+
+        if ($bulanItems->isEmpty()) {
+            $bulanItems = collect([now()->format('Y-m')]);
+        }
+
+        $hari = $bulanItems
+            ->map(function ($bulanKey) use ($jumlahLead, $jumlahClosing, $periode) {
+                $tanggal = $periode['semua']
+                    ? Carbon::create(null, (int) $bulanKey, 1)->startOfMonth()
+                    : Carbon::createFromFormat('Y-m', $bulanKey)->startOfMonth();
+
+                return [
+                    'tanggal' => $bulanKey,
+                    'nomor' => $tanggal->translatedFormat('M'),
+                    'lead' => (int) ($jumlahLead[$bulanKey] ?? 0),
+                    'closing' => (int) ($jumlahClosing[$bulanKey] ?? 0),
+                ];
+            })
+            ->all();
+
+        $maksData = (int) collect($hari)->max(fn ($item) => max($item['lead'], $item['closing']));
+        $skalaGrafik = $this->skalaGrafikHarian($maksData);
+        $maks = $skalaGrafik['maks'];
+        $tinggi = 170;
+        $lebar = max(1000, count($hari) * 92);
+        $lebarLangkah = count($hari) > 1 ? $lebar / (count($hari) - 1) : 0;
+        $buatTitik = function (string $key) use ($hari, $maks, $tinggi, $lebarLangkah): string {
+            return collect($hari)
+                ->map(function ($item, $index) use ($key, $maks, $tinggi, $lebarLangkah) {
+                    $x = $index * $lebarLangkah;
+                    $y = $tinggi - (($item[$key] / $maks) * $tinggi);
+
+                    return round($x, 2).','.round($y, 2);
+                })
+                ->implode(' ');
+        };
+
+        return [
+            'hari' => $hari,
+            'maks' => $maks,
+            'bulan' => $periode['semua'] ? 'Semua data bulanan' : 'Bulanan '.$periode['tahun'],
+            'lebar' => $lebar,
+            'tinggi' => $tinggi,
+            'leadPoints' => $buatTitik('lead'),
+            'closingPoints' => $buatTitik('closing'),
+            'areaLeadPoints' => '0,'.$tinggi.' '.$buatTitik('lead').' '.$lebar.','.$tinggi,
+            'skala' => $skalaGrafik['label'],
+        ];
+    }
+
+    private function grafikLeadsTahunan($query, array $periode): array
+    {
+        $tahunMasuk = $this->ekspresiTahunDashboard('COALESCE(tgl_masuk, created_at)');
+        $tahunDaftar = $this->ekspresiTahunDashboard('COALESCE(tanggal_daftar, updated_at)');
+        $jumlahLead = (clone $query)
+            ->selectRaw("{$tahunMasuk} as tahun, COUNT(*) as total")
+            ->groupBy('tahun')
+            ->pluck('total', 'tahun');
+        $jumlahClosing = (clone $query)
+            ->where('status', 'Daftar')
+            ->selectRaw("{$tahunDaftar} as tahun, COUNT(*) as total")
+            ->groupBy('tahun')
+            ->pluck('total', 'tahun');
+        $tahunItems = $periode['semua']
+            ? $jumlahLead->keys()->merge($jumlahClosing->keys())->filter()->sort()->values()
+            : collect([$periode['tahun']]);
+
+        if ($tahunItems->isEmpty()) {
+            $tahunItems = collect([now()->year]);
+        }
+
+        $hari = $tahunItems
+            ->map(fn ($tahun) => [
+                'tanggal' => (string) $tahun,
+                'nomor' => (string) $tahun,
+                'lead' => (int) ($jumlahLead[(string) $tahun] ?? $jumlahLead[(int) $tahun] ?? 0),
+                'closing' => (int) ($jumlahClosing[(string) $tahun] ?? $jumlahClosing[(int) $tahun] ?? 0),
+            ])
+            ->all();
+
+        $maksData = (int) collect($hari)->max(fn ($item) => max($item['lead'], $item['closing']));
+        $skalaGrafik = $this->skalaGrafikHarian($maksData);
+        $maks = $skalaGrafik['maks'];
+        $tinggi = 170;
+        $lebar = max(1000, count($hari) * 120);
+        $lebarLangkah = count($hari) > 1 ? $lebar / (count($hari) - 1) : 0;
+        $buatTitik = function (string $key) use ($hari, $maks, $tinggi, $lebarLangkah): string {
+            return collect($hari)
+                ->map(function ($item, $index) use ($key, $maks, $tinggi, $lebarLangkah) {
+                    $x = $index * $lebarLangkah;
+                    $y = $tinggi - (($item[$key] / $maks) * $tinggi);
+
+                    return round($x, 2).','.round($y, 2);
+                })
+                ->implode(' ');
+        };
+
+        return [
+            'hari' => $hari,
+            'maks' => $maks,
+            'bulan' => $periode['semua'] ? 'Semua data tahunan' : 'Tahunan '.$periode['tahun'],
+            'lebar' => $lebar,
+            'tinggi' => $tinggi,
+            'leadPoints' => $buatTitik('lead'),
+            'closingPoints' => $buatTitik('closing'),
+            'areaLeadPoints' => '0,'.$tinggi.' '.$buatTitik('lead').' '.$lebar.','.$tinggi,
+            'skala' => $skalaGrafik['label'],
+        ];
+    }
+
+    private function ekspresiBulanDashboard(string $tanggal): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'mysql', 'mariadb' => "DATE_FORMAT({$tanggal}, '%Y-%m')",
+            'pgsql' => "TO_CHAR({$tanggal}, 'YYYY-MM')",
+            'sqlsrv' => "FORMAT({$tanggal}, 'yyyy-MM')",
+            default => "strftime('%Y-%m', {$tanggal})",
+        };
+    }
+
+    private function ekspresiTahunDashboard(string $tanggal): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'mysql', 'mariadb' => "YEAR({$tanggal})",
+            'pgsql' => "TO_CHAR({$tanggal}, 'YYYY')",
+            'sqlsrv' => "YEAR({$tanggal})",
+            default => "strftime('%Y', {$tanggal})",
+        };
     }
 
     private function skalaGrafikHarian(int $maksData): array

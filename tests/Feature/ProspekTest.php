@@ -997,13 +997,25 @@ class ProspekTest extends TestCase
         $this->actingAs($admin)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Semua data')
+            ->assertSee('30 hari data terbaru')
             ->assertSeeInOrder(['Total Lead', '3', 'Conversion Rate', '33.33%']);
 
         $this->actingAs($admin)
             ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
             ->assertOk()
             ->assertSeeInOrder(['Total Lead', '1', 'Conversion Rate', '0.00%']);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard', ['grafik' => 'bulanan']))
+            ->assertOk()
+            ->assertSee('Semua data bulanan')
+            ->assertSee('Bulanan');
+
+        $this->actingAs($admin)
+            ->get(route('dashboard', ['grafik' => 'tahunan']))
+            ->assertOk()
+            ->assertSee('Semua data tahunan')
+            ->assertSee('Tahunan');
     }
 
     public function test_dashboard_menampilkan_target_konversi_dan_ranking(): void

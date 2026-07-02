@@ -1052,6 +1052,7 @@ textarea {
     padding: 4px;
 }
 
+.kpi-tabs a,
 .kpi-tabs span {
     border-radius: 9px;
     color: #0d2740;
@@ -1059,6 +1060,10 @@ textarea {
     font-size: 0.78rem;
     font-weight: 800;
     padding: 6px 12px;
+}
+
+.kpi-tabs a:hover {
+    background: rgba(255, 255, 255, 0.72);
 }
 
 .kpi-tabs .aktif {
@@ -1096,6 +1101,17 @@ textarea {
     font-weight: 500;
 }
 
+.kpi-line-canvas .sumbu-x {
+    gap: 8px;
+}
+
+.kpi-line-canvas .sumbu-x span {
+    min-width: 34px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .kpi-source-panel {
     min-height: 320px;
 }
@@ -1115,12 +1131,20 @@ textarea {
 }
 
 .kpi-pie::after {
-    background: transparent;
-    border: 2px solid #ffffff;
+    align-items: center;
+    background: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.82);
     border-radius: 50%;
-    content: "";
-    inset: 0;
+    box-shadow: 0 4px 14px rgba(15, 42, 67, 0.12);
+    color: #075b5f;
+    content: attr(data-total) " lead";
+    display: flex;
+    font-size: 1rem;
+    font-weight: 900;
+    inset: 34%;
+    justify-content: center;
     position: absolute;
+    text-align: center;
 }
 
 .kpi-pie-legend {
@@ -1138,6 +1162,16 @@ textarea {
     display: inline-flex;
     font-size: 0.78rem;
     gap: 7px;
+}
+
+.kpi-pie-legend strong {
+    color: #475569;
+}
+
+.kpi-pie-legend em {
+    color: #0f766e;
+    font-style: normal;
+    font-weight: 800;
 }
 
 .kpi-pie-legend i {

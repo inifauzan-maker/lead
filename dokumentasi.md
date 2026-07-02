@@ -76,6 +76,7 @@ erDiagram
         bigint id PK
         string nama
         string asal_sekolah
+        string jenjang
         string kelas
         string kota_asal
         string no_wa UK
@@ -83,6 +84,7 @@ erDiagram
         string status
         string cabang
         bigint user_id FK
+        bigint created_by FK
         string diserahkan_ke
         string sumber
         text keterangan
@@ -332,6 +334,7 @@ Menyimpan data leads.
 | `id` | bigint unsigned | PK, auto increment | ID leads |
 | `nama` | varchar | not null | Nama leads |
 | `asal_sekolah` | varchar | nullable | Asal sekolah |
+| `jenjang` | varchar | nullable | Jenjang siswa: SD, SMP, SMA, Gapyear |
 | `kelas` | varchar | nullable | Kelas |
 | `kota_asal` | varchar | nullable | Kota asal |
 | `no_wa` | varchar | nullable, unique | Nomor WhatsApp, digunakan untuk mencegah input ganda |
@@ -339,10 +342,17 @@ Menyimpan data leads.
 | `status` | varchar | default `Baru` | Status leads |
 | `cabang` | varchar | nullable | Cabang leads |
 | `user_id` | bigint unsigned | nullable, FK ke `users.id`, null on delete | User penanggung jawab atau staff |
+| `created_by` | bigint unsigned | nullable, FK logis ke `users.id` | User yang pertama input/import leads |
 | `diserahkan_ke` | varchar | nullable | Admin cabang tujuan |
 | `sumber` | varchar | nullable | Sumber leads |
 | `keterangan` | text | nullable | Catatan tambahan |
 | `tgl_masuk` | date | nullable | Tanggal masuk leads |
+| `tanggal_daftar` | date | nullable | Tanggal closing/daftar |
+| `program_final` | varchar | nullable | Program final setelah closing |
+| `nominal_pembayaran` | decimal | nullable | Nominal pembayaran closing |
+| `status_pembayaran` | varchar | nullable | Status pembayaran closing |
+| `kelas_angkatan` | varchar | nullable | Kelas atau angkatan data siswa |
+| `catatan_administrasi` | text | nullable | Catatan administrasi siswa |
 | `created_at` | timestamp | nullable | Waktu dibuat |
 | `updated_at` | timestamp | nullable | Waktu diperbarui |
 
@@ -351,7 +361,7 @@ Catatan:
 - `no_wa` bersifat unique untuk menghindari input leads ganda.
 - `status = Daftar` digunakan sebagai data siswa/closing.
 - `status = Dihubungi` dan `Follow Up` digunakan pada menu Follow Up dan notifikasi.
-- `updated_at` saat ini dipakai sebagai tanggal aktivitas follow up/closing pada beberapa tampilan.
+- `tanggal_daftar` dipakai sebagai tanggal utama closing; jika kosong, beberapa agregasi memakai `updated_at` sebagai fallback.
 
 ### 3. `follow_ups`
 
@@ -615,7 +625,7 @@ Catatan:
 
 | Modul | Sumber Data Utama | Keterangan |
 | --- | --- | --- |
-| Dashboard | `prospek`, `users` | Grafik harian, ringkasan leads, sumber, program, cabang, sekolah |
+| Dashboard | `prospek`, `users` | Dashboard KPI, grafik pertumbuhan harian/bulanan/tahunan, sumber lead, program, cabang, sekolah |
 | Data Leads | `prospek` | CRUD leads, import/export, pilih banyak data |
 | Follow Up | `prospek`, `follow_ups` | Riwayat aktivitas follow up, jumlah follow up per leads, kalender, hasil follow up |
 | Data Siswa | `prospek` | Leads status `Daftar` |
@@ -645,7 +655,7 @@ Arsitektur proses menjelaskan alur kerja bisnis utama dalam sistem.
 | Distribusi leads ke cabang | Admin | Cabang tujuan, admin tujuan | Leads memiliki cabang dan tujuan penyerahan | Data Leads |
 | Follow up leads | Admin | Perubahan status dan catatan | Leads masuk daftar follow up | Follow Up |
 | Closing/data siswa | Admin, staff | Status `Daftar` | Data siswa/closing | Data Siswa |
-| Monitoring performa | Superadmin, admin, staff, direksi | Filter bulan, tahun, cabang, admin, staff | Dashboard grafik dan ringkasan | Dashboard |
+| Monitoring performa | Superadmin, admin, staff, direksi | Filter periode, cabang, admin, staff | Dashboard KPI, grafik pertumbuhan, sumber/program/cabang/sekolah | Dashboard |
 | Manajemen master | Superadmin | Cabang, sumber leads, program leads | Data master aktif/nonaktif | Pengaturan |
 | Manajemen role user | Superadmin | Role, cabang, status aktif | Hak akses user diperbarui | Pengaturan |
 | Profil dan aktivitas user | Semua role | Data profil, media sosial | Profil user dan ringkasan personal | Profil User |
@@ -656,7 +666,7 @@ Ringkasan alur proses utama:
 2. User menginput atau mengimport leads.
 3. Sistem mengecek duplikasi berdasarkan nomor WhatsApp.
 4. Leads diberi cabang, sumber, program, status, dan penanggung jawab.
-5. Leads dipantau melalui dashboard harian dan grafik per sumber/program/cabang/sekolah.
+5. Leads dipantau melalui Dashboard KPI, grafik pertumbuhan harian/bulanan/tahunan, serta grafik sumber/program/cabang/sekolah.
 6. Leads yang perlu dihubungi masuk ke Follow Up.
 7. Leads dengan status `Daftar` masuk ke Data Siswa/closing.
 8. Superadmin mengelola data master dan role user melalui Pengaturan.
@@ -682,7 +692,8 @@ Prinsip arsitektur data:
 - Relasi `prospek.user_id` memakai foreign key ke `users.id` dan menjadi `null` jika user dihapus.
 - Relasi cabang, sumber, dan program saat ini masih berbasis teks, yaitu mencocokkan `nama` master dengan kolom di `users` dan `prospek`.
 - Data sekolah tidak disimpan sebagai tabel, tetapi sebagai JSON referensi untuk autosuggest. User tetap dapat mengisi manual bila data sekolah tidak ditemukan.
-- Data dashboard dihitung dari `prospek` berdasarkan `tgl_masuk`, `status`, `cabang`, `program`, `sumber`, dan `asal_sekolah`.
+- Data dashboard dihitung dari `prospek` berdasarkan `tgl_masuk`, `tanggal_daftar`, `status`, `cabang`, `program`, `sumber`, dan `asal_sekolah`.
+- Grafik pertumbuhan dashboard memiliki mode harian, bulanan, dan tahunan. Mode harian default menampilkan 30 hari data terbaru agar sumbu tanggal tetap terbaca.
 - Data aktivitas follow up dihitung dari `follow_ups` berdasarkan `prospek_id`, `tanggal_follow_up`, `hasil`, dan `tanggal_follow_up_berikutnya`.
 
 ### 3. Arsitektur Aplikasi
@@ -698,7 +709,7 @@ Arsitektur aplikasi menjelaskan pembagian modul dan komponen aplikasi Laravel.
 | Model | `app/Models` | Representasi tabel `User`, `Prospek`, `Cabang`, `SumberLead`, `ProgramLead` |
 | Middleware | `app/Http/Middleware/PastikanRole.php` | Pembatasan akses berdasarkan role |
 | Database migration | `database/migrations` | Struktur tabel database |
-| Seeder | `database/seeders/DatabaseSeeder.php` | Data awal akun, cabang, sumber, dan program |
+| Seeder | `database/seeders/DatabaseSeeder.php` | Data awal akun, cabang, sumber, program, course, task, dan contoh leads bulanan/tahunan |
 | Data referensi | `database/sekolahVM.json` | Referensi sekolah untuk autosuggest |
 
 Pembagian modul aplikasi:
@@ -706,7 +717,7 @@ Pembagian modul aplikasi:
 | Modul | Route Utama | Controller | Fungsi |
 | --- | --- | --- | --- |
 | Login | `/login` | `AuthController` | Autentikasi user |
-| Dashboard | `/dashboard` | `ProspekController` | Ringkasan, grafik harian, visual sumber/program/cabang/sekolah |
+| Dashboard | `/dashboard` | `ProspekController` | KPI leads, grafik pertumbuhan harian/bulanan/tahunan, visual sumber/program/cabang/sekolah |
 | Data Leads | `/prospek` | `ProspekController` | CRUD, import, export, pilih banyak data |
 | Follow Up | `/follow-up` | `ProspekController` | Catat aktivitas follow up, kalender, jumlah follow up per leads, timeline hasil |
 | Data Siswa | `/data-siswa` | `ProspekController` | Leads status `Daftar` |
@@ -740,8 +751,19 @@ Catatan deployment shared hosting:
 - Jika document root bisa diatur, arahkan subdomain ke folder `public`.
 - Jika document root tidak bisa diarahkan ke `public`, gunakan `.htaccess` root untuk rewrite ke folder `public`.
 - Karena hosting tidak selalu menyediakan `npm`, folder `public/build` perlu ikut tersedia di server.
-- Jalankan `php artisan migrate --force` dan `php artisan db:seed --force` untuk menyiapkan tabel dan akun awal.
+- Jalankan `php artisan migrate --force` dan `php artisan db:seed --force` untuk menyiapkan tabel, akun awal, master data, dan contoh data dashboard.
 - Pastikan `storage` dan `bootstrap/cache` writable.
+
+### Data Seeder Dashboard
+
+`DatabaseSeeder` menyiapkan data contoh untuk kebutuhan demo dashboard:
+
+- akun superadmin, direksi, admin, dan staff,
+- master cabang, sumber leads, dan program,
+- contoh leads bulanan tahun 2026 agar mode **Bulanan** memiliki data Januari sampai Desember,
+- contoh leads lintas tahun 2023 sampai 2026 agar mode **Tahunan** memiliki data per tahun.
+
+Seeder memakai `updateOrCreate` berdasarkan email user, nama master, dan `prospek.no_wa`, sehingga aman dijalankan ulang pada database demo/lokal.
 
 ## Backup dan Restore Database
 

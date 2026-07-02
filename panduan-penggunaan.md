@@ -33,6 +33,26 @@ Catatan:
 
 Menu **Dashboard** menampilkan ringkasan performa berdasarkan role.
 
+Bagian atas dashboard memakai tampilan **Dashboard KPI CRM Leads** dengan kartu ringkasan:
+
+- **Total Lead**: total leads aktif ditambah closing pada filter aktif.
+- **Conversion Rate**: persentase closing dibanding total lead.
+- **CSO Aktif**: jumlah staff aktif sesuai cabang/filter.
+- **Asal Sekolah**: jumlah asal sekolah unik pada filter aktif.
+
+Panel **Pertumbuhan Lead** memiliki tiga mode:
+
+- **Harian**: menampilkan 30 hari data terbaru agar label tanggal tetap terbaca.
+- **Bulanan**: menampilkan agregasi Januari sampai Desember.
+- **Tahunan**: menampilkan agregasi per tahun.
+
+Panel **Sumber Lead** menampilkan diagram pie beserta total, jumlah, dan persentase tiap sumber. Di bawah panel pertumbuhan dan sumber, dashboard menampilkan chart batang untuk:
+
+- lead per sumber,
+- leads berdasarkan program,
+- leads berdasarkan cabang,
+- 5 asal sekolah terbanyak.
+
 ### Superadmin
 
 - Melihat semua cabang.
@@ -465,6 +485,7 @@ Log mencatat:
 - Catat semua interaksi leads di Follow Up agar histori lengkap.
 - Isi jadwal follow up berikutnya setelah setiap aktivitas.
 - Periksa notifikasi reminder setiap hari.
-- Gunakan filter bulan dan tahun untuk evaluasi performa.
+- Gunakan mode harian, bulanan, dan tahunan pada Dashboard KPI untuk evaluasi performa.
+- Jalankan `php artisan db:seed` pada database demo/lokal untuk mengisi contoh leads bulanan dan tahunan.
 - Lakukan backup sebelum deploy, migrasi, atau import data besar.
 - Jangan membagikan file backup karena berisi data sensitif.

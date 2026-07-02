@@ -61,11 +61,21 @@
                 <div class="judul-panel kpi-panel-title">
                     <div>
                         <h2>Pertumbuhan Lead</h2>
-                        <span>{{ $semuaPeriode ? 'Semua data' : $grafikHarian['bulan'] }}</span>
+                        <span>{{ $grafikHarian['bulan'] }}</span>
                     </div>
                     <div class="kpi-tabs" aria-label="Mode grafik">
-                        <span class="aktif">Harian</span>
-                        <span>Bulanan</span>
+                        <a
+                            href="{{ route('dashboard', array_merge(request()->except('grafik'), ['grafik' => 'harian'])) }}"
+                            class="{{ $modeGrafikPertumbuhan === 'harian' ? 'aktif' : '' }}"
+                        >Harian</a>
+                        <a
+                            href="{{ route('dashboard', array_merge(request()->except('grafik'), ['grafik' => 'bulanan'])) }}"
+                            class="{{ $modeGrafikPertumbuhan === 'bulanan' ? 'aktif' : '' }}"
+                        >Bulanan</a>
+                        <a
+                            href="{{ route('dashboard', array_merge(request()->except('grafik'), ['grafik' => 'tahunan'])) }}"
+                            class="{{ $modeGrafikPertumbuhan === 'tahunan' ? 'aktif' : '' }}"
+                        >Tahunan</a>
                     </div>
                 </div>
                 <div class="grafik-wrap kpi-chart-wrap">
@@ -98,18 +108,126 @@
                 <div class="judul-panel">
                     <h2>Sumber Lead</h2>
                 </div>
-                <div class="kpi-pie" style="--pie: {{ $gradientPie }}"></div>
+                <div class="kpi-pie" style="--pie: {{ $gradientPie }}" data-total="{{ $totalPieSumber }}"></div>
                 <div class="kpi-pie-legend">
                     @forelse ($perSumber as $item)
+                        @php
+                            $persenSumber = $totalPieSumber > 0 ? round(((int) $item->total / $totalPieSumber) * 100, 1) : 0;
+                        @endphp
                         <span>
                             <i style="background: {{ $warnaPieSumber[$loop->index % count($warnaPieSumber)] }}"></i>
-                            {{ $item->sumber }}
+                            <strong>{{ $item->sumber }}</strong>
+                            <em>{{ $item->total }} | {{ $persenSumber }}%</em>
                         </span>
                     @empty
                         <span><i></i>Belum ada data</span>
                     @endforelse
                 </div>
             </section>
+        </div>
+    </section>
+
+    <section class="grid-dua jarak-atas">
+        <div class="panel">
+            <div class="judul-panel">
+                <h2>Lead per Sumber</h2>
+                <span>{{ $perSumber->sum('total') }} data</span>
+            </div>
+            @php
+                $warnaSumber = ['#ef4444', '#3b82f6', '#cbdde3', '#f59e0b', '#b91c1c', '#c27ba0', '#10b981', '#8b5cf6'];
+                $maksSumber = max(1, (int) $perSumber->max('total'));
+            @endphp
+            <div class="chart-batang">
+                @forelse ($perSumber as $item)
+                    <div class="kolom-batang" title="{{ $item->sumber }}: {{ $item->total }}">
+                        <div class="nilai-batang">{{ $item->total }}</div>
+                        <div
+                            class="batang"
+                            style="height: {{ max(8, round(($item->total / $maksSumber) * 220)) }}px; background: {{ $warnaSumber[$loop->index % count($warnaSumber)] }}"
+                        ></div>
+                        <div class="label-batang">{{ $item->sumber }}</div>
+                    </div>
+                @empty
+                    <p class="kosong">Belum ada data sumber.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="judul-panel">
+                <h2>Leads Berdasarkan Program</h2>
+                <span>{{ $perProgram->sum('total') }} data</span>
+            </div>
+            @php
+                $warnaProgram = ['#ef4444', '#3b82f6', '#cbdde3', '#f59e0b', '#b91c1c', '#c27ba0', '#10b981', '#8b5cf6'];
+                $maksProgram = max(1, (int) $perProgram->max('total'));
+            @endphp
+            <div class="chart-batang">
+                @forelse ($perProgram as $item)
+                    <div class="kolom-batang" title="{{ $item->program }}: {{ $item->total }}">
+                        <div class="nilai-batang">{{ $item->total }}</div>
+                        <div
+                            class="batang"
+                            style="height: {{ max(8, round(($item->total / $maksProgram) * 220)) }}px; background: {{ $warnaProgram[$loop->index % count($warnaProgram)] }}"
+                        ></div>
+                        <div class="label-batang">{{ $item->program }}</div>
+                    </div>
+                @empty
+                    <p class="kosong">Belum ada data program.</p>
+                @endforelse
+            </div>
+        </div>
+    </section>
+
+    <section class="grid-dua jarak-atas">
+        <div class="panel">
+            <div class="judul-panel">
+                <h2>Leads Berdasarkan Cabang</h2>
+                <span>{{ $perCabang->sum('total') }} data</span>
+            </div>
+            @php
+                $warnaCabang = ['#ef4444', '#3b82f6', '#f59e0b', '#10b981'];
+                $maksCabang = max(1, (int) $perCabang->max('total'));
+            @endphp
+            <div class="chart-batang chart-batang-ringkas">
+                @forelse ($perCabang as $item)
+                    <div class="kolom-batang" title="{{ $item->cabang }}: {{ $item->total }}">
+                        <div class="nilai-batang">{{ $item->total }}</div>
+                        <div
+                            class="batang"
+                            style="height: {{ max(8, round(($item->total / $maksCabang) * 220)) }}px; background: {{ $warnaCabang[$loop->index % count($warnaCabang)] }}"
+                        ></div>
+                        <div class="label-batang">{{ $item->cabang }}</div>
+                    </div>
+                @empty
+                    <p class="kosong">Belum ada data cabang.</p>
+                @endforelse
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="judul-panel">
+                <h2>5 Asal Sekolah Terbanyak</h2>
+                <span>{{ $perSekolah->sum('total') }} data</span>
+            </div>
+            @php
+                $warnaSekolah = ['#ef4444', '#3b82f6', '#cbdde3', '#f59e0b', '#b91c1c'];
+                $maksSekolah = max(1, (int) $perSekolah->max('total'));
+            @endphp
+            <div class="chart-batang chart-batang-ringkas">
+                @forelse ($perSekolah as $item)
+                    <div class="kolom-batang" title="{{ $item->asal_sekolah }}: {{ $item->total }}">
+                        <div class="nilai-batang">{{ $item->total }}</div>
+                        <div
+                            class="batang"
+                            style="height: {{ max(8, round(($item->total / $maksSekolah) * 220)) }}px; background: {{ $warnaSekolah[$loop->index % count($warnaSekolah)] }}"
+                        ></div>
+                        <div class="label-batang">{{ $item->asal_sekolah }}</div>
+                    </div>
+                @empty
+                    <p class="kosong">Belum ada data asal sekolah.</p>
+                @endforelse
+            </div>
         </div>
     </section>
 
@@ -354,107 +472,4 @@
         </div>
     </section>
 
-    <section class="grid-dua">
-        <div class="panel">
-            <div class="judul-panel">
-                <h2>Lead per Sumber</h2>
-                <span>{{ $perSumber->sum('total') }} data</span>
-            </div>
-            @php
-                $warnaSumber = ['#ef4444', '#3b82f6', '#cbdde3', '#f59e0b', '#b91c1c', '#c27ba0', '#10b981', '#8b5cf6'];
-                $maksSumber = max(1, (int) $perSumber->max('total'));
-            @endphp
-            <div class="chart-batang">
-                @forelse ($perSumber as $item)
-                    <div class="kolom-batang" title="{{ $item->sumber }}: {{ $item->total }}">
-                        <div class="nilai-batang">{{ $item->total }}</div>
-                        <div
-                            class="batang"
-                            style="height: {{ max(8, round(($item->total / $maksSumber) * 220)) }}px; background: {{ $warnaSumber[$loop->index % count($warnaSumber)] }}"
-                        ></div>
-                        <div class="label-batang">{{ $item->sumber }}</div>
-                    </div>
-                @empty
-                    <p class="kosong">Belum ada data sumber.</p>
-                @endforelse
-            </div>
-        </div>
-
-        <div class="panel">
-            <div class="judul-panel">
-                <h2>Leads Berdasarkan Program</h2>
-                <span>{{ $perProgram->sum('total') }} data</span>
-            </div>
-            @php
-                $warnaProgram = ['#ef4444', '#3b82f6', '#cbdde3', '#f59e0b', '#b91c1c', '#c27ba0', '#10b981', '#8b5cf6'];
-                $maksProgram = max(1, (int) $perProgram->max('total'));
-            @endphp
-            <div class="chart-batang">
-                @forelse ($perProgram as $item)
-                    <div class="kolom-batang" title="{{ $item->program }}: {{ $item->total }}">
-                        <div class="nilai-batang">{{ $item->total }}</div>
-                        <div
-                            class="batang"
-                            style="height: {{ max(8, round(($item->total / $maksProgram) * 220)) }}px; background: {{ $warnaProgram[$loop->index % count($warnaProgram)] }}"
-                        ></div>
-                        <div class="label-batang">{{ $item->program }}</div>
-                    </div>
-                @empty
-                    <p class="kosong">Belum ada data program.</p>
-                @endforelse
-            </div>
-        </div>
-    </section>
-
-    <section class="grid-dua jarak-atas">
-        <div class="panel">
-            <div class="judul-panel">
-                <h2>Leads Berdasarkan Cabang</h2>
-                <span>{{ $perCabang->sum('total') }} data</span>
-            </div>
-            @php
-                $warnaCabang = ['#ef4444', '#3b82f6', '#f59e0b', '#10b981'];
-                $maksCabang = max(1, (int) $perCabang->max('total'));
-            @endphp
-            <div class="chart-batang chart-batang-ringkas">
-                @forelse ($perCabang as $item)
-                    <div class="kolom-batang" title="{{ $item->cabang }}: {{ $item->total }}">
-                        <div class="nilai-batang">{{ $item->total }}</div>
-                        <div
-                            class="batang"
-                            style="height: {{ max(8, round(($item->total / $maksCabang) * 220)) }}px; background: {{ $warnaCabang[$loop->index % count($warnaCabang)] }}"
-                        ></div>
-                        <div class="label-batang">{{ $item->cabang }}</div>
-                    </div>
-                @empty
-                    <p class="kosong">Belum ada data cabang.</p>
-                @endforelse
-            </div>
-        </div>
-
-        <div class="panel">
-            <div class="judul-panel">
-                <h2>5 Asal Sekolah Terbanyak</h2>
-                <span>{{ $perSekolah->sum('total') }} data</span>
-            </div>
-            @php
-                $warnaSekolah = ['#ef4444', '#3b82f6', '#cbdde3', '#f59e0b', '#b91c1c'];
-                $maksSekolah = max(1, (int) $perSekolah->max('total'));
-            @endphp
-            <div class="chart-batang chart-batang-ringkas">
-                @forelse ($perSekolah as $item)
-                    <div class="kolom-batang" title="{{ $item->asal_sekolah }}: {{ $item->total }}">
-                        <div class="nilai-batang">{{ $item->total }}</div>
-                        <div
-                            class="batang"
-                            style="height: {{ max(8, round(($item->total / $maksSekolah) * 220)) }}px; background: {{ $warnaSekolah[$loop->index % count($warnaSekolah)] }}"
-                        ></div>
-                        <div class="label-batang">{{ $item->asal_sekolah }}</div>
-                    </div>
-                @empty
-                    <p class="kosong">Belum ada data asal sekolah.</p>
-                @endforelse
-            </div>
-        </div>
-    </section>
 @endsection

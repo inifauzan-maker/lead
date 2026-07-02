@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2026-06-07T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
+<mxfile host="app.diagrams.net" modified="2026-07-02T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
   <diagram id="erd-sistem-informasi-leads" name="ERD Sistem Informasi Leads">
     <mxGraphModel dx="1660" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1280" math="0" shadow="0">
       <root>
@@ -10,11 +10,11 @@
         <mxCell id="users" value="&lt;b&gt;USERS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;name : string&lt;br/&gt;email UK : string&lt;br/&gt;email_verified_at : timestamp&lt;br/&gt;password : string&lt;br/&gt;role : string&lt;br/&gt;cabang : string&lt;br/&gt;aktif : boolean&lt;br/&gt;facebook : string&lt;br/&gt;instagram : string&lt;br/&gt;tiktok : string&lt;br/&gt;blog : string&lt;br/&gt;youtube : string&lt;br/&gt;remember_token : string&lt;br/&gt;created_at : timestamp&lt;br/&gt;updated_at : timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f2fe;strokeColor=#0284c7;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="60" y="120" width="260" height="330" as="geometry" />
         </mxCell>
-        <mxCell id="prospek" value="&lt;b&gt;PROSPEK&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;nama : string&lt;br/&gt;asal_sekolah : string&lt;br/&gt;kelas : string&lt;br/&gt;kota_asal : string&lt;br/&gt;no_wa UK : string&lt;br/&gt;program : string&lt;br/&gt;status : string&lt;br/&gt;cabang : string&lt;br/&gt;user_id FK : bigint&lt;br/&gt;diserahkan_ke : string&lt;br/&gt;sumber : string&lt;br/&gt;keterangan : text&lt;br/&gt;tgl_masuk : date&lt;br/&gt;created_at : timestamp&lt;br/&gt;updated_at : timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#16a34a;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="560" y="120" width="280" height="340" as="geometry" />
+        <mxCell id="prospek" value="&lt;b&gt;PROSPEK&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;nama : string&lt;br/&gt;asal_sekolah : string&lt;br/&gt;jenjang : string&lt;br/&gt;kelas : string&lt;br/&gt;kota_asal : string&lt;br/&gt;no_wa UK : string&lt;br/&gt;program : string&lt;br/&gt;status : string&lt;br/&gt;cabang : string&lt;br/&gt;user_id FK : bigint&lt;br/&gt;created_by FK : bigint&lt;br/&gt;diserahkan_ke : string&lt;br/&gt;sumber : string&lt;br/&gt;keterangan : text&lt;br/&gt;tgl_masuk : date&lt;br/&gt;tanggal_daftar : date&lt;br/&gt;program_final : string&lt;br/&gt;nominal_pembayaran : decimal&lt;br/&gt;status_pembayaran : string&lt;br/&gt;kelas_angkatan : string&lt;br/&gt;catatan_administrasi : text&lt;br/&gt;created_at : timestamp&lt;br/&gt;updated_at : timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#16a34a;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="120" width="280" height="460" as="geometry" />
         </mxCell>
         <mxCell id="follow_ups" value="&lt;b&gt;FOLLOW_UPS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;prospek_id FK : bigint&lt;br/&gt;user_id FK : bigint&lt;br/&gt;tanggal_follow_up : datetime&lt;br/&gt;metode : string&lt;br/&gt;hasil : string&lt;br/&gt;catatan : text&lt;br/&gt;tindak_lanjut : text&lt;br/&gt;tanggal_follow_up_berikutnya : date&lt;br/&gt;prioritas : string&lt;br/&gt;created_at : timestamp&lt;br/&gt;updated_at : timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ccfbf1;strokeColor=#0f766e;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="560" y="500" width="280" height="270" as="geometry" />
+          <mxGeometry x="560" y="620" width="280" height="270" as="geometry" />
         </mxCell>
         <mxCell id="tasks" value="&lt;b&gt;TASKS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;judul : string&lt;br/&gt;deskripsi : text&lt;br/&gt;status : string&lt;br/&gt;prioritas : string&lt;br/&gt;tenggat : date&lt;br/&gt;prospek_id FK : bigint&lt;br/&gt;assigned_to FK : bigint&lt;br/&gt;created_by FK : bigint&lt;br/&gt;cabang : string" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9333ea;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="1350" y="120" width="250" height="230" as="geometry" />
@@ -43,6 +43,9 @@
         <mxCell id="program_leads" value="&lt;b&gt;PROGRAM_LEADS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;nama UK : string&lt;br/&gt;aktif : boolean&lt;br/&gt;created_at : timestamp&lt;br/&gt;updated_at : timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="1060" y="500" width="250" height="150" as="geometry" />
         </mxCell>
+        <mxCell id="dashboard_analytics_note" value="&lt;b&gt;DASHBOARD KPI / ANALYTICS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;Bukan tabel fisik.&lt;br/&gt;Agregasi dari PROSPEK untuk:&lt;br/&gt;- total lead dan conversion rate&lt;br/&gt;- pertumbuhan harian/bulanan/tahunan&lt;br/&gt;- sumber, program, cabang, sekolah&lt;br/&gt;Tanggal utama: tgl_masuk dan tanggal_daftar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f2fe;strokeColor=#0369a1;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="680" width="250" height="210" as="geometry" />
+        </mxCell>
         <mxCell id="sessions" value="&lt;b&gt;SESSIONS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : string&lt;br/&gt;user_id : bigint&lt;br/&gt;ip_address : string&lt;br/&gt;user_agent : text&lt;br/&gt;payload : longtext&lt;br/&gt;last_activity : integer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#64748b;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="60" y="520" width="260" height="180" as="geometry" />
         </mxCell>
@@ -62,7 +65,7 @@
           <mxGeometry x="700" y="740" width="250" height="250" as="geometry" />
         </mxCell>
         <mxCell id="failed_jobs" value="&lt;b&gt;FAILED_JOBS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;uuid UK : string&lt;br/&gt;connection : string&lt;br/&gt;queue : string&lt;br/&gt;payload : longtext&lt;br/&gt;exception : longtext&lt;br/&gt;failed_at : timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#94a3b8;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="1000" y="740" width="260" height="190" as="geometry" />
+          <mxGeometry x="1320" y="740" width="260" height="190" as="geometry" />
         </mxCell>
         <mxCell id="rel_users_prospek" value="1 ke 0..N&#xa;ditugaskan ke" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;strokeColor=#334155;fontColor=#334155;" edge="1" parent="1" source="users" target="prospek">
           <mxGeometry relative="1" as="geometry" />
