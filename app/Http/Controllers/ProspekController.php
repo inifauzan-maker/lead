@@ -1325,14 +1325,36 @@ class ProspekController extends Controller
         $queryLeads = $this->filterPeriodeDashboard($this->queryDashboardPerRole($request), $periode);
         $queryClosing = $this->filterPeriodeClosingDashboard($this->queryDashboardPerRole($request), $periode)
             ->where('status', 'Daftar');
-        $leads = (clone $queryLeads)
-            ->selectRaw('COALESCE(created_by, 0) as user_id, COUNT(*) as total')
-            ->groupByRaw('COALESCE(created_by, 0)')
-            ->pluck('total', 'user_id');
-        $closing = (clone $queryClosing)
-            ->selectRaw('COALESCE(created_by, 0) as user_id, COUNT(*) as total')
-            ->groupByRaw('COALESCE(created_by, 0)')
-            ->pluck('total', 'user_id');
+        $adminCabang = User::query()
+            ->where('role', 'admin')
+            ->where('aktif', true)
+            ->whereNotNull('cabang')
+            ->orderBy('id')
+            ->get(['id', 'cabang'])
+            ->keyBy(fn (User $user) => strtolower(trim($user->cabang)));
+        $superadmin = User::query()
+            ->where('role', 'superadmin')
+            ->where('aktif', true)
+            ->orderBy('id')
+            ->first(['id']);
+        $hitungPerUser = function ($query) use ($adminCabang, $superadmin) {
+            return $query
+                ->get(['created_by', 'user_id', 'cabang'])
+                ->map(function (Prospek $prospek) use ($adminCabang, $superadmin) {
+                    $userId = $prospek->created_by ?: $prospek->user_id;
+
+                    if (! $userId && filled($prospek->cabang)) {
+                        $userId = $adminCabang->get(strtolower(trim($prospek->cabang)))?->id;
+                    }
+
+                    return (int) ($userId ?: $superadmin?->id);
+                })
+                ->filter(fn (int $userId) => $userId > 0)
+                ->countBy();
+        };
+
+        $leads = $hitungPerUser(clone $queryLeads);
+        $closing = $hitungPerUser(clone $queryClosing);
         $userIds = $leads->keys()
             ->merge($closing->keys())
             ->filter(fn ($id) => (int) $id > 0)
@@ -1352,7 +1374,7 @@ class ProspekController extends Controller
                 $basis = max(1, $totalLeads);
 
                 return [
-                    'label' => $userId > 0 ? ($users->get($userId)?->name ?: 'User tidak aktif') : 'Tanpa user input',
+                    'label' => $users->get($userId)?->name ?: 'User tidak aktif',
                     'leads' => $totalLeads,
                     'closing' => $totalClosing,
                     'rasio' => round(($totalClosing / $basis) * 100, 1),

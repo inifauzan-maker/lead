@@ -694,6 +694,7 @@ Prinsip arsitektur data:
 - Data sekolah tidak disimpan sebagai tabel, tetapi sebagai JSON referensi untuk autosuggest. User tetap dapat mengisi manual bila data sekolah tidak ditemukan.
 - Data dashboard dihitung dari `prospek` berdasarkan `tgl_masuk`, `tanggal_daftar`, `status`, `cabang`, `program`, `sumber`, dan `asal_sekolah`.
 - Grafik pertumbuhan dashboard memiliki mode harian, bulanan, dan tahunan. Mode harian default menampilkan 30 hari data terbaru agar sumbu tanggal tetap terbaca.
+- Performa user input memakai `created_by`; data historis yang masih kosong dibackfill dari `user_id`, admin cabang, lalu superadmin aktif melalui migrasi.
 - Data aktivitas follow up dihitung dari `follow_ups` berdasarkan `prospek_id`, `tanggal_follow_up`, `hasil`, dan `tanggal_follow_up_berikutnya`.
 
 ### 3. Arsitektur Aplikasi
@@ -752,6 +753,7 @@ Catatan deployment shared hosting:
 - Jika document root tidak bisa diarahkan ke `public`, gunakan `.htaccess` root untuk rewrite ke folder `public`.
 - Karena hosting tidak selalu menyediakan `npm`, folder `public/build` perlu ikut tersedia di server.
 - Jalankan `php artisan migrate --force` dan `php artisan db:seed --force` untuk menyiapkan tabel, akun awal, master data, dan contoh data dashboard.
+- Migrasi juga memperbaiki `prospek.created_by` untuk data historis agar laporan Performa User Input tidak menghasilkan data tanpa identitas.
 - Pastikan `storage` dan `bootstrap/cache` writable.
 
 ### Data Seeder Dashboard

@@ -1146,6 +1146,91 @@ class ProspekTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_dashboard_performa_user_input_memakai_penanggung_jawab_jika_created_by_kosong(): void
+    {
+        Carbon::setTestNow('2026-06-30 09:00:00');
+
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+        $staff = User::factory()->create([
+            'name' => 'Staff Legacy Bandung',
+            'role' => 'staff',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        Prospek::create([
+            'nama' => 'Lead Legacy',
+            'status' => 'Baru',
+            'cabang' => 'Bandung',
+            'user_id' => $staff->id,
+            'created_by' => null,
+            'tgl_masuk' => '2026-06-15',
+        ]);
+        Prospek::create([
+            'nama' => 'Closing Legacy',
+            'status' => 'Daftar',
+            'cabang' => 'Bandung',
+            'user_id' => $staff->id,
+            'created_by' => null,
+            'tgl_masuk' => '2026-06-10',
+            'tanggal_daftar' => '2026-06-20',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
+            ->assertOk()
+            ->assertSee('Performa User Input')
+            ->assertSee('Staff Legacy Bandung')
+            ->assertDontSee('Tanpa user input')
+            ->assertDontSee('User belum ditentukan');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_dashboard_performa_user_input_data_tanpa_user_memakai_admin_cabang(): void
+    {
+        Carbon::setTestNow('2026-06-30 09:00:00');
+
+        $admin = User::factory()->create([
+            'name' => 'Admin Cabang Bandung',
+            'role' => 'admin',
+            'cabang' => 'Bandung',
+            'aktif' => true,
+        ]);
+
+        Prospek::create([
+            'nama' => 'Lead Tanpa Identitas Lama',
+            'status' => 'Baru',
+            'cabang' => 'Bandung',
+            'user_id' => null,
+            'created_by' => null,
+            'tgl_masuk' => '2026-06-15',
+        ]);
+        Prospek::create([
+            'nama' => 'Closing Tanpa Identitas Lama',
+            'status' => 'Daftar',
+            'cabang' => 'Bandung',
+            'user_id' => null,
+            'created_by' => null,
+            'tgl_masuk' => '2026-06-10',
+            'tanggal_daftar' => '2026-06-20',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
+            ->assertOk()
+            ->assertSee('Performa User Input')
+            ->assertSee('Admin Cabang Bandung')
+            ->assertDontSee('Tanpa user input')
+            ->assertDontSee('User belum ditentukan');
+
+        Carbon::setTestNow();
+    }
+
     public function test_dashboard_admin_melihat_data_seluruh_user_dan_cabang(): void
     {
         $adminJaksel = User::factory()->create([
