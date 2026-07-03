@@ -956,7 +956,7 @@ class ProspekTest extends TestCase
             ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
             ->assertOk()
             ->assertSee('Dashboard KPI CRM Leads')
-            ->assertSeeInOrder(['Total Lead', '3', 'Conversion Rate', '66.67%']);
+            ->assertSeeInOrder(['Total Lead', '1', 'Conversion Rate', '66.67%']);
 
         $this->actingAs($admin)
             ->get(route('data-siswa.index'))
@@ -998,7 +998,7 @@ class ProspekTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('30 hari data terbaru')
-            ->assertSeeInOrder(['Total Lead', '3', 'Conversion Rate', '33.33%']);
+            ->assertSeeInOrder(['Total Lead', '2', 'Conversion Rate', '33.33%']);
 
         $this->actingAs($admin)
             ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
@@ -1070,8 +1070,10 @@ class ProspekTest extends TestCase
             ->assertOk()
             ->assertSee('Target dan Konversi')
             ->assertSee('Akumulasi target semua cabang')
-            ->assertSee('1 / 10 leads aktif')
-            ->assertSee('1 / 4 closing')
+            ->assertSee('Target Leads')
+            ->assertSee('1 leads aktif')
+            ->assertSee('Target Closing')
+            ->assertSee('1 closing')
             ->assertSee('50%')
             ->assertSee('Ranking Cabang')
             ->assertSee('Bandung');
@@ -1263,7 +1265,7 @@ class ProspekTest extends TestCase
             ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
             ->assertOk()
             ->assertSee('Dashboard KPI CRM Leads')
-            ->assertSeeInOrder(['Total Lead', '2', 'Conversion Rate', '50.00%'])
+            ->assertSeeInOrder(['Total Lead', '1', 'Conversion Rate', '50.00%'])
             ->assertSee('Bandung')
             ->assertSee('Jakpus');
     }

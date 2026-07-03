@@ -83,7 +83,6 @@ class ProspekController extends Controller
         $perSumber = (clone $queryLeadsAktif)->selectRaw('COALESCE(sumber, "Tanpa Sumber") as sumber, COUNT(*) as total')
             ->groupBy('sumber')
             ->orderByDesc('total')
-            ->limit(6)
             ->get();
         $perProgram = (clone $queryLeadsAktif)->selectRaw('COALESCE(program, "Tanpa Program") as program, COUNT(*) as total')
             ->groupBy('program')
@@ -99,8 +98,9 @@ class ProspekController extends Controller
             ->groupBy('cabang')
             ->orderByDesc('total')
             ->get();
-        $totalLeadKeseluruhan = $total + $daftar;
-        $conversionRate = $totalLeadKeseluruhan > 0 ? round(($daftar / $totalLeadKeseluruhan) * 100, 2) : 0;
+        $basisKonversi = $total + $daftar;
+        $totalLeadKeseluruhan = $total;
+        $conversionRate = $basisKonversi > 0 ? round(($daftar / $basisKonversi) * 100, 2) : 0;
         $cabangStaffFilter = $dashboardRole['cabangTerkunci'] ?? ($request->string('cabang')->toString() ?: null);
         $csoAktif = User::query()
             ->where('aktif', true)
@@ -1383,8 +1383,7 @@ class ProspekController extends Controller
             })
             ->sortByDesc('closing')
             ->sortByDesc('rasio')
-            ->values()
-            ->take(8);
+            ->values();
     }
 
     private function konversiSumberDashboard(Request $request, array $periode)
@@ -1540,8 +1539,7 @@ class ProspekController extends Controller
                 ];
             })
             ->sortByDesc('skor')
-            ->values()
-            ->take(8);
+            ->values();
 
         return [
             'judul' => 'Ranking Cabang',
@@ -1618,8 +1616,7 @@ class ProspekController extends Controller
                 ];
             })
             ->sortByDesc('skor')
-            ->values()
-            ->take(8);
+            ->values();
 
         return [
             'judul' => $konteks['tipePanel'] === 'pribadi' ? 'Capaian Pribadi' : 'Ranking Staff',
@@ -1664,7 +1661,6 @@ class ProspekController extends Controller
             ->selectRaw('SUM(CASE WHEN status IN ("Dihubungi", "Follow Up") THEN 1 ELSE 0 END) as follow_up')
             ->groupBy('user_id')
             ->orderByDesc('total')
-            ->limit(8)
             ->get();
         $namaUser = User::query()
             ->whereIn('id', $items->pluck('user_id')->filter()->all())
@@ -1869,6 +1865,7 @@ class ProspekController extends Controller
             $hari[] = [
                 'tanggal' => $tanggalKey,
                 'nomor' => $tanggal->day,
+                'label' => $tanggal->translatedFormat('j M'),
                 'lead' => (int) ($jumlahLead[$tanggalKey] ?? 0),
                 'closing' => (int) ($jumlahClosing[$tanggalKey] ?? 0),
             ];
@@ -1876,34 +1873,7 @@ class ProspekController extends Controller
             $tanggal->addDay();
         }
 
-        $maksData = (int) collect($hari)->max(fn ($item) => max($item['lead'], $item['closing']));
-        $skalaGrafik = $this->skalaGrafikHarian($maksData);
-        $maks = $skalaGrafik['maks'];
-        $tinggi = 170;
-        $lebar = 1000;
-        $lebarLangkah = count($hari) > 1 ? $lebar / (count($hari) - 1) : 0;
-        $buatTitik = function (string $key) use ($hari, $maks, $tinggi, $lebarLangkah): string {
-            return collect($hari)
-                ->map(function ($item, $index) use ($key, $maks, $tinggi, $lebarLangkah) {
-                    $x = $index * $lebarLangkah;
-                    $y = $tinggi - (($item[$key] / $maks) * $tinggi);
-
-                    return round($x, 2).','.round($y, 2);
-                })
-                ->implode(' ');
-        };
-
-        return [
-            'hari' => $hari,
-            'maks' => $maks,
-            'bulan' => $mulai->translatedFormat('F Y'),
-            'lebar' => $lebar,
-            'tinggi' => $tinggi,
-            'leadPoints' => $buatTitik('lead'),
-            'closingPoints' => $buatTitik('closing'),
-            'areaLeadPoints' => '0,'.$tinggi.' '.$buatTitik('lead').' '.$lebar.','.$tinggi,
-            'skala' => $skalaGrafik['label'],
-        ];
+        return $this->formatGrafikPertumbuhan($hari, $mulai->translatedFormat('F Y'), 72);
     }
 
     private function grafikLeadsSemuaPeriode($query): array
@@ -1941,11 +1911,11 @@ class ProspekController extends Controller
 
         while ($tanggal <= $akhir) {
             $tanggalKey = $tanggal->toDateString();
-            $tampilkanLabel = $index === 0 || $index % 5 === 0 || $tanggal->equalTo($akhir);
 
             $hari[] = [
                 'tanggal' => $tanggalKey,
-                'nomor' => $tampilkanLabel ? $tanggal->translatedFormat('d M') : '',
+                'nomor' => $tanggal->day,
+                'label' => $tanggal->translatedFormat('j M'),
                 'lead' => (int) ($jumlahLead[$tanggalKey] ?? 0),
                 'closing' => (int) ($jumlahClosing[$tanggalKey] ?? 0),
             ];
@@ -1954,34 +1924,7 @@ class ProspekController extends Controller
             $index++;
         }
 
-        $maksData = (int) collect($hari)->max(fn ($item) => max($item['lead'], $item['closing']));
-        $skalaGrafik = $this->skalaGrafikHarian($maksData);
-        $maks = $skalaGrafik['maks'];
-        $tinggi = 170;
-        $lebar = 1000;
-        $lebarLangkah = count($hari) > 1 ? $lebar / (count($hari) - 1) : 0;
-        $buatTitik = function (string $key) use ($hari, $maks, $tinggi, $lebarLangkah): string {
-            return collect($hari)
-                ->map(function ($item, $index) use ($key, $maks, $tinggi, $lebarLangkah) {
-                    $x = $index * $lebarLangkah;
-                    $y = $tinggi - (($item[$key] / $maks) * $tinggi);
-
-                    return round($x, 2).','.round($y, 2);
-                })
-                ->implode(' ');
-        };
-
-        return [
-            'hari' => $hari,
-            'maks' => $maks,
-            'bulan' => '30 hari data terbaru',
-            'lebar' => $lebar,
-            'tinggi' => $tinggi,
-            'leadPoints' => $buatTitik('lead'),
-            'closingPoints' => $buatTitik('closing'),
-            'areaLeadPoints' => '0,'.$tinggi.' '.$buatTitik('lead').' '.$lebar.','.$tinggi,
-            'skala' => $skalaGrafik['label'],
-        ];
+        return $this->formatGrafikPertumbuhan($hari, '30 hari data terbaru', 72);
     }
 
     private function grafikLeadsBulanan($query, array $periode): array
@@ -2023,40 +1966,18 @@ class ProspekController extends Controller
                 return [
                     'tanggal' => $bulanKey,
                     'nomor' => $tanggal->translatedFormat('M'),
+                    'label' => $tanggal->translatedFormat('M'),
                     'lead' => (int) ($jumlahLead[$bulanKey] ?? 0),
                     'closing' => (int) ($jumlahClosing[$bulanKey] ?? 0),
                 ];
             })
             ->all();
 
-        $maksData = (int) collect($hari)->max(fn ($item) => max($item['lead'], $item['closing']));
-        $skalaGrafik = $this->skalaGrafikHarian($maksData);
-        $maks = $skalaGrafik['maks'];
-        $tinggi = 170;
-        $lebar = max(1000, count($hari) * 92);
-        $lebarLangkah = count($hari) > 1 ? $lebar / (count($hari) - 1) : 0;
-        $buatTitik = function (string $key) use ($hari, $maks, $tinggi, $lebarLangkah): string {
-            return collect($hari)
-                ->map(function ($item, $index) use ($key, $maks, $tinggi, $lebarLangkah) {
-                    $x = $index * $lebarLangkah;
-                    $y = $tinggi - (($item[$key] / $maks) * $tinggi);
-
-                    return round($x, 2).','.round($y, 2);
-                })
-                ->implode(' ');
-        };
-
-        return [
-            'hari' => $hari,
-            'maks' => $maks,
-            'bulan' => $periode['semua'] ? 'Semua data bulanan' : 'Bulanan '.$periode['tahun'],
-            'lebar' => $lebar,
-            'tinggi' => $tinggi,
-            'leadPoints' => $buatTitik('lead'),
-            'closingPoints' => $buatTitik('closing'),
-            'areaLeadPoints' => '0,'.$tinggi.' '.$buatTitik('lead').' '.$lebar.','.$tinggi,
-            'skala' => $skalaGrafik['label'],
-        ];
+        return $this->formatGrafikPertumbuhan(
+            $hari,
+            $periode['semua'] ? 'Semua data bulanan' : 'Bulanan '.$periode['tahun'],
+            86
+        );
     }
 
     private function grafikLeadsTahunan($query, array $periode): array
@@ -2084,39 +2005,108 @@ class ProspekController extends Controller
             ->map(fn ($tahun) => [
                 'tanggal' => (string) $tahun,
                 'nomor' => (string) $tahun,
+                'label' => (string) $tahun,
                 'lead' => (int) ($jumlahLead[(string) $tahun] ?? $jumlahLead[(int) $tahun] ?? 0),
                 'closing' => (int) ($jumlahClosing[(string) $tahun] ?? $jumlahClosing[(int) $tahun] ?? 0),
             ])
             ->all();
 
+        return $this->formatGrafikPertumbuhan(
+            $hari,
+            $periode['semua'] ? 'Semua data tahunan' : 'Tahunan '.$periode['tahun'],
+            120
+        );
+    }
+
+    private function formatGrafikPertumbuhan(array $hari, string $judul, int $lebarPerItem): array
+    {
+        $jumlahItem = max(1, count($hari));
         $maksData = (int) collect($hari)->max(fn ($item) => max($item['lead'], $item['closing']));
         $skalaGrafik = $this->skalaGrafikHarian($maksData);
         $maks = $skalaGrafik['maks'];
-        $tinggi = 170;
-        $lebar = max(1000, count($hari) * 120);
-        $lebarLangkah = count($hari) > 1 ? $lebar / (count($hari) - 1) : 0;
-        $buatTitik = function (string $key) use ($hari, $maks, $tinggi, $lebarLangkah): string {
+        $tinggi = 220;
+        $lebar = max(960, $jumlahItem * $lebarPerItem);
+        $lebarLangkah = $jumlahItem > 1 ? $lebar / ($jumlahItem - 1) : 0;
+        $intervalLabel = $jumlahItem <= 14 ? 1 : max(2, (int) ceil($jumlahItem / 8));
+        $hari = collect($hari)
+            ->map(function ($item, $index) use ($jumlahItem, $intervalLabel) {
+                $item['label'] = $item['label'] ?? (string) $item['nomor'];
+                $item['tampil_label'] = $index === 0 || $index === $jumlahItem - 1 || $index % $intervalLabel === 0;
+
+                return $item;
+            })
+            ->all();
+        $buatKoordinat = function (string $key) use ($hari, $maks, $tinggi, $lebarLangkah): array {
             return collect($hari)
                 ->map(function ($item, $index) use ($key, $maks, $tinggi, $lebarLangkah) {
                     $x = $index * $lebarLangkah;
                     $y = $tinggi - (($item[$key] / $maks) * $tinggi);
 
-                    return round($x, 2).','.round($y, 2);
+                    return ['x' => round($x, 2), 'y' => round($y, 2)];
                 })
-                ->implode(' ');
+                ->all();
         };
+        $leadKoordinat = $buatKoordinat('lead');
+        $closingKoordinat = $buatKoordinat('closing');
+        $leadPoints = collect($leadKoordinat)->map(fn ($titik) => $titik['x'].','.$titik['y'])->implode(' ');
+        $leadPath = $this->pathGrafikLengkung($leadKoordinat);
+        $titikLead = collect($hari)
+            ->map(function ($item, $index) use ($leadKoordinat) {
+                $koordinat = $leadKoordinat[$index];
+
+                return [
+                    'x' => $koordinat['x'],
+                    'y' => $koordinat['y'],
+                    'lead' => $item['lead'],
+                    'closing' => $item['closing'],
+                    'label' => $item['label'],
+                ];
+            })
+            ->all();
 
         return [
             'hari' => $hari,
             'maks' => $maks,
-            'bulan' => $periode['semua'] ? 'Semua data tahunan' : 'Tahunan '.$periode['tahun'],
+            'bulan' => $judul,
             'lebar' => $lebar,
             'tinggi' => $tinggi,
-            'leadPoints' => $buatTitik('lead'),
-            'closingPoints' => $buatTitik('closing'),
-            'areaLeadPoints' => '0,'.$tinggi.' '.$buatTitik('lead').' '.$lebar.','.$tinggi,
+            'leadPoints' => $leadPoints,
+            'leadPath' => $leadPath,
+            'closingPoints' => collect($closingKoordinat)->map(fn ($titik) => $titik['x'].','.$titik['y'])->implode(' '),
+            'areaLeadPoints' => '0,'.$tinggi.' '.$leadPoints.' '.$lebar.','.$tinggi,
+            'areaLeadPath' => $leadPath.' L '.$lebar.' '.$tinggi.' L 0 '.$tinggi.' Z',
+            'titikLead' => $titikLead,
             'skala' => $skalaGrafik['label'],
         ];
+    }
+
+    private function pathGrafikLengkung(array $titik): string
+    {
+        if (count($titik) === 0) {
+            return '';
+        }
+
+        if (count($titik) === 1) {
+            return 'M '.$titik[0]['x'].' '.$titik[0]['y'];
+        }
+
+        $path = 'M '.$titik[0]['x'].' '.$titik[0]['y'];
+        $total = count($titik);
+
+        for ($index = 0; $index < $total - 1; $index++) {
+            $sebelum = $titik[max(0, $index - 1)];
+            $awal = $titik[$index];
+            $akhir = $titik[$index + 1];
+            $sesudah = $titik[min($total - 1, $index + 2)];
+            $cp1x = $awal['x'] + (($akhir['x'] - $sebelum['x']) / 6);
+            $cp1y = $awal['y'] + (($akhir['y'] - $sebelum['y']) / 6);
+            $cp2x = $akhir['x'] - (($sesudah['x'] - $awal['x']) / 6);
+            $cp2y = $akhir['y'] - (($sesudah['y'] - $awal['y']) / 6);
+
+            $path .= ' C '.round($cp1x, 2).' '.round($cp1y, 2).', '.round($cp2x, 2).' '.round($cp2y, 2).', '.$akhir['x'].' '.$akhir['y'];
+        }
+
+        return $path;
     }
 
     private function ekspresiBulanDashboard(string $tanggal): string
@@ -2143,8 +2133,15 @@ class ProspekController extends Controller
     {
         if ($maksData <= 0) {
             return [
-                'maks' => 4,
-                'label' => [4, 3, 2, 1, 0],
+                'maks' => 2,
+                'label' => [2, 1.5, 1, 0.5, 0],
+            ];
+        }
+
+        if ($maksData <= 2) {
+            return [
+                'maks' => 2,
+                'label' => [2, 1.5, 1, 0.5, 0],
             ];
         }
 

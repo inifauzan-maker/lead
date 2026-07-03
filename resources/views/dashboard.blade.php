@@ -80,7 +80,7 @@
                 </div>
                 <div class="grafik-wrap kpi-chart-wrap">
                     <div class="grafik-scroll">
-                        <div class="grafik-kanvas kpi-line-canvas">
+                        <div class="grafik-kanvas kpi-line-canvas" style="--chart-width: {{ $grafikHarian['lebar'] }}px">
                             <div class="sumbu-y">
                                 @foreach ($grafikHarian['skala'] as $nilai)
                                     <span>{{ $nilai }}</span>
@@ -92,11 +92,24 @@
                                 preserveAspectRatio="none"
                                 aria-label="Grafik pertumbuhan lead"
                             >
-                                <polyline class="garis-lead kpi-line" points="{{ $grafikHarian['leadPoints'] }}"></polyline>
+                                <path class="kpi-line-area" d="{{ $grafikHarian['areaLeadPath'] }}"></path>
+                                <path class="garis-lead kpi-line" d="{{ $grafikHarian['leadPath'] }}"></path>
+                                @foreach ($grafikHarian['titikLead'] as $titik)
+                                    <circle
+                                        class="kpi-line-dot"
+                                        cx="{{ $titik['x'] }}"
+                                        cy="{{ $titik['y'] }}"
+                                        r="3.6"
+                                    >
+                                        <title>{{ $titik['label'] }}: {{ $titik['lead'] }} lead, {{ $titik['closing'] }} closing</title>
+                                    </circle>
+                                @endforeach
                             </svg>
                             <div class="sumbu-x" style="grid-template-columns: repeat({{ count($grafikHarian['hari']) }}, minmax(0, 1fr))">
                                 @foreach ($grafikHarian['hari'] as $hari)
-                                    <span title="Lead: {{ $hari['lead'] }}, Closing: {{ $hari['closing'] }}">{{ $hari['nomor'] }}</span>
+                                    <span title="{{ $hari['label'] }}: {{ $hari['lead'] }} lead, {{ $hari['closing'] }} closing">
+                                        {{ $hari['tampil_label'] ? $hari['label'] : '' }}
+                                    </span>
                                 @endforeach
                             </div>
                         </div>
@@ -232,75 +245,112 @@
     </section>
 
     <section class="grid-dua jarak-atas">
-        <div class="panel">
+        <div class="panel kpi-table-panel">
             <div class="judul-panel">
                 <div>
                     <h2>Aging Leads Aktif</h2>
                     <span>Umur leads aktif sejak tanggal masuk.</span>
                 </div>
             </div>
-            <div class="daftar-progress">
-                @forelse ($agingLeads as $item)
-                    <div class="bar-progress">
-                        <div>
-                            <strong>{{ $item['label'] }}</strong>
-                            <span>{{ $item['total'] }} leads</span>
-                        </div>
-                        <span class="progress-kelas"><i style="width: {{ $item['persen'] }}%"></i></span>
-                    </div>
-                @empty
-                    <p class="kosong">Belum ada aging leads aktif pada filter ini.</p>
-                @endforelse
+            <div class="kpi-table-wrap">
+                <table class="kpi-table">
+                    <thead>
+                        <tr>
+                            <th>Umur Lead</th>
+                            <th>Total Lead</th>
+                            <th>Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($agingLeads as $item)
+                            <tr>
+                                <td>{{ $item['label'] }}</td>
+                                <td>{{ $item['total'] }} leads</td>
+                                <td><span class="kpi-badge kpi-badge-blue">{{ $item['persen'] }}%</span></td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="kpi-table-empty">Belum ada aging leads aktif pada filter ini.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <div class="panel">
+        <div class="panel kpi-table-panel">
             <div class="judul-panel">
                 <div>
                     <h2>Performa User Input</h2>
                     <span>Konversi leads berdasarkan user yang input data.</span>
                 </div>
             </div>
-            <div class="daftar-progress">
-                @forelse ($performaInputUser as $item)
-                    <div class="bar-progress">
-                        <div>
-                            <strong>{{ $item['label'] }}</strong>
-                            <span>{{ $item['leads'] }} leads | {{ $item['closing'] }} closing | konversi {{ $item['rasio'] }}%</span>
-                        </div>
-                        <span class="progress-kelas"><i style="width: {{ $item['persen'] }}%"></i></span>
-                    </div>
-                @empty
-                    <p class="kosong">Belum ada performa user input pada filter ini.</p>
-                @endforelse
+            <div class="kpi-table-wrap">
+                <table class="kpi-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Total Lead</th>
+                            <th>Lead Terkonversi</th>
+                            <th>Conversion Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($performaInputUser as $item)
+                            <tr>
+                                <td>{{ $item['label'] }}</td>
+                                <td>{{ $item['leads'] }}</td>
+                                <td>{{ $item['closing'] }}</td>
+                                <td><span class="kpi-badge kpi-badge-green">{{ $item['rasio'] }}%</span></td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="kpi-table-empty">Belum ada performa user input pada filter ini.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </section>
 
-    <section class="panel jarak-atas">
+    <section class="panel kpi-table-panel jarak-atas">
         <div class="judul-panel">
             <div>
                 <h2>Konversi per Sumber</h2>
                 <span>Kualitas sumber leads berdasarkan rasio closing.</span>
             </div>
         </div>
-        <div class="daftar-progress">
-            @forelse ($konversiSumber as $item)
-                <div class="bar-progress">
-                    <div>
-                        <strong>{{ $item['label'] }}</strong>
-                        <span>{{ $item['leads'] }} leads | {{ $item['closing'] }} closing | konversi {{ $item['rasio'] }}%</span>
-                    </div>
-                    <span class="progress-kelas"><i style="width: {{ $item['persen'] }}%"></i></span>
-                </div>
-            @empty
-                <p class="kosong">Belum ada data konversi sumber pada filter ini.</p>
-            @endforelse
+        <div class="kpi-table-wrap">
+            <table class="kpi-table">
+                <thead>
+                    <tr>
+                        <th>Sumber</th>
+                        <th>Total Lead</th>
+                        <th>Lead Terkonversi</th>
+                        <th>Conversion Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($konversiSumber as $item)
+                        <tr>
+                            <td>{{ $item['label'] }}</td>
+                            <td>{{ $item['leads'] }}</td>
+                            <td>{{ $item['closing'] }}</td>
+                            <td><span class="kpi-badge kpi-badge-green">{{ $item['rasio'] }}%</span></td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="kpi-table-empty">Belum ada data konversi sumber pada filter ini.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </section>
 
     <section class="grid-dua jarak-atas">
-        <div class="panel">
+        <div class="panel kpi-table-panel">
             <div class="judul-panel">
                 <div>
                     <h2>Target dan Konversi</h2>
@@ -308,94 +358,117 @@
                 </div>
                 <strong>{{ $targetKinerja['rasioKonversi'] }}%</strong>
             </div>
-            <div class="daftar-progress">
-                <div class="bar-progress">
-                    <div>
-                        <strong>Target Leads</strong>
-                        <span>{{ $targetKinerja['leadsAktif'] }} / {{ $targetKinerja['targetLeads'] }} leads aktif</span>
-                    </div>
-                    <span class="progress-kelas"><i style="width: {{ $targetKinerja['persenLeads'] }}%"></i></span>
-                </div>
-                <div class="bar-progress">
-                    <div>
-                        <strong>Target Closing</strong>
-                        <span>{{ $targetKinerja['closing'] }} / {{ $targetKinerja['targetClosing'] }} closing</span>
-                    </div>
-                    <span class="progress-kelas"><i style="width: {{ $targetKinerja['persenClosing'] }}%"></i></span>
-                </div>
-                <div class="bar-progress">
-                    <div>
-                        <strong>Rasio Konversi</strong>
-                        <span>{{ $targetKinerja['closing'] }} closing dari {{ $targetKinerja['leadsAktif'] + $targetKinerja['closing'] }} total leads filter ini</span>
-                    </div>
-                    <span class="progress-kelas"><i style="width: {{ min(100, $targetKinerja['rasioKonversi']) }}%"></i></span>
-                </div>
+            <div class="kpi-table-wrap">
+                <table class="kpi-table">
+                    <thead>
+                        <tr>
+                            <th>KPI</th>
+                            <th>Realisasi</th>
+                            <th>Target</th>
+                            <th>Capaian</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Target Leads</td>
+                            <td>{{ $targetKinerja['leadsAktif'] }} leads aktif</td>
+                            <td>{{ $targetKinerja['targetLeads'] }}</td>
+                            <td><span class="kpi-badge kpi-badge-blue">{{ $targetKinerja['persenLeads'] }}%</span></td>
+                        </tr>
+                        <tr>
+                            <td>Target Closing</td>
+                            <td>{{ $targetKinerja['closing'] }} closing</td>
+                            <td>{{ $targetKinerja['targetClosing'] }}</td>
+                            <td><span class="kpi-badge kpi-badge-green">{{ $targetKinerja['persenClosing'] }}%</span></td>
+                        </tr>
+                        <tr>
+                            <td>Rasio Konversi</td>
+                            <td>{{ $targetKinerja['closing'] }} / {{ $targetKinerja['leadsAktif'] + $targetKinerja['closing'] }} total leads</td>
+                            <td>-</td>
+                            <td><span class="kpi-badge kpi-badge-green">{{ $targetKinerja['rasioKonversi'] }}%</span></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <div class="panel">
+        <div class="panel kpi-table-panel">
             <div class="judul-panel">
                 <div>
                     <h2>{{ $rankingKinerja['judul'] }}</h2>
                     <span>{{ $rankingKinerja['subjudul'] }}</span>
                 </div>
             </div>
-            <div class="daftar-progress">
-                @forelse ($rankingKinerja['items'] as $item)
-                    @php
-                        $persenRanking = $item['target_closing'] > 0
-                            ? min(100, round(($item['closing'] / $item['target_closing']) * 100, 1))
-                            : min(100, $item['closing'] * 10);
-                    @endphp
-                    <div class="bar-progress">
-                        <div>
-                            <strong>{{ $loop->iteration }}. {{ $item['label'] }}</strong>
-                            <span>
-                                {{ $item['leads'] }} leads | {{ $item['closing'] }} closing
-                                | target {{ $item['target_closing'] }}
-                                | konversi {{ $item['rasio'] }}%
-                            </span>
-                        </div>
-                        <span class="progress-kelas"><i style="width: {{ $persenRanking }}%"></i></span>
-                    </div>
-                @empty
-                    <p class="kosong">Belum ada data ranking pada filter ini.</p>
-                @endforelse
+            <div class="kpi-table-wrap">
+                <table class="kpi-table">
+                    <thead>
+                        <tr>
+                            <th>{{ str_contains($rankingKinerja['judul'], 'Cabang') ? 'Cabang' : 'User' }}</th>
+                            <th>Total Lead</th>
+                            <th>Closing</th>
+                            <th>Target Closing</th>
+                            <th>Conversion Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($rankingKinerja['items'] as $item)
+                            <tr>
+                                <td>{{ $item['label'] }}</td>
+                                <td>{{ $item['leads'] }}</td>
+                                <td>{{ $item['closing'] }}</td>
+                                <td>{{ $item['target_closing'] }}</td>
+                                <td><span class="kpi-badge kpi-badge-green">{{ $item['rasio'] }}%</span></td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="kpi-table-empty">Belum ada data ranking pada filter ini.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </section>
 
-    <section class="panel jarak-atas">
+    <section class="panel kpi-table-panel jarak-atas">
         <div class="judul-panel">
             <div>
                 <h2>{{ $performaRole['judul'] }}</h2>
                 <span>{{ $performaRole['subjudul'] }}</span>
             </div>
         </div>
-        <div class="daftar-progress">
-            @forelse ($performaRole['items'] as $item)
-                <div class="bar-progress">
-                    <div>
-                        <strong>{{ $item['label'] }}</strong>
-                        <span>
-                            {{ $item['total'] }}{{ $item['satuan'] ?? ' leads' }}
-                            @if (! isset($item['satuan']))
-                                | {{ $item['closing'] }} closing | {{ $item['follow_up'] }} follow up
-                            @endif
-                        </span>
-                    </div>
-                    <span class="progress-kelas">
-                        <i style="width: {{ max(0, min(100, $item['persen'])) }}%"></i>
-                    </span>
-                </div>
-            @empty
-                <p class="kosong">Belum ada data performa pada filter ini.</p>
-            @endforelse
+        <div class="kpi-table-wrap">
+            <table class="kpi-table">
+                <thead>
+                    <tr>
+                        <th>{{ str_contains($performaRole['judul'], 'Cabang') ? 'Cabang' : 'User' }}</th>
+                        <th>Total</th>
+                        <th>Follow Up</th>
+                        <th>Closing</th>
+                        <th>Progress</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($performaRole['items'] as $item)
+                        <tr>
+                            <td>{{ $item['label'] }}</td>
+                            <td>{{ $item['total'] }}{{ $item['satuan'] ?? '' }}</td>
+                            <td>{{ isset($item['satuan']) ? '-' : $item['follow_up'] }}</td>
+                            <td>{{ isset($item['satuan']) ? '-' : $item['closing'] }}</td>
+                            <td><span class="kpi-badge kpi-badge-blue">{{ max(0, min(100, $item['persen'])) }}%</span></td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="kpi-table-empty">Belum ada data performa pada filter ini.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </section>
 
     <section class="grid-dua jarak-atas">
-        <div class="panel">
+        <div class="panel kpi-table-panel">
             <div class="judul-panel">
                 <div>
                     <h2>Dashboard Closing</h2>
@@ -406,22 +479,33 @@
             @php
                 $maksClosingProgram = max(1, (int) $dashboardClosing['perProgram']->max('total'));
             @endphp
-            <div class="daftar-progress">
-                @forelse ($dashboardClosing['perProgram'] as $item)
-                    <div class="bar-progress">
-                        <div>
-                            <strong>{{ $item->label }}</strong>
-                            <span>{{ $item->total }} siswa</span>
-                        </div>
-                        <span class="progress-kelas"><i style="width: {{ round(($item->total / $maksClosingProgram) * 100) }}%"></i></span>
-                    </div>
-                @empty
-                    <p class="kosong">Belum ada closing pada filter ini.</p>
-                @endforelse
+            <div class="kpi-table-wrap">
+                <table class="kpi-table">
+                    <thead>
+                        <tr>
+                            <th>Program</th>
+                            <th>Total Siswa</th>
+                            <th>Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($dashboardClosing['perProgram'] as $item)
+                            <tr>
+                                <td>{{ $item->label }}</td>
+                                <td>{{ $item->total }}</td>
+                                <td><span class="kpi-badge kpi-badge-blue">{{ round(($item->total / $maksClosingProgram) * 100) }}%</span></td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="kpi-table-empty">Belum ada closing pada filter ini.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <div class="panel">
+        <div class="panel kpi-table-panel">
             <div class="judul-panel">
                 <div>
                     <h2>Status Pembayaran Closing</h2>
@@ -431,23 +515,34 @@
             @php
                 $maksPembayaran = max(1, (int) $dashboardClosing['perPembayaran']->max('total'));
             @endphp
-            <div class="daftar-progress">
-                @forelse ($dashboardClosing['perPembayaran'] as $item)
-                    <div class="bar-progress">
-                        <div>
-                            <strong>{{ $item->label }}</strong>
-                            <span>{{ $item->total }} siswa</span>
-                        </div>
-                        <span class="progress-kelas"><i style="width: {{ round(($item->total / $maksPembayaran) * 100) }}%"></i></span>
-                    </div>
-                @empty
-                    <p class="kosong">Belum ada status pembayaran closing.</p>
-                @endforelse
+            <div class="kpi-table-wrap">
+                <table class="kpi-table">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Total Siswa</th>
+                            <th>Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($dashboardClosing['perPembayaran'] as $item)
+                            <tr>
+                                <td>{{ $item->label }}</td>
+                                <td>{{ $item->total }}</td>
+                                <td><span class="kpi-badge kpi-badge-blue">{{ round(($item->total / $maksPembayaran) * 100) }}%</span></td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="kpi-table-empty">Belum ada status pembayaran closing.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </section>
 
-    <section class="panel jarak-atas">
+    <section class="panel kpi-table-panel jarak-atas">
         <div class="judul-panel">
             <div>
                 <h2>Closing per Cabang</h2>
@@ -457,18 +552,29 @@
         @php
             $maksClosingCabang = max(1, (int) $dashboardClosing['perCabang']->max('total'));
         @endphp
-        <div class="daftar-progress">
-            @forelse ($dashboardClosing['perCabang'] as $item)
-                <div class="bar-progress">
-                    <div>
-                        <strong>{{ $item->label }}</strong>
-                        <span>{{ $item->total }} siswa</span>
-                    </div>
-                    <span class="progress-kelas"><i style="width: {{ round(($item->total / $maksClosingCabang) * 100) }}%"></i></span>
-                </div>
-            @empty
-                <p class="kosong">Belum ada closing per cabang pada filter ini.</p>
-            @endforelse
+        <div class="kpi-table-wrap">
+            <table class="kpi-table">
+                <thead>
+                    <tr>
+                        <th>Cabang</th>
+                        <th>Total Siswa</th>
+                        <th>Share</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($dashboardClosing['perCabang'] as $item)
+                        <tr>
+                            <td>{{ $item->label }}</td>
+                            <td>{{ $item->total }}</td>
+                            <td><span class="kpi-badge kpi-badge-blue">{{ round(($item->total / $maksClosingCabang) * 100) }}%</span></td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3" class="kpi-table-empty">Belum ada closing per cabang pada filter ini.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </section>
 
