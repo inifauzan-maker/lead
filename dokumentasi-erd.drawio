@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2026-07-02T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
+<mxfile host="app.diagrams.net" modified="2026-07-03T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
   <diagram id="erd-sistem-informasi-leads" name="ERD Sistem Informasi Leads">
     <mxGraphModel dx="1660" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1280" math="0" shadow="0">
       <root>
@@ -43,8 +43,8 @@
         <mxCell id="program_leads" value="&lt;b&gt;PROGRAM_LEADS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : bigint&lt;br/&gt;nama UK : string&lt;br/&gt;aktif : boolean&lt;br/&gt;created_at : timestamp&lt;br/&gt;updated_at : timestamp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="1060" y="500" width="250" height="150" as="geometry" />
         </mxCell>
-        <mxCell id="dashboard_analytics_note" value="&lt;b&gt;DASHBOARD KPI / ANALYTICS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;Bukan tabel fisik.&lt;br/&gt;Agregasi dari PROSPEK untuk:&lt;br/&gt;- total lead dan conversion rate&lt;br/&gt;- pertumbuhan harian/bulanan/tahunan&lt;br/&gt;- sumber, program, cabang, sekolah&lt;br/&gt;Tanggal utama: tgl_masuk dan tanggal_daftar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f2fe;strokeColor=#0369a1;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="1060" y="680" width="250" height="210" as="geometry" />
+        <mxCell id="dashboard_analytics_note" value="&lt;b&gt;DASHBOARD KPI / ANALYTICS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;Bukan tabel fisik.&lt;br/&gt;Agregasi dari PROSPEK untuk:&lt;br/&gt;- Total Lead = lead aktif&lt;br/&gt;- Conversion Rate = closing / (lead aktif + closing)&lt;br/&gt;- Sumber Lead = lead aktif per sumber&lt;br/&gt;- grafik pertumbuhan harian/bulanan/tahunan&lt;br/&gt;- tabel KPI user, cabang, target, closing&lt;br/&gt;Tanggal utama: tgl_masuk dan tanggal_daftar&lt;br/&gt;&lt;br/&gt;Tabel pendukung lain dijelaskan di dokumentasi: prospek_status_histories, target_kinerja, activity_logs, sekolah, whatsapp_templates." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f2fe;strokeColor=#0369a1;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="680" width="250" height="320" as="geometry" />
         </mxCell>
         <mxCell id="sessions" value="&lt;b&gt;SESSIONS&lt;/b&gt;&lt;br/&gt;&lt;hr/&gt;id PK : string&lt;br/&gt;user_id : bigint&lt;br/&gt;ip_address : string&lt;br/&gt;user_agent : text&lt;br/&gt;payload : longtext&lt;br/&gt;last_activity : integer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#64748b;fontColor=#172033;align=left;verticalAlign=top;spacing=12;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="60" y="520" width="260" height="180" as="geometry" />

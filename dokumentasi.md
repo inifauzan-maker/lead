@@ -278,23 +278,296 @@ erDiagram
     }
 ```
 
+## Diagram Flow
+
+Diagram flow berikut menjelaskan alur utama dari login sampai monitoring dashboard dan backup data.
+
+```mermaid
+flowchart TD
+    A([Mulai]) --> B[User membuka aplikasi]
+    B --> C{Sudah login?}
+    C -- Tidak --> D[Input email dan password]
+    D --> E{Kredensial valid?}
+    E -- Tidak --> D
+    E -- Ya --> F[Masuk dashboard sesuai role]
+    C -- Ya --> F
+
+    F --> G{Pilih modul}
+    G --> H[Input atau Import Leads]
+    G --> I[Kelola Data Leads]
+    G --> J[Catat Follow Up]
+    G --> K[Kelola Data Siswa atau Closing]
+    G --> L[Kelola Tugas dan Pembelajaran]
+    G --> M[Kelola Pengaturan]
+    G --> N[Lihat Dashboard KPI]
+
+    H --> H1[Validasi data dan nomor WhatsApp unik]
+    H1 --> H2[Simpan leads ke tabel prospek]
+    H2 --> H3[Simpan asal sekolah bila baru]
+    H3 --> N
+
+    I --> I1[Filter, edit, assign cabang atau user]
+    I1 --> I2[Perbarui data prospek]
+    I2 --> N
+
+    J --> J1[Pilih leads]
+    J1 --> J2[Input metode, hasil, catatan, jadwal berikutnya]
+    J2 --> J3[Simpan ke follow_ups]
+    J3 --> J4[Update status prospek dan histori status]
+    J4 --> N
+
+    K --> K1[Status leads menjadi Daftar]
+    K1 --> K2[Simpan tanggal daftar, program final, pembayaran]
+    K2 --> N
+
+    L --> L1[Buat tugas, komentar, course, atau progress]
+    L1 --> N
+
+    M --> M1[Kelola user, cabang, sumber, program, sekolah, target, template]
+    M1 --> N
+
+    N --> N1[Hitung KPI leads aktif, closing, sumber, user, cabang]
+    N1 --> N2[Tampilkan grafik dan tabel KPI]
+    N2 --> O{Perlu backup?}
+    O -- Ya --> P[Export backup SQL]
+    O -- Tidak --> Q([Selesai])
+    P --> Q
+```
+
+## Diagram Use Case
+
+Diagram use case berikut menggambarkan hak akses utama berdasarkan role.
+
+```mermaid
+flowchart LR
+    superadmin[Superadmin]
+    admin[Admin]
+    staff[Staff]
+    direksi[Direksi]
+
+    subgraph Sistem[Sistem Informasi Leads]
+        UC1([Login])
+        UC2([Lihat Dashboard KPI])
+        UC3([Input Leads])
+        UC4([Import dan Export Leads])
+        UC5([Kelola Data Leads])
+        UC6([Catat Follow Up])
+        UC7([Kelola Closing dan Data Siswa])
+        UC8([Kelola User dan Role])
+        UC9([Kelola Master Cabang, Sumber, Program, Sekolah])
+        UC10([Kelola Target KPI])
+        UC11([Kelola Tugas])
+        UC12([Kelola Pembelajaran])
+        UC13([Lihat Laporan])
+        UC14([Backup dan Restore Data])
+        UC15([Kelola Template WhatsApp])
+        UC16([Kelola Profil])
+    end
+
+    superadmin --> UC1
+    superadmin --> UC2
+    superadmin --> UC3
+    superadmin --> UC4
+    superadmin --> UC5
+    superadmin --> UC6
+    superadmin --> UC7
+    superadmin --> UC8
+    superadmin --> UC9
+    superadmin --> UC10
+    superadmin --> UC11
+    superadmin --> UC12
+    superadmin --> UC13
+    superadmin --> UC14
+    superadmin --> UC15
+    superadmin --> UC16
+
+    admin --> UC1
+    admin --> UC2
+    admin --> UC3
+    admin --> UC4
+    admin --> UC5
+    admin --> UC6
+    admin --> UC7
+    admin --> UC10
+    admin --> UC11
+    admin --> UC13
+    admin --> UC15
+    admin --> UC16
+
+    staff --> UC1
+    staff --> UC2
+    staff --> UC3
+    staff --> UC5
+    staff --> UC6
+    staff --> UC7
+    staff --> UC12
+    staff --> UC16
+
+    direksi --> UC1
+    direksi --> UC2
+    direksi --> UC13
+    direksi --> UC16
+```
+
+## DFD
+
+DFD level konteks menggambarkan batas sistem dan arus data antara aktor dengan aplikasi.
+
+```mermaid
+flowchart LR
+    Superadmin[Superadmin]
+    Admin[Admin]
+    Staff[Staff]
+    Direksi[Direksi]
+    Sistem((Sistem Informasi Leads))
+    DB[(Database CRM Leads)]
+    Backup[(File Backup SQL)]
+
+    Superadmin -- data user, master, target, backup --> Sistem
+    Admin -- data leads, follow up, closing, tugas --> Sistem
+    Staff -- input leads, follow up, progress belajar --> Sistem
+    Direksi -- permintaan dashboard dan laporan --> Sistem
+
+    Sistem -- dashboard, laporan, notifikasi --> Superadmin
+    Sistem -- data cabang, KPI, tugas, notifikasi --> Admin
+    Sistem -- leads milik staff, jadwal follow up, pembelajaran --> Staff
+    Sistem -- ringkasan performa dan laporan --> Direksi
+
+    Sistem -- simpan dan baca data operasional --> DB
+    Sistem -- export data penting --> Backup
+    Backup -- restore data --> Sistem
+```
+
+DFD level 1 merinci proses internal utama dan data store yang digunakan.
+
+```mermaid
+flowchart TD
+    A1[User Aplikasi]
+
+    P1((1. Autentikasi dan Role))
+    P2((2. Kelola Leads))
+    P3((3. Follow Up dan Closing))
+    P4((4. Dashboard dan Laporan))
+    P5((5. Pengaturan Master))
+    P6((6. Tugas dan Pembelajaran))
+    P7((7. Backup dan Restore))
+
+    D1[(users)]
+    D2[(prospek)]
+    D3[(follow_ups)]
+    D4[(prospek_status_histories)]
+    D5[(cabang, sumber_leads, program_leads, sekolah)]
+    D6[(tasks, task_comments)]
+    D7[(courses, course_lessons, course_progress)]
+    D8[(notifications)]
+    D9[(target_kinerja)]
+    D10[(activity_logs)]
+    D11[(backup SQL)]
+
+    A1 -- email dan password --> P1
+    P1 -- validasi akun dan role --> D1
+    P1 -- sesi dan hak akses --> A1
+    P1 -- catat login --> D10
+
+    A1 -- input, import, edit, assign leads --> P2
+    P2 -- simpan dan ambil leads --> D2
+    P2 -- referensi cabang, sumber, program, sekolah --> D5
+    P2 -- notifikasi perubahan data --> D8
+    P2 -- log aktivitas --> D10
+
+    A1 -- hasil follow up dan data closing --> P3
+    P3 -- baca dan update status leads --> D2
+    P3 -- simpan riwayat follow up --> D3
+    P3 -- simpan histori status --> D4
+    P3 -- notifikasi follow up --> D8
+    P3 -- log aktivitas --> D10
+
+    A1 -- permintaan KPI dan laporan --> P4
+    P4 -- agregasi leads dan closing --> D2
+    P4 -- agregasi follow up --> D3
+    P4 -- target KPI --> D9
+    P4 -- hasil dashboard dan laporan --> A1
+
+    A1 -- kelola master, user, target, template --> P5
+    P5 -- CRUD user dan role --> D1
+    P5 -- CRUD master --> D5
+    P5 -- CRUD target --> D9
+    P5 -- log pengaturan --> D10
+
+    A1 -- buat tugas, komentar, akses course --> P6
+    P6 -- data tugas --> D6
+    P6 -- data pembelajaran --> D7
+    P6 -- notifikasi tugas --> D8
+    P6 -- log aktivitas --> D10
+
+    A1 -- export atau restore data --> P7
+    P7 -- baca dan tulis data penting --> D1
+    P7 -- baca dan tulis leads --> D2
+    P7 -- baca dan tulis modul pendukung --> D3
+    P7 -- file backup --> D11
+```
+
 ## Kardinalitas
 
 | Relasi | Kardinalitas | Keterangan |
 | --- | --- | --- |
-| `users` ke `prospek` | 1 ke 0..N | Satu user dapat menjadi penanggung jawab banyak leads. Satu leads boleh belum punya `user_id`. |
-| `prospek` ke `users` | 0..N ke 0..1 | Banyak leads dapat mengarah ke satu user. Jika user dihapus, `user_id` pada leads menjadi `null`. |
+| `users.id` ke `prospek.user_id` | 1 ke 0..N | Satu user dapat menjadi penanggung jawab banyak leads. Satu leads boleh belum punya `user_id`. Jika user dihapus, `user_id` menjadi `null`. |
+| `users.id` ke `prospek.created_by` | 1 ke 0..N | Satu user dapat menjadi sumber input/import banyak leads. Jika user dihapus, `created_by` menjadi `null`. |
 | `prospek` ke `follow_ups` | 1 ke 0..N | Satu leads dapat memiliki banyak aktivitas follow up. Jika leads dihapus, riwayat follow up ikut terhapus. |
 | `users` ke `follow_ups` | 1 ke 0..N | Satu user dapat mencatat banyak aktivitas follow up. Jika user dihapus, `user_id` pada follow up menjadi `null`. |
+| `prospek` ke `prospek_status_histories` | 1 ke 0..N | Satu leads dapat memiliki banyak riwayat perubahan status. Jika leads dihapus, riwayat status ikut terhapus. |
+| `users` ke `prospek_status_histories` | 1 ke 0..N | Satu user dapat mencatat banyak perubahan status. Jika user dihapus, `user_id` riwayat menjadi `null`. |
+| `prospek` ke `tasks` | 1 ke 0..N | Satu leads dapat terkait banyak tugas. Kolom `tasks.prospek_id` nullable dan menjadi `null` jika leads dihapus. |
+| `users.id` ke `tasks.assigned_to` | 1 ke 0..N | Satu user admin dapat menerima banyak tugas. Jika user dihapus, `assigned_to` menjadi `null`. |
+| `users.id` ke `tasks.created_by` | 1 ke 0..N | Satu user admin dapat membuat banyak tugas. Jika user dihapus, `created_by` menjadi `null`. |
+| `tasks` ke `task_comments` | 1 ke 0..N | Satu tugas dapat memiliki banyak komentar. Jika tugas dihapus, komentar ikut terhapus. |
+| `users` ke `task_comments` | 1 ke 0..N | Satu user dapat menulis banyak komentar tugas. Jika user dihapus, `user_id` komentar menjadi `null`. |
+| `courses` ke `course_lessons` | 1 ke 0..N | Satu course memiliki banyak materi. Jika course dihapus, materi ikut terhapus. |
+| `courses` ke `course_progress` | 1 ke 0..N | Satu course dapat memiliki banyak progres user. Jika course dihapus, progres ikut terhapus. |
+| `course_lessons` ke `course_progress` | 1 ke 0..N | Satu materi dapat muncul di banyak progres user. Kolom `course_lesson_id` nullable, tetapi ikut terhapus jika materi dihapus. |
+| `users` ke `course_progress` | 1 ke 0..N | Satu user dapat memiliki banyak progres course. Jika user dihapus, progres ikut terhapus. |
+| `users` ke `notifications` | 1 ke 0..N | Satu user dapat menerima banyak notifikasi. `notifications.user_id` nullable untuk broadcast umum. |
+| `users` ke `target_kinerja` | 1 ke 0..N | Satu user dapat memiliki banyak target bulanan/tahunan. Target cabang boleh tidak memiliki `user_id`. |
+| `users` ke `activity_logs` | 1 ke 0..N | Satu user dapat memiliki banyak log aktivitas. Jika user dihapus, `user_id` log menjadi `null`. |
+| `users` ke `sekolah` | 1 ke 0..N | Satu user dapat menambahkan banyak master sekolah. Jika user dihapus, `created_by` menjadi `null`. |
 | `users` ke `sessions` | 1 ke 0..N | Satu user dapat memiliki banyak session login. Kolom `sessions.user_id` nullable dan hanya diindeks. |
 | `cabang` ke `users` | 1 ke 0..N secara logis | Relasi berdasarkan teks `cabang.nama = users.cabang`, belum memakai foreign key. |
 | `cabang` ke `prospek` | 1 ke 0..N secara logis | Relasi berdasarkan teks `cabang.nama = prospek.cabang`, belum memakai foreign key. |
 | `sumber_leads` ke `prospek` | 1 ke 0..N secara logis | Relasi berdasarkan teks `sumber_leads.nama = prospek.sumber`, belum memakai foreign key. |
 | `program_leads` ke `prospek` | 1 ke 0..N secara logis | Relasi berdasarkan teks `program_leads.nama = prospek.program`, belum memakai foreign key. |
 | `password_reset_tokens` ke `users` | Logis 0..1 ke 1 | Relasi berdasarkan email, tidak dibuat foreign key. |
-| `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs` | Mandiri | Tabel bawaan Laravel untuk cache dan queue, tidak menjadi relasi bisnis utama. |
+| `whatsapp_templates`, `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs` | Mandiri | Tabel pendukung yang tidak menjadi relasi bisnis utama. |
 
 ## Tabel Database
+
+Ringkasan tabel fisik yang dipakai aplikasi:
+
+| No | Tabel | Fungsi | Kunci/Relasi Utama |
+| --- | --- | --- | --- |
+| 1 | `users` | Akun, role, cabang, status aktif user | PK `id`; direferensikan oleh leads, follow up, tugas, course progress, notifikasi, target, log |
+| 2 | `prospek` | Data utama leads dan data siswa/closing | PK `id`; FK `user_id`, `created_by`; relasi logis ke cabang, sumber, program |
+| 3 | `follow_ups` | Riwayat follow up leads | FK `prospek_id`, `user_id` |
+| 4 | `prospek_status_histories` | Riwayat perubahan status leads | FK `prospek_id`, `user_id` |
+| 5 | `cabang` | Master cabang | PK `id`; relasi logis lewat kolom teks `cabang` |
+| 6 | `sumber_leads` | Master sumber leads | PK `id`; relasi logis lewat `prospek.sumber` |
+| 7 | `program_leads` | Master program leads | PK `id`; relasi logis lewat `prospek.program` |
+| 8 | `tasks` | Task management internal | FK `prospek_id`, `assigned_to`, `created_by` |
+| 9 | `task_comments` | Komentar tugas | FK `task_id`, `user_id` |
+| 10 | `courses` | Master course pembelajaran | PK `id` |
+| 11 | `course_lessons` | Materi course | FK `course_id` |
+| 12 | `course_progress` | Progres belajar user | FK `course_id`, `course_lesson_id`, `user_id`; unique gabungan course, lesson, user |
+| 13 | `notifications` | Notifikasi user dan broadcast | FK nullable `user_id` |
+| 14 | `target_kinerja` | Target KPI bulanan/tahunan user atau cabang | FK nullable `user_id`; unique bulan, tahun, tipe, cabang, user |
+| 15 | `activity_logs` | Audit aktivitas aplikasi | FK nullable `user_id` |
+| 16 | `sekolah` | Master asal sekolah hasil input/manual | FK nullable `created_by`; unique `nama_normalized` |
+| 17 | `whatsapp_templates` | Template pesan WhatsApp | Tabel mandiri |
+| 18 | `sessions` | Session login Laravel | PK `id`; `user_id` hanya index |
+| 19 | `password_reset_tokens` | Token reset password | PK `email` |
+| 20 | `cache` | Cache Laravel | PK `key` |
+| 21 | `cache_locks` | Lock cache Laravel | PK `key` |
+| 22 | `jobs` | Queue job Laravel | PK `id` |
+| 23 | `job_batches` | Batch queue Laravel | PK `id` |
+| 24 | `failed_jobs` | Riwayat job gagal | PK `id`; unique `uuid` |
 
 ### 1. `users`
 
@@ -342,7 +615,7 @@ Menyimpan data leads.
 | `status` | varchar | default `Baru` | Status leads |
 | `cabang` | varchar | nullable | Cabang leads |
 | `user_id` | bigint unsigned | nullable, FK ke `users.id`, null on delete | User penanggung jawab atau staff |
-| `created_by` | bigint unsigned | nullable, FK logis ke `users.id` | User yang pertama input/import leads |
+| `created_by` | bigint unsigned | nullable, FK ke `users.id`, null on delete | User yang pertama input/import leads |
 | `diserahkan_ke` | varchar | nullable | Admin cabang tujuan |
 | `sumber` | varchar | nullable | Sumber leads |
 | `keterangan` | text | nullable | Catatan tambahan |
@@ -522,7 +795,97 @@ Master program untuk pilihan program pada input leads.
 | `created_at` | timestamp | nullable | Waktu dibuat |
 | `updated_at` | timestamp | nullable | Waktu diperbarui |
 
-### 13. `sessions`
+### 13. `prospek_status_histories`
+
+Menyimpan riwayat perubahan status leads.
+
+| Kolom | Tipe | Constraint | Keterangan |
+| --- | --- | --- | --- |
+| `id` | bigint unsigned | PK, auto increment | ID riwayat status |
+| `prospek_id` | bigint unsigned | FK ke `prospek.id`, cascade on delete | Leads terkait |
+| `user_id` | bigint unsigned | nullable, FK ke `users.id`, null on delete | User yang mengubah status |
+| `status_lama` | varchar | nullable | Status sebelum perubahan |
+| `status_baru` | varchar | not null, index gabungan | Status setelah perubahan |
+| `sumber` | varchar | default `manual` | Sumber perubahan status |
+| `catatan` | text | nullable | Catatan perubahan |
+| `created_at` | timestamp | nullable, index gabungan | Waktu dibuat |
+| `updated_at` | timestamp | nullable | Waktu diperbarui |
+
+### 14. `target_kinerja`
+
+Menyimpan target KPI bulanan/tahunan untuk user atau cabang.
+
+| Kolom | Tipe | Constraint | Keterangan |
+| --- | --- | --- | --- |
+| `id` | bigint unsigned | PK, auto increment | ID target |
+| `bulan` | tinyint unsigned | not null, unique gabungan | Bulan target |
+| `tahun` | smallint unsigned | not null, unique gabungan | Tahun target |
+| `tipe` | varchar | not null, unique gabungan, index gabungan | Tipe target |
+| `cabang` | varchar | nullable, unique gabungan | Cabang target |
+| `user_id` | bigint unsigned | nullable, FK ke `users.id`, cascade on delete, unique gabungan | User target |
+| `target_leads` | integer unsigned | default `0` | Target jumlah leads |
+| `target_closing` | integer unsigned | default `0` | Target jumlah closing |
+| `created_at` | timestamp | nullable | Waktu dibuat |
+| `updated_at` | timestamp | nullable | Waktu diperbarui |
+
+Catatan:
+
+- Kombinasi `bulan`, `tahun`, `tipe`, `cabang`, dan `user_id` dibuat unik agar satu target tidak dobel.
+- Target cabang dapat memakai `user_id = null`.
+
+### 15. `activity_logs`
+
+Menyimpan audit aktivitas user di aplikasi.
+
+| Kolom | Tipe | Constraint | Keterangan |
+| --- | --- | --- | --- |
+| `id` | bigint unsigned | PK, auto increment | ID log |
+| `user_id` | bigint unsigned | nullable, FK ke `users.id`, null on delete, index gabungan | User pelaku |
+| `nama_user` | varchar | nullable | Snapshot nama user |
+| `role` | varchar(50) | nullable | Snapshot role user |
+| `cabang` | varchar | nullable | Snapshot cabang user |
+| `aksi` | varchar(80) | not null, index gabungan | Aksi yang dilakukan |
+| `modul` | varchar(80) | nullable, index gabungan | Modul aplikasi |
+| `deskripsi` | varchar | nullable | Ringkasan aktivitas |
+| `method` | varchar(12) | not null | HTTP method |
+| `route_name` | varchar | nullable | Nama route |
+| `url` | text | nullable | URL request |
+| `ip_address` | varchar(45) | nullable | IP user |
+| `user_agent` | text | nullable | Browser/device |
+| `status_code` | smallint unsigned | nullable | Status response |
+| `payload` | json | nullable | Payload ringkas |
+| `created_at` | timestamp | nullable, index gabungan | Waktu dibuat |
+| `updated_at` | timestamp | nullable | Waktu diperbarui |
+
+### 16. `sekolah`
+
+Master asal sekolah dari input manual dan import leads.
+
+| Kolom | Tipe | Constraint | Keterangan |
+| --- | --- | --- | --- |
+| `id` | bigint unsigned | PK, auto increment | ID sekolah |
+| `nama_sekolah` | varchar | not null | Nama sekolah tampil |
+| `nama_normalized` | varchar | unique, not null | Nama sekolah hasil normalisasi untuk cegah duplikat |
+| `sumber` | varchar | default `manual` | Sumber data sekolah |
+| `created_by` | bigint unsigned | nullable, FK ke `users.id`, null on delete | User pembuat data |
+| `created_at` | timestamp | nullable | Waktu dibuat |
+| `updated_at` | timestamp | nullable | Waktu diperbarui |
+
+### 17. `whatsapp_templates`
+
+Menyimpan template pesan WhatsApp untuk follow up.
+
+| Kolom | Tipe | Constraint | Keterangan |
+| --- | --- | --- | --- |
+| `id` | bigint unsigned | PK, auto increment | ID template |
+| `nama` | varchar | not null | Nama template |
+| `isi_pesan` | text | not null | Isi pesan dengan placeholder |
+| `aktif` | boolean | default `true` | Status aktif template |
+| `urutan` | integer unsigned | default `0` | Urutan tampil |
+| `created_at` | timestamp | nullable | Waktu dibuat |
+| `updated_at` | timestamp | nullable | Waktu diperbarui |
+
+### 18. `sessions`
 
 Tabel session Laravel.
 
@@ -535,7 +898,7 @@ Tabel session Laravel.
 | `payload` | longtext | not null | Data session |
 | `last_activity` | integer | index | Aktivitas terakhir |
 
-### 14. `password_reset_tokens`
+### 19. `password_reset_tokens`
 
 Tabel token reset password Laravel.
 
@@ -545,7 +908,7 @@ Tabel token reset password Laravel.
 | `token` | varchar | not null | Token reset |
 | `created_at` | timestamp | nullable | Waktu dibuat |
 
-### 15. `cache`
+### 20. `cache`
 
 Tabel cache Laravel.
 
@@ -555,7 +918,7 @@ Tabel cache Laravel.
 | `value` | mediumtext | not null | Isi cache |
 | `expiration` | bigint | index | Waktu kedaluwarsa |
 
-### 16. `cache_locks`
+### 21. `cache_locks`
 
 Tabel lock cache Laravel.
 
@@ -565,7 +928,7 @@ Tabel lock cache Laravel.
 | `owner` | varchar | not null | Pemilik lock |
 | `expiration` | bigint | index | Waktu kedaluwarsa |
 
-### 17. `jobs`
+### 22. `jobs`
 
 Tabel antrean job Laravel.
 
@@ -579,7 +942,7 @@ Tabel antrean job Laravel.
 | `available_at` | unsigned integer | not null | Waktu tersedia |
 | `created_at` | unsigned integer | not null | Waktu dibuat |
 
-### 18. `job_batches`
+### 23. `job_batches`
 
 Tabel batch job Laravel.
 
@@ -596,7 +959,7 @@ Tabel batch job Laravel.
 | `created_at` | integer | not null | Waktu dibuat |
 | `finished_at` | integer | nullable | Waktu selesai |
 
-### 19. `failed_jobs`
+### 24. `failed_jobs`
 
 Tabel job gagal Laravel.
 
@@ -625,7 +988,7 @@ Catatan:
 
 | Modul | Sumber Data Utama | Keterangan |
 | --- | --- | --- |
-| Dashboard | `prospek`, `users` | Dashboard KPI, grafik pertumbuhan harian/bulanan/tahunan, sumber lead, program, cabang, sekolah |
+| Dashboard | `prospek`, `users` | Dashboard KPI tabel per user/cabang, grafik pertumbuhan harian/bulanan/tahunan, sumber lead, program, cabang, sekolah |
 | Data Leads | `prospek` | CRUD leads, import/export, pilih banyak data |
 | Follow Up | `prospek`, `follow_ups` | Riwayat aktivitas follow up, jumlah follow up per leads, kalender, hasil follow up |
 | Data Siswa | `prospek` | Leads status `Daftar` |
@@ -634,7 +997,7 @@ Catatan:
 | Laporan | `prospek` | Ringkasan report status dan cabang |
 | Pembelajaran | `courses`, `course_lessons`, `course_progress` | Modul online course dan progres pembelajaran user |
 | Profil User | `users`, `prospek` | Data akun, media sosial, ringkasan personal |
-| Pengaturan | `cabang`, `sumber_leads`, `program_leads`, `users` | CRUD master sistem dan manajemen role user |
+| Pengaturan | `cabang`, `sumber_leads`, `program_leads`, `users`, `sekolah`, `whatsapp_templates`, `target_kinerja` | CRUD master sistem, template, target, dan manajemen role user |
 | Notifikasi | `notifications` | Badge notifikasi user dan broadcast sistem |
 
 ## Enterprise Architecture
@@ -655,7 +1018,7 @@ Arsitektur proses menjelaskan alur kerja bisnis utama dalam sistem.
 | Distribusi leads ke cabang | Admin | Cabang tujuan, admin tujuan | Leads memiliki cabang dan tujuan penyerahan | Data Leads |
 | Follow up leads | Admin | Perubahan status dan catatan | Leads masuk daftar follow up | Follow Up |
 | Closing/data siswa | Admin, staff | Status `Daftar` | Data siswa/closing | Data Siswa |
-| Monitoring performa | Superadmin, admin, staff, direksi | Filter periode, cabang, admin, staff | Dashboard KPI, grafik pertumbuhan, sumber/program/cabang/sekolah | Dashboard |
+| Monitoring performa | Superadmin, admin, staff, direksi | Filter periode, cabang, admin, staff | Dashboard KPI tabel, grafik pertumbuhan lengkung, sumber/program/cabang/sekolah | Dashboard |
 | Manajemen master | Superadmin | Cabang, sumber leads, program leads | Data master aktif/nonaktif | Pengaturan |
 | Manajemen role user | Superadmin | Role, cabang, status aktif | Hak akses user diperbarui | Pengaturan |
 | Profil dan aktivitas user | Semua role | Data profil, media sosial | Profil user dan ringkasan personal | Profil User |
@@ -666,7 +1029,7 @@ Ringkasan alur proses utama:
 2. User menginput atau mengimport leads.
 3. Sistem mengecek duplikasi berdasarkan nomor WhatsApp.
 4. Leads diberi cabang, sumber, program, status, dan penanggung jawab.
-5. Leads dipantau melalui Dashboard KPI, grafik pertumbuhan harian/bulanan/tahunan, serta grafik sumber/program/cabang/sekolah.
+5. Leads dipantau melalui Dashboard KPI tabel, grafik pertumbuhan harian/bulanan/tahunan, serta grafik sumber/program/cabang/sekolah.
 6. Leads yang perlu dihubungi masuk ke Follow Up.
 7. Leads dengan status `Daftar` masuk ke Data Siswa/closing.
 8. Superadmin mengelola data master dan role user melalui Pengaturan.
@@ -684,16 +1047,20 @@ Arsitektur data menjelaskan struktur data, sumber data, dan relasi logis yang di
 | Data cache | `cache`, `cache_locks` | Penyimpanan cache Laravel |
 | Data queue | `jobs`, `job_batches`, `failed_jobs` | Antrean job Laravel bila digunakan |
 | Data reset akses | `password_reset_tokens` | Token reset password bawaan Laravel |
-| Data eksternal | `database/sekolahVM.json` | Referensi autosuggest asal sekolah |
+| Data eksternal | `database/sekolahVM.json`, `sekolah` | Referensi awal autosuggest asal sekolah dan master sekolah hasil input/import |
 
 Prinsip arsitektur data:
 
 - `prospek.no_wa` dibuat unique untuk menghindari input leads ganda.
 - Relasi `prospek.user_id` memakai foreign key ke `users.id` dan menjadi `null` jika user dihapus.
 - Relasi cabang, sumber, dan program saat ini masih berbasis teks, yaitu mencocokkan `nama` master dengan kolom di `users` dan `prospek`.
-- Data sekolah tidak disimpan sebagai tabel, tetapi sebagai JSON referensi untuk autosuggest. User tetap dapat mengisi manual bila data sekolah tidak ditemukan.
+- Data sekolah memakai dua sumber: `database/sekolahVM.json` sebagai referensi awal autosuggest dan tabel `sekolah` untuk data hasil input/import manual.
 - Data dashboard dihitung dari `prospek` berdasarkan `tgl_masuk`, `tanggal_daftar`, `status`, `cabang`, `program`, `sumber`, dan `asal_sekolah`.
-- Grafik pertumbuhan dashboard memiliki mode harian, bulanan, dan tahunan. Mode harian default menampilkan 30 hari data terbaru agar sumbu tanggal tetap terbaca.
+- Kartu **Total Lead** menghitung leads aktif saja, yaitu data selain status `Daftar` dan `Tidak Tertarik`.
+- **Conversion Rate** dihitung dari closing dibanding leads aktif + closing.
+- Diagram **Sumber Lead** memakai basis yang sama dengan Total Lead, sehingga total di pie sama dengan jumlah leads aktif.
+- Grafik pertumbuhan dashboard memiliki mode harian, bulanan, dan tahunan. Mode harian default menampilkan 30 hari data terbaru dengan path lengkung dan label tanggal dinamis agar sumbu tanggal tetap terbaca.
+- Panel KPI detail memakai tabel untuk membandingkan aging, performa user input, konversi sumber, target, ranking cabang/staff, dan performa cabang/user.
 - Performa user input memakai `created_by`; data historis yang masih kosong dibackfill dari `user_id`, admin cabang, lalu superadmin aktif melalui migrasi.
 - Data aktivitas follow up dihitung dari `follow_ups` berdasarkan `prospek_id`, `tanggal_follow_up`, `hasil`, dan `tanggal_follow_up_berikutnya`.
 
@@ -718,14 +1085,14 @@ Pembagian modul aplikasi:
 | Modul | Route Utama | Controller | Fungsi |
 | --- | --- | --- | --- |
 | Login | `/login` | `AuthController` | Autentikasi user |
-| Dashboard | `/dashboard` | `ProspekController` | KPI leads, grafik pertumbuhan harian/bulanan/tahunan, visual sumber/program/cabang/sekolah |
+| Dashboard | `/dashboard` | `ProspekController` | KPI leads aktif, tabel KPI per user/cabang, grafik pertumbuhan harian/bulanan/tahunan, visual sumber/program/cabang/sekolah |
 | Data Leads | `/prospek` | `ProspekController` | CRUD, import, export, pilih banyak data |
 | Follow Up | `/follow-up` | `ProspekController` | Catat aktivitas follow up, kalender, jumlah follow up per leads, timeline hasil |
 | Data Siswa | `/data-siswa` | `ProspekController` | Leads status `Daftar` |
 | Profil User | `/profil` | `ProfilController`, `ModulController` | Profil, media sosial, TIM, Tugas, Laporan, Pembelajaran |
 | Tugas | `/profil/tugas` | `ModulController` | Kanban task management berdasarkan tabel `tasks` |
 | Pembelajaran | `/profil/pembelajaran` | `ModulController` | Daftar course dan progress user |
-| Pengaturan | `/pengaturan` | `PengaturanController` | CRUD cabang, sumber, program, dan role user |
+| Pengaturan | `/pengaturan` | `PengaturanController` | CRUD cabang, sumber, program, sekolah, template, target, dan role user |
 
 ### 4. Arsitektur Teknologi
 
@@ -747,6 +1114,21 @@ Arsitektur teknologi menjelaskan platform, runtime, deployment, dan dependency t
 | Version control | Git/GitHub | Repository `inifauzan-maker/lead.git` |
 | Deployment | hPanel/Hostinger subdomain | Root Laravel di `public_html`, akses web diarahkan ke `public` |
 
+Plus minus teknologi yang digunakan:
+
+| Teknologi | Kelebihan | Kekurangan/Risiko | Implikasi untuk Proyek |
+| --- | --- | --- | --- |
+| Laravel `^13.8` | Struktur MVC jelas, migration/seeder rapi, fitur auth/session/cache/queue tersedia, mudah dikembangkan untuk CRUD dan dashboard internal | Versi framework baru perlu dipastikan kompatibel dengan hosting, package, dan PHP server | Cocok untuk CRM leads karena banyak form, role, query agregasi, dan modul admin. Setelah deploy perlu rutin cek error log dan update dependency terkontrol. |
+| PHP `^8.3` | Performa cukup baik untuk aplikasi dashboard, tersedia luas di hosting, syntax modern lebih aman dibanding PHP lama | Hosting shared belum tentu default memakai versi PHP yang sama | Server production harus disetel ke PHP 8.3 atau versi kompatibel dengan `composer.json`. |
+| Blade server-side rendering | Cepat dibuat, SEO/internal dashboard cukup, tidak butuh frontend framework besar, mudah dipadukan dengan Laravel route dan policy | Interaksi kompleks bisa membuat file Blade/JS membesar jika tidak dijaga | Cocok untuk aplikasi operasional. Jika UI makin interaktif, pecah komponen Blade dan JS per fitur. |
+| Vite | Build asset cepat, cache busting otomatis, integrasi Laravel bagus | Production harus punya hasil build `public/build`; shared hosting sering tidak menyediakan Node/npm | Jalankan `npm run build` sebelum deploy dan pastikan folder `public/build` ikut terunggah. |
+| Tailwind CSS `^4` + CSS custom | Cepat membangun UI responsif, konsisten untuk utility class, CSS custom memberi kontrol visual dashboard | Jika class tidak disiplin, tampilan bisa sulit distandarkan; Tailwind v4 relatif baru | Gunakan pola komponen yang konsisten untuk card, tabel, button, dan chart agar UI tidak bercampur gaya. |
+| Vanilla JavaScript | Ringan, tidak menambah dependency frontend besar, cukup untuk sidebar, autocomplete, modal, filter, dan chart sederhana | Untuk state/UI yang makin kompleks, kode bisa tersebar dan sulit diuji | Masih tepat untuk kebutuhan saat ini. Jika fitur real-time/interaksi berat bertambah, pertimbangkan struktur module JS yang lebih ketat. |
+| MySQL production | Stabil untuk data relasional, cocok untuk query filter cabang/status/periode, tersedia di hosting | Performa agregasi dashboard bisa turun jika data leads besar tanpa index yang tepat | Pastikan index pada `tgl_masuk`, `tanggal_daftar`, `status`, `cabang`, `user_id`, `created_by`, `sumber`, dan `program` dipantau. |
+| SQLite/MySQL lokal | SQLite praktis untuk development cepat; MySQL lokal bisa menyamai production | Perbedaan perilaku SQLite dan MySQL dapat memunculkan bug query/collation saat deploy | Untuk final sebelum deploy, uji minimal sekali memakai MySQL agar hasil query sama dengan production. |
+| Apache/LiteSpeed shared hosting | Murah, mudah dikelola via hPanel, cukup untuk aplikasi CRM internal skala awal | Akses SSH/queue/scheduler bisa terbatas; document root kadang tidak bisa langsung ke `public`; resource server terbatas | Gunakan `.htaccess`, cache config/view, upload `public/build`, dan pantau kebutuhan queue/scheduler jika trafik meningkat. |
+| Git/GitHub | Riwayat perubahan jelas, mudah rollback, aman untuk kolaborasi dan deploy berbasis commit | Data rahasia bisa bocor jika `.env` ikut commit | `.env` jangan di-commit. Gunakan `.env.example` untuk contoh konfigurasi tanpa credential. |
+
 Catatan deployment shared hosting:
 
 - Jika document root bisa diatur, arahkan subdomain ke folder `public`.
@@ -755,6 +1137,130 @@ Catatan deployment shared hosting:
 - Jalankan `php artisan migrate --force` dan `php artisan db:seed --force` untuk menyiapkan tabel, akun awal, master data, dan contoh data dashboard.
 - Migrasi juga memperbaiki `prospek.created_by` untuk data historis agar laporan Performa User Input tidak menghasilkan data tanpa identitas.
 - Pastikan `storage` dan `bootstrap/cache` writable.
+
+## Checklist Audit Keamanan
+
+Checklist ini dipakai untuk mengecek keamanan aplikasi sebelum staging, production, atau setelah perubahan besar. Baseline yang dipakai adalah OWASP ASVS, OWASP Cheat Sheet Series, dan dokumentasi resmi Laravel.
+
+Referensi utama:
+
+- OWASP ASVS: https://owasp.org/www-project-application-security-verification-standard/
+- OWASP Authentication Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
+- OWASP Authorization Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html
+- OWASP Session Management Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
+- OWASP Input Validation Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+- OWASP File Upload Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html
+- OWASP SQL Injection Prevention Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
+- Laravel Authentication: https://laravel.com/docs/12.x/authentication
+- Laravel Authorization: https://laravel.com/docs/12.x/authorization
+- Laravel Validation: https://laravel.com/docs/12.x/validation
+- Laravel CSRF: https://laravel.com/docs/12.x/csrf
+- Laravel Encryption: https://laravel.com/docs/12.x/encryption
+
+### 1. Konfigurasi Aplikasi
+
+- [ ] `APP_ENV=production` pada server production.
+- [ ] `APP_DEBUG=false` pada server production.
+- [ ] `APP_KEY` terisi dan tidak pernah dibagikan ke publik.
+- [ ] File `.env` tidak dapat diakses dari web.
+- [ ] `.env` tidak pernah di-commit ke Git.
+- [ ] `storage` dan `bootstrap/cache` writable hanya untuk kebutuhan aplikasi.
+- [ ] Hak akses file production dibatasi, tidak semua file/folder writable.
+- [ ] Dependency `composer` dan `npm` dipasang dari sumber resmi dan versi terkunci.
+
+### 2. Authentication dan Session
+
+- [ ] Login memakai validasi input yang ketat untuk email dan password.
+- [ ] Ada proteksi brute force atau rate limiting pada login.
+- [ ] Logout menghapus session dengan benar.
+- [ ] Session ID diregenerasi setelah login.
+- [ ] Cookie session production memakai `secure`, `httpOnly`, dan `sameSite` yang sesuai.
+- [ ] Password disimpan dalam bentuk hash Laravel, bukan plaintext.
+- [ ] Fitur reset password, jika aktif, tidak membocorkan apakah email terdaftar atau tidak.
+- [ ] Akun nonaktif tidak dapat login.
+
+### 3. Authorization dan Role
+
+- [ ] Semua route sensitif dilindungi middleware `auth`.
+- [ ] Fitur admin/superadmin dilindungi cek role atau policy/gate.
+- [ ] User `staff` hanya bisa melihat dan mengubah data sesuai hak aksesnya.
+- [ ] User `admin` hanya bisa mengakses data cabangnya jika memang itu aturan bisnisnya.
+- [ ] User `direksi` hanya menerima akses yang memang dibutuhkan, bukan akses edit penuh tanpa alasan.
+- [ ] Tidak ada IDOR: mengganti `id`, query string, atau form field tidak boleh membuka data user/cabang lain.
+- [ ] Endpoint backup/restore hanya bisa diakses role yang tepat.
+
+### 4. Validasi Input
+
+- [ ] Semua request create/update memakai validasi Laravel.
+- [ ] Field numerik, tanggal, enum status, dan foreign key divalidasi tipe dan rentangnya.
+- [ ] Input teks panjang seperti `catatan`, `keterangan`, `komentar`, dan `isi_pesan` dibatasi panjangnya.
+- [ ] Input filter dashboard dan laporan divalidasi sebelum dipakai di query.
+- [ ] Import CSV leads memvalidasi format kolom, nomor WhatsApp, jenjang, dan sekolah.
+- [ ] Tidak ada data HTML/JS berbahaya yang lolos dan dirender mentah ke Blade.
+
+### 5. Database dan Query
+
+- [ ] Query memakai Eloquent atau query builder, bukan raw SQL dari input user.
+- [ ] Jika ada `DB::raw`, input user tidak boleh masuk langsung tanpa whitelist/parameterisasi.
+- [ ] Constraint unik penting tetap aktif, terutama pada `prospek.no_wa`.
+- [ ] Foreign key penting aktif dan sesuai perilaku `cascadeOnDelete` atau `nullOnDelete`.
+- [ ] Index pada kolom dashboard utama diperiksa untuk menghindari query lambat pada data besar.
+- [ ] Backup database terenkripsi atau minimal disimpan di lokasi yang aksesnya terbatas.
+
+### 6. CSRF, XSS, dan Output
+
+- [ ] Semua form POST/PUT/PATCH/DELETE memakai proteksi CSRF Laravel.
+- [ ] Template Blade memakai escaping default `{{ }}` untuk output user.
+- [ ] Pemakaian `{!! !!}` dibatasi dan hanya untuk konten yang sudah disanitasi.
+- [ ] Pesan template WhatsApp, komentar, dan catatan tidak dirender sebagai HTML mentah tanpa alasan.
+- [ ] Nilai dari query string yang ditampilkan ulang ke UI di-escape dengan benar.
+
+### 7. File Upload, Import, dan Backup
+
+- [ ] Jika ada upload file, tipe file dan ukuran dibatasi.
+- [ ] File upload tidak dieksekusi sebagai script oleh web server.
+- [ ] File import CSV diverifikasi ekstensi, MIME, dan struktur header.
+- [ ] Fitur restore SQL hanya untuk role yang berwenang.
+- [ ] File backup `.sql` tidak disimpan di folder publik.
+- [ ] File backup diuji restore-nya pada lingkungan non-production terlebih dahulu.
+
+### 8. Logging dan Monitoring
+
+- [ ] Error production tidak menampilkan stack trace ke user.
+- [ ] Log aktivitas tidak menyimpan password atau secret lain.
+- [ ] Aksi sensitif seperti login, backup, restore, ubah role, dan hapus data tercatat.
+- [ ] Kegagalan import, restore, atau job penting dapat ditelusuri dari log.
+- [ ] Log production diputar/dibersihkan berkala agar disk tidak penuh.
+
+### 9. Server dan Deployment
+
+- [ ] Document root mengarah ke `public` atau rewrite root sudah benar.
+- [ ] Directory sensitif seperti `app`, `storage/logs`, `bootstrap`, dan `.env` tidak dapat diakses langsung dari browser.
+- [ ] HTTPS aktif dan sertifikat valid.
+- [ ] Header keamanan dasar dipertimbangkan: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, dan `Content-Security-Policy`.
+- [ ] Versi PHP server sesuai dengan kebutuhan `composer.json`.
+- [ ] Package production dibangun dengan `npm run build` dan asset final sesuai commit yang dideploy.
+- [ ] Setelah deploy dijalankan `php artisan config:clear` atau `config:cache` sesuai prosedur rilis.
+
+### 10. Checklist Khusus Project Ini
+
+- [ ] Filter cabang, admin, dan staff pada dashboard tidak membuka data lintas hak akses.
+- [ ] Data `created_by` dan `user_id` pada `prospek` tidak bisa dimanipulasi user biasa untuk mengambil ownership data orang lain.
+- [ ] Menu Pengaturan tidak bisa diakses selain role yang ditentukan.
+- [ ] Export data leads, backup SQL, dan laporan hanya bisa diakses user yang berwenang.
+- [ ] Data nomor WhatsApp, asal sekolah, dan catatan follow up diperlakukan sebagai data sensitif internal.
+- [ ] Seeder demo tidak dijalankan sembarangan pada database production aktif.
+- [ ] Restore backup tidak menimpa production tanpa backup pembanding.
+
+### 11. Verifikasi Sebelum Go-Live
+
+- [ ] Uji login salah berulang kali.
+- [ ] Uji akses URL admin memakai akun staff.
+- [ ] Uji ganti `id` pada detail/edit leads milik user lain.
+- [ ] Uji import file salah format.
+- [ ] Uji backup dan restore pada lingkungan staging.
+- [ ] Uji bahwa `.env` tidak bisa diakses melalui browser.
+- [ ] Uji bahwa error aplikasi tidak membocorkan query, path server, atau stack trace.
 
 ### Data Seeder Dashboard
 

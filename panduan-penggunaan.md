@@ -35,23 +35,27 @@ Menu **Dashboard** menampilkan ringkasan performa berdasarkan role.
 
 Bagian atas dashboard memakai tampilan **Dashboard KPI CRM Leads** dengan kartu ringkasan:
 
-- **Total Lead**: total leads aktif ditambah closing pada filter aktif.
-- **Conversion Rate**: persentase closing dibanding total lead.
+- **Total Lead**: jumlah leads aktif pada filter aktif, tidak termasuk leads yang sudah closing (`Daftar`) atau tidak tertarik.
+- **Conversion Rate**: persentase closing dibanding total funnel, yaitu closing dibagi leads aktif + closing.
 - **CSO Aktif**: jumlah staff aktif sesuai cabang/filter.
 - **Asal Sekolah**: jumlah asal sekolah unik pada filter aktif.
 
 Panel **Pertumbuhan Lead** memiliki tiga mode:
 
-- **Harian**: menampilkan 30 hari data terbaru agar label tanggal tetap terbaca.
+- **Harian**: menampilkan 30 hari data terbaru dengan garis pertumbuhan lengkung dan label tanggal yang ditampilkan secara dinamis agar tetap terbaca.
 - **Bulanan**: menampilkan agregasi Januari sampai Desember.
 - **Tahunan**: menampilkan agregasi per tahun.
 
-Panel **Sumber Lead** menampilkan diagram pie beserta total, jumlah, dan persentase tiap sumber. Di bawah panel pertumbuhan dan sumber, dashboard menampilkan chart batang untuk:
+Panel **Sumber Lead** menampilkan diagram pie beserta total, jumlah, dan persentase tiap sumber. Total pada diagram sumber memakai basis yang sama dengan **Total Lead**, yaitu leads aktif.
+
+Di bawah panel pertumbuhan dan sumber, dashboard menampilkan chart batang untuk:
 
 - lead per sumber,
 - leads berdasarkan program,
 - leads berdasarkan cabang,
 - 5 asal sekolah terbanyak.
+
+Panel KPI lanjutan seperti aging leads, performa user input, konversi sumber, target, ranking cabang/staff, performa cabang/user, dan dashboard closing ditampilkan dalam bentuk tabel agar mudah dibandingkan per user dan cabang.
 
 ### Superadmin
 
