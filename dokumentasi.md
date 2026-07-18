@@ -1,5 +1,7 @@
 # Dokumentasi Sistem Informasi Leads
 
+> Dokumen formal berformat makalah yang memuat Software Requirements Specification (SRS) dan Software Design Description (SDD) tersedia pada [makalah-ieee-srs-sdd.md](makalah-ieee-srs-sdd.md). File ini dipertahankan sebagai dokumentasi teknis rinci dan lampiran desain.
+
 Dokumen ini menjelaskan struktur data awal Sistem Informasi Leads berdasarkan migration Laravel yang ada di proyek.
 
 ## Ringkasan Sistem
@@ -280,6 +282,8 @@ erDiagram
 
 ## Diagram Flow
 
+Versi draw.io tersedia di [`dokumentasi-alur-proses.drawio`](dokumentasi-alur-proses.drawio).
+
 Diagram flow berikut menjelaskan alur utama dari login sampai monitoring dashboard dan backup data.
 
 ```mermaid
@@ -335,6 +339,8 @@ flowchart TD
 ```
 
 ## Diagram Use Case
+
+Versi draw.io tersedia di [`dokumentasi-usecase.drawio`](dokumentasi-usecase.drawio).
 
 Diagram use case berikut menggambarkan hak akses utama berdasarkan role.
 
@@ -410,6 +416,8 @@ flowchart LR
 ```
 
 ## DFD
+
+Versi draw.io tersedia di [`dokumentasi-dfd.drawio`](dokumentasi-dfd.drawio), dengan halaman `DFD Level Konteks` dan `DFD Level 1`.
 
 DFD level konteks menggambarkan batas sistem dan arus data antara aktor dengan aplikasi.
 
@@ -508,6 +516,8 @@ flowchart TD
 ```
 
 ## Kardinalitas
+
+Versi draw.io tersedia di [`dokumentasi-kardinalitas.drawio`](dokumentasi-kardinalitas.drawio).
 
 | Relasi | Kardinalitas | Keterangan |
 | --- | --- | --- |
@@ -1094,7 +1104,124 @@ Pembagian modul aplikasi:
 | Pembelajaran | `/profil/pembelajaran` | `ModulController` | Daftar course dan progress user |
 | Pengaturan | `/pengaturan` | `PengaturanController` | CRUD cabang, sumber, program, sekolah, template, target, dan role user |
 
-### 4. Arsitektur Teknologi
+### 4. Struktur API
+
+Struktur API saat ini dipakai untuk kebutuhan integrasi eksternal yang perlu membaca data prospek dan riwayat follow up. Semua endpoint API berada di `routes/api.php` dan memakai prefix Laravel `/api`.
+
+#### Autentikasi API
+
+API dilindungi middleware `integration.token`.
+
+| Item | Keterangan |
+| --- | --- |
+| Env token | `LEADS_API_TOKEN` |
+| Config | `services.integration.token` |
+| Header utama | `Authorization: Bearer {LEADS_API_TOKEN}` |
+| Header alternatif | `X-Api-Token: {LEADS_API_TOKEN}` |
+| Jika token kosong/salah | Response `401 Unauthorized` |
+
+#### Daftar Endpoint API
+
+| Method | Endpoint | Controller | Fungsi | Auth |
+| --- | --- | --- | --- | --- |
+| GET | `/api/integrations/prospek` | `Api\IntegrationController@prospek` | Mengambil data prospek/leads dalam format JSON pagination | Bearer token / `X-Api-Token` |
+| GET | `/api/integrations/follow-ups` | `Api\IntegrationController@followUps` | Mengambil riwayat follow up beserta nomor WA prospek dan identitas user pencatat | Bearer token / `X-Api-Token` |
+
+#### Query Parameter Umum
+
+| Parameter | Tipe | Default | Maksimum | Keterangan |
+| --- | --- | ---: | ---: | --- |
+| `per_page` | integer | 100 | 500 | Jumlah data per halaman pagination. Nilai di bawah 1 dipaksa menjadi 1, nilai di atas 500 dipaksa menjadi 500. |
+| `page` | integer | 1 | - | Nomor halaman pagination Laravel. |
+
+#### Response Pagination
+
+Kedua endpoint memakai pagination Laravel, sehingga response berisi struktur umum berikut:
+
+```json
+{
+  "current_page": 1,
+  "data": [],
+  "first_page_url": "http://domain.test/api/integrations/prospek?page=1",
+  "from": 1,
+  "last_page": 1,
+  "last_page_url": "http://domain.test/api/integrations/prospek?page=1",
+  "links": [],
+  "next_page_url": null,
+  "path": "http://domain.test/api/integrations/prospek",
+  "per_page": 100,
+  "prev_page_url": null,
+  "to": 100,
+  "total": 100
+}
+```
+
+#### Field Response `/api/integrations/prospek`
+
+| Field | Sumber Data | Keterangan |
+| --- | --- | --- |
+| `id` | `prospek.id` | ID prospek |
+| `nama` | `prospek.nama` | Nama lead/prospek |
+| `asal_sekolah` | `prospek.asal_sekolah` | Asal sekolah |
+| `jenjang` | `prospek.jenjang` | Jenjang pendidikan |
+| `kelas` | `prospek.kelas` | Kelas |
+| `kota_asal` | `prospek.kota_asal` | Kota asal |
+| `no_wa` | `prospek.no_wa` | Nomor WhatsApp |
+| `program` | `prospek.program` | Program/minat |
+| `status` | `prospek.status` | Status lead |
+| `cabang` | `prospek.cabang` | Cabang terkait |
+| `user_id` | `prospek.user_id` | User penanggung jawab |
+| `created_by` | `prospek.created_by` | User penginput/import |
+| `diserahkan_ke` | `prospek.diserahkan_ke` | Tujuan penyerahan |
+| `sumber` | `prospek.sumber` | Sumber lead |
+| `keterangan` | `prospek.keterangan` | Catatan lead |
+| `tgl_masuk` | `prospek.tgl_masuk` | Format `YYYY-MM-DD` |
+| `tanggal_daftar` | `prospek.tanggal_daftar` | Format `YYYY-MM-DD` |
+| `program_final` | `prospek.program_final` | Program final setelah daftar |
+| `status_pembayaran` | `prospek.status_pembayaran` | Status pembayaran |
+| `kelas_angkatan` | `prospek.kelas_angkatan` | Kelas/angkatan siswa |
+| `catatan_administrasi` | `prospek.catatan_administrasi` | Catatan administrasi siswa |
+| `created_at`, `updated_at` | timestamps | Format JSON datetime |
+
+#### Field Response `/api/integrations/follow-ups`
+
+| Field | Sumber Data | Keterangan |
+| --- | --- | --- |
+| `id` | `follow_ups.id` | ID follow up |
+| `prospek_id` | `follow_ups.prospek_id` | FK ke `prospek.id` |
+| `prospek_no_wa` | `prospek.no_wa` | Nomor WA dari relasi prospek |
+| `user_id` | `follow_ups.user_id` | FK ke `users.id` |
+| `user_name` | `users.name` | Nama user pencatat |
+| `user_email` | `users.email` | Email user pencatat |
+| `tanggal_follow_up` | `follow_ups.tanggal_follow_up` | Format JSON datetime |
+| `metode` | `follow_ups.metode` | Metode follow up |
+| `hasil` | `follow_ups.hasil` | Hasil follow up |
+| `catatan` | `follow_ups.catatan` | Catatan percakapan |
+| `tindak_lanjut` | `follow_ups.tindak_lanjut` | Rencana tindak lanjut |
+| `tanggal_follow_up_berikutnya` | `follow_ups.tanggal_follow_up_berikutnya` | Format `YYYY-MM-DD` |
+| `prioritas` | `follow_ups.prioritas` | Prioritas follow up |
+| `created_at`, `updated_at` | timestamps | Format JSON datetime |
+
+#### Contoh Request
+
+```bash
+curl -H "Authorization: Bearer $LEADS_API_TOKEN" \
+  "https://domain.test/api/integrations/prospek?per_page=100&page=1"
+```
+
+```bash
+curl -H "X-Api-Token: $LEADS_API_TOKEN" \
+  "https://domain.test/api/integrations/follow-ups?per_page=100&page=1"
+```
+
+#### Catatan Pengembangan API
+
+- API saat ini bersifat read-only.
+- Belum tersedia filter tanggal, status, cabang, atau pencarian pada endpoint integrasi.
+- Jika API akan dipakai publik/antar-server production, token harus dibuat panjang, acak, dan berbeda dari password user.
+- Tambahkan rate limiting dan audit log khusus API jika trafik integrasi mulai tinggi.
+
+### 5. Arsitektur Teknologi
 
 Arsitektur teknologi menjelaskan platform, runtime, deployment, dan dependency teknis.
 

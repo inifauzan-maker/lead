@@ -323,26 +323,60 @@ class ProspekTest extends TestCase
         $this->assertFalse($leadBandung->bisaDiubahOleh($direksi));
     }
 
-    public function test_semua_role_login_bisa_melihat_detail_leads(): void
+    public function test_detail_leads_menerapkan_scope_role_cabang_dan_kepemilikan(): void
     {
-        $lead = Prospek::create([
-            'nama' => 'Lead Bisa Dilihat',
+        $superadmin = User::factory()->create(['role' => 'superadmin', 'aktif' => true]);
+        $direksi = User::factory()->create(['role' => 'direksi', 'aktif' => true]);
+        $adminBandung = User::factory()->create(['role' => 'admin', 'cabang' => 'Bandung', 'aktif' => true]);
+        $adminJaksel = User::factory()->create(['role' => 'admin', 'cabang' => 'Jaksel', 'aktif' => true]);
+        $staffPemilik = User::factory()->create(['role' => 'staff', 'cabang' => 'Bandung', 'aktif' => true]);
+        $staffLain = User::factory()->create(['role' => 'staff', 'cabang' => 'Bandung', 'aktif' => true]);
+
+        $leadBandung = Prospek::create([
+            'nama' => 'Lead Bandung Terbatas',
             'status' => 'Baru',
-            'cabang' => 'Jaksel',
+            'cabang' => 'Bandung',
+            'user_id' => $staffPemilik->id,
         ]);
 
-        foreach (['superadmin', 'admin', 'staff', 'direksi'] as $role) {
-            $user = User::factory()->create([
-                'role' => $role,
-                'cabang' => 'Bandung',
-                'aktif' => true,
-            ]);
-
+        foreach ([$superadmin, $direksi, $adminBandung, $staffPemilik] as $user) {
             $this->actingAs($user)
-                ->get(route('prospek.show', $lead))
+                ->get(route('prospek.show', $leadBandung))
                 ->assertOk()
-                ->assertSee('Lead Bisa Dilihat');
+                ->assertSee('Lead Bandung Terbatas');
         }
+
+        foreach ([$adminJaksel, $staffLain] as $user) {
+            $this->actingAs($user)
+                ->get(route('prospek.show', $leadBandung))
+                ->assertForbidden();
+        }
+    }
+
+    public function test_detail_data_siswa_menolak_staff_bukan_pemilik_dan_admin_lintas_cabang(): void
+    {
+        $staffPemilik = User::factory()->create(['role' => 'staff', 'cabang' => 'Bandung', 'aktif' => true]);
+        $staffLain = User::factory()->create(['role' => 'staff', 'cabang' => 'Bandung', 'aktif' => true]);
+        $adminJaksel = User::factory()->create(['role' => 'admin', 'cabang' => 'Jaksel', 'aktif' => true]);
+        $leadDaftar = Prospek::create([
+            'nama' => 'Siswa Bandung Terbatas',
+            'status' => 'Daftar',
+            'cabang' => 'Bandung',
+            'user_id' => $staffPemilik->id,
+        ]);
+
+        $this->actingAs($staffPemilik)
+            ->get(route('data-siswa.show', $leadDaftar))
+            ->assertOk()
+            ->assertSee('Siswa Bandung Terbatas');
+
+        $this->actingAs($staffLain)
+            ->get(route('data-siswa.show', $leadDaftar))
+            ->assertForbidden();
+
+        $this->actingAs($adminJaksel)
+            ->get(route('data-siswa.show', $leadDaftar))
+            ->assertForbidden();
     }
 
     public function test_link_whatsapp_web_hanya_muncul_untuk_user_yang_boleh_melihat_nomor_asli(): void
@@ -1069,13 +1103,13 @@ class ProspekTest extends TestCase
             ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
             ->assertOk()
             ->assertSee('Target dan Konversi')
-            ->assertSee('Akumulasi target semua cabang')
+            ->assertSee('Target cabang Bandung')
             ->assertSee('Target Leads')
             ->assertSee('1 leads aktif')
             ->assertSee('Target Closing')
             ->assertSee('1 closing')
             ->assertSee('50%')
-            ->assertSee('Ranking Cabang')
+            ->assertSee('Ranking Staff')
             ->assertSee('Bandung');
     }
 
@@ -1233,7 +1267,7 @@ class ProspekTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_dashboard_admin_melihat_data_seluruh_user_dan_cabang(): void
+    public function test_dashboard_admin_hanya_melihat_data_cabangnya(): void
     {
         $adminJaksel = User::factory()->create([
             'role' => 'admin',
@@ -1246,6 +1280,12 @@ class ProspekTest extends TestCase
             'aktif' => true,
         ]);
 
+        Prospek::create([
+            'nama' => 'Lead Admin Jaksel',
+            'status' => 'Follow Up',
+            'cabang' => 'Jaksel',
+            'tgl_masuk' => '2026-06-02',
+        ]);
         Prospek::create([
             'nama' => 'Lead Staff Bandung',
             'status' => 'Follow Up',
@@ -1265,9 +1305,10 @@ class ProspekTest extends TestCase
             ->get(route('dashboard', ['bulan' => 6, 'tahun' => 2026]))
             ->assertOk()
             ->assertSee('Dashboard KPI CRM Leads')
-            ->assertSeeInOrder(['Total Lead', '1', 'Conversion Rate', '50.00%'])
-            ->assertSee('Bandung')
-            ->assertSee('Jakpus');
+            ->assertSeeInOrder(['Total Lead', '1', 'Conversion Rate', '0.00%'])
+            ->assertSee('Jaksel')
+            ->assertDontSee('Bandung')
+            ->assertDontSee('Jakpus');
     }
 
     public function test_superadmin_bisa_mengelola_target_kinerja(): void

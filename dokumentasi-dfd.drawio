@@ -1,0 +1,42 @@
+<mxfile host="app.diagrams.net" modified="2026-07-17T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
+  <diagram id="dfd-konteks" name="DFD Level Konteks">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="title" value="DFD Konteks - Sistem Informasi Leads" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=24;fontStyle=1" vertex="1" parent="1"><mxGeometry x="430" y="30" width="540" height="40" as="geometry"/></mxCell>
+      <mxCell id="superadmin" value="Superadmin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1"><mxGeometry x="80" y="130" width="170" height="60" as="geometry"/></mxCell>
+      <mxCell id="admin" value="Admin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1"><mxGeometry x="80" y="240" width="170" height="60" as="geometry"/></mxCell>
+      <mxCell id="staff" value="Staff" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1"><mxGeometry x="80" y="350" width="170" height="60" as="geometry"/></mxCell>
+      <mxCell id="direksi" value="Direksi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1"><mxGeometry x="80" y="460" width="170" height="60" as="geometry"/></mxCell>
+      <mxCell id="sistem" value="Sistem Informasi Leads" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=18;fontStyle=1" vertex="1" parent="1"><mxGeometry x="560" y="250" width="200" height="200" as="geometry"/></mxCell>
+      <mxCell id="db" value="Database CRM Leads" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1" vertex="1" parent="1"><mxGeometry x="1050" y="220" width="210" height="90" as="geometry"/></mxCell>
+      <mxCell id="backup" value="File Backup SQL" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1" vertex="1" parent="1"><mxGeometry x="1050" y="390" width="210" height="90" as="geometry"/></mxCell>
+      <mxCell id="e1" value="data user, master, target, backup" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="superadmin" target="sistem"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="e2" value="data leads, follow up, closing, tugas" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="admin" target="sistem"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="e3" value="input leads, follow up, progress belajar" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="staff" target="sistem"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="e4" value="permintaan dashboard dan laporan" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="direksi" target="sistem"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="e5" value="simpan dan baca data operasional" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="sistem" target="db"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="e6" value="export / restore" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="sistem" target="backup"><mxGeometry relative="1" as="geometry"/></mxCell>
+    </root></mxGraphModel>
+  </diagram>
+  <diagram id="dfd-level-1" name="DFD Level 1">
+    <mxGraphModel dx="1600" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="title1" value="DFD Level 1 - Sistem Informasi Leads" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=24;fontStyle=1" vertex="1" parent="1"><mxGeometry x="500" y="30" width="600" height="40" as="geometry"/></mxCell>
+      <mxCell id="actor" value="User Aplikasi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" vertex="1" parent="1"><mxGeometry x="60" y="430" width="170" height="60" as="geometry"/></mxCell>
+      <mxCell id="p1" value="1. Autentikasi dan Role" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1"><mxGeometry x="350" y="100" width="210" height="70" as="geometry"/></mxCell>
+      <mxCell id="p2" value="2. Kelola Leads" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1"><mxGeometry x="350" y="220" width="210" height="70" as="geometry"/></mxCell>
+      <mxCell id="p3" value="3. Follow Up dan Closing" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1"><mxGeometry x="350" y="340" width="210" height="70" as="geometry"/></mxCell>
+      <mxCell id="p4" value="4. Dashboard dan Laporan" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1"><mxGeometry x="350" y="460" width="210" height="70" as="geometry"/></mxCell>
+      <mxCell id="p5" value="5. Pengaturan Master" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1"><mxGeometry x="350" y="580" width="210" height="70" as="geometry"/></mxCell>
+      <mxCell id="p6" value="6. Tugas dan Pembelajaran" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1"><mxGeometry x="350" y="700" width="210" height="70" as="geometry"/></mxCell>
+      <mxCell id="p7" value="7. Backup dan Restore" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1"><mxGeometry x="350" y="820" width="210" height="70" as="geometry"/></mxCell>
+      <mxCell id="stores" value="Data Store:&lt;br&gt;users&lt;br&gt;prospek&lt;br&gt;follow_ups&lt;br&gt;prospek_status_histories&lt;br&gt;cabang, sumber_leads, program_leads, sekolah&lt;br&gt;tasks, task_comments&lt;br&gt;courses, course_lessons, course_progress&lt;br&gt;notifications&lt;br&gt;target_kinerja&lt;br&gt;activity_logs&lt;br&gt;backup SQL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;spacing=12" vertex="1" parent="1"><mxGeometry x="850" y="150" width="430" height="520" as="geometry"/></mxCell>
+      <mxCell id="ea" value="akses modul" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="actor" target="p2"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="eb" value="auth" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="actor" target="p1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="ec" value="operasi data" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="p2" target="stores"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="ed" value="follow up/status" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="p3" target="stores"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="ee" value="agregasi KPI" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="p4" target="stores"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="ef" value="master/target" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="p5" target="stores"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="eg" value="tugas/course" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="p6" target="stores"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="eh" value="backup" style="endArrow=classic;html=1;rounded=0" edge="1" parent="1" source="p7" target="stores"><mxGeometry relative="1" as="geometry"/></mxCell>
+    </root></mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1087,8 +1087,16 @@ class ProspekController extends Controller
         $user = request()->user();
         $query = Prospek::query();
 
-        if ($user?->bisaLihatSemuaLeads()) {
+        if ($user?->aksesSemuaCabang()) {
             return $query;
+        }
+
+        if ($user?->role === 'admin') {
+            return $query->where('cabang', $user->cabang);
+        }
+
+        if ($user?->role === 'staff') {
+            return $query->where('user_id', $user->id);
         }
 
         return $query->whereRaw('1 = 0');
@@ -1172,28 +1180,28 @@ class ProspekController extends Controller
             'admin' => [
                 'role' => 'admin',
                 'labelRole' => 'Admin',
-                'judul' => 'Dashboard Semua User',
-                'deskripsi' => 'Ringkasan data leads, follow up, dan closing dari seluruh user. Gunakan filter untuk melihat cabang atau staff tertentu.',
-                'panelJudul' => 'Performa Cabang',
-                'panelSubjudul' => 'Perbandingan semua cabang berdasarkan leads masuk.',
-                'cabangTerkunci' => null,
-                'bolehFilterCabang' => true,
-                'bolehFilterAdmin' => true,
+                'judul' => 'Dashboard Cabang',
+                'deskripsi' => 'Ringkasan data leads, follow up, dan closing pada cabang admin.',
+                'panelJudul' => 'Performa Tim Cabang',
+                'panelSubjudul' => 'Perbandingan performa user pada cabang admin.',
+                'cabangTerkunci' => $user->cabang,
+                'bolehFilterCabang' => false,
+                'bolehFilterAdmin' => false,
                 'bolehFilterStaff' => true,
-                'tipePanel' => 'cabang',
+                'tipePanel' => 'tim',
             ],
             'staff' => [
                 'role' => 'staff',
                 'labelRole' => 'Staff',
-                'judul' => 'Dashboard Semua User',
-                'deskripsi' => 'Ringkasan data leads, follow up, dan closing dari seluruh user. Gunakan filter untuk melihat data pribadi atau staff tertentu.',
-                'panelJudul' => 'Performa Cabang',
-                'panelSubjudul' => 'Perbandingan semua cabang berdasarkan leads masuk.',
-                'cabangTerkunci' => null,
-                'bolehFilterCabang' => true,
-                'bolehFilterAdmin' => true,
-                'bolehFilterStaff' => true,
-                'tipePanel' => 'cabang',
+                'judul' => 'Dashboard Pribadi',
+                'deskripsi' => 'Ringkasan leads, follow up, dan closing yang menjadi tanggung jawab staff.',
+                'panelJudul' => 'Performa Pribadi',
+                'panelSubjudul' => 'Ringkasan status leads yang menjadi tanggung jawab Anda.',
+                'cabangTerkunci' => $user->cabang,
+                'bolehFilterCabang' => false,
+                'bolehFilterAdmin' => false,
+                'bolehFilterStaff' => false,
+                'tipePanel' => 'pribadi',
             ],
             'direksi' => [
                 'role' => 'direksi',
@@ -1738,6 +1746,16 @@ class ProspekController extends Controller
     {
         $user = $request->user();
 
+        if (! $user->aksesSemuaCabang()) {
+            if ($user->role === 'admin') {
+                $query->where('cabang', $user->cabang);
+            } elseif ($user->role === 'staff') {
+                $query->where('user_id', $user->id);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
         return $query
             ->when($request->filled('cabang'), fn ($query) => $query->where('cabang', $request->cabang))
             ->when($request->filled('admin'), fn ($query) => $query->where('diserahkan_ke', $request->admin))
@@ -2238,7 +2256,10 @@ class ProspekController extends Controller
 
     private function pastikanBolehLihat(Prospek $prospek): void
     {
-        abort_unless(request()->user()?->bisaLihatSemuaLeads(), 403);
+        abort_unless(
+            $this->queryAkses()->whereKey($prospek->getKey())->exists(),
+            403,
+        );
     }
 
     private function pastikanBolehUbah(): void
